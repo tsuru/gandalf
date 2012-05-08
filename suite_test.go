@@ -1,4 +1,4 @@
-package api
+package gandalf
 
 import (
 	. "launchpad.net/gocheck"
