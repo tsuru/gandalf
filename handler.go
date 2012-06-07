@@ -24,5 +24,11 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Project needs a name", http.StatusBadRequest)
 		return
 	}
+	c := session.DB("gandalf").C("project")
+	err = c.Insert(&p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	fmt.Fprintf(w, "Project %s successfuly created", p.Name)
 }

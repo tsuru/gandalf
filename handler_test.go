@@ -3,6 +3,7 @@ package gandalf
 import (
 	"io"
 	"io/ioutil"
+	"launchpad.net/mgo/bson"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,7 +16,6 @@ func requestProject(b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *htt
 		t.Errorf("Error when creating new request: %s", err)
 		t.FailNow()
 	}
-
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 	return recorder, request
@@ -31,6 +31,7 @@ func readBody(b io.Reader, t *testing.T) string {
 }
 
 func TestCreateProject(t *testing.T) {
+	// defer delete project
 	b := strings.NewReader(`{"name": "some_project"}`)
 	recorder, request := requestProject(b, t)
 	CreateProject(recorder, request)
@@ -38,6 +39,18 @@ func TestCreateProject(t *testing.T) {
 	expected := "Project some_project successfuly created"
 	if got != expected {
 		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
+	}
+}
+
+func TestCreateProjectShouldSaveInDB(t *testing.T) {
+	b := strings.NewReader(`{"name": "myProject"}`)
+	recorder, request := requestProject(b, t)
+	CreateProject(recorder, request)
+	c := session.DB("gandalf").C("project")
+	var p project
+	err := c.Find(bson.M{"name": "myProject"}).One(&p)
+	if err != nil {
+		t.Errorf(`There was an error while retrieving project: "%s"`, err.Error())
 	}
 }
 
