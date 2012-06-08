@@ -10,8 +10,8 @@ import (
 	"testing"
 )
 
-func requestProject(b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
-	request, err := http.NewRequest("POST", "/projects", b)
+func request(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
+	request, err := http.NewRequest("POST", url, b)
 	if err != nil {
 		t.Errorf("Error when creating new request: %s", err)
 		t.FailNow()
@@ -30,10 +30,14 @@ func readBody(b io.Reader, t *testing.T) string {
 	return string(body)
 }
 
+func TestCreateUser(t *testing.T) {
+}
+
 func TestCreateProject(t *testing.T) {
-	// defer delete project
+	c := session.DB("gandalf").C("project")
+	defer c.Remove(bson.M{"name": "some_project"})
 	b := strings.NewReader(`{"name": "some_project"}`)
-	recorder, request := requestProject(b, t)
+	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
 	got := readBody(recorder.Body, t)
 	expected := "Project some_project successfuly created"
@@ -44,9 +48,10 @@ func TestCreateProject(t *testing.T) {
 
 func TestCreateProjectShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "myProject"}`)
-	recorder, request := requestProject(b, t)
+	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
 	c := session.DB("gandalf").C("project")
+	defer c.Remove(bson.M{"name": "myProject"})
 	var p project
 	err := c.Find(bson.M{"name": "myProject"}).One(&p)
 	if err != nil {
@@ -56,7 +61,7 @@ func TestCreateProjectShouldSaveInDB(t *testing.T) {
 
 func TestCreateProjectShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 	b := strings.NewReader("{}")
-	recorder, request := requestProject(b, t)
+	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -71,7 +76,7 @@ func TestCreateProjectShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 
 func TestCreateProjectShouldReturnErrorWhenJsonIsBroken(t *testing.T) {
 	b := strings.NewReader("{]ja9aW}")
-	recorder, request := requestProject(b, t)
+	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -86,7 +91,7 @@ func TestCreateProjectShouldReturnErrorWhenJsonIsBroken(t *testing.T) {
 
 func TestCreateProjectShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 	b := strings.NewReader("")
-	recorder, request := requestProject(b, t)
+	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
