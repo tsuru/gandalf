@@ -1,6 +1,7 @@
 package gandalf
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"launchpad.net/mgo/bson"
@@ -9,6 +10,12 @@ import (
 	"strings"
 	"testing"
 )
+
+type bufferCloser struct {
+	*bytes.Buffer
+}
+
+func (b bufferCloser) Close() error { return nil }
 
 func request(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
 	request, err := http.NewRequest("POST", url, b)
@@ -31,6 +38,36 @@ func readBody(b io.Reader, t *testing.T) string {
 }
 
 func TestCreateUser(t *testing.T) {
+	b := strings.NewReader(`{"name": "brain"}`)
+	recorder, request := request("/user", b, t)
+	CreateUser(recorder, request)
+	if recorder.Code != 200 {
+		t.Errorf(`Failed to create user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
+	}
+}
+
+func TestCreateUserShouldSaveInDB(t *testing.T) {
+	b := strings.NewReader(`{"name": "brain"}`)
+	recorder, request := request("/user", b, t)
+	CreateUser(recorder, request)
+	c := session.DB("gandalf").C("user")
+	var u user
+	err := c.Find(bson.M{"name": "brain"}).One(&u)
+	if err != nil {
+		t.Errorf(`Error when searching for user: "%s"`, err.Error())
+	}
+}
+
+func TestCreateUserShouldRepassParseBodyErrors(t *testing.T) {
+	b := strings.NewReader("{]9afe}")
+	recorder, request := request("/user", b, t)
+	CreateUser(recorder, request)
+	body := readBody(recorder.Body, t)
+	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
+	got := strings.Replace(body, "\n", "", -1)
+	if got != expected {
+		t.Errorf(`Expected error to matches: "%s", got: "%s"`, expected, got)
+	}
 }
 
 func TestCreateProject(t *testing.T) {
@@ -74,18 +111,46 @@ func TestCreateProjectShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 	}
 }
 
-func TestCreateProjectShouldReturnErrorWhenJsonIsBroken(t *testing.T) {
-	b := strings.NewReader("{]ja9aW}")
-	recorder, request := request("/projects", b, t)
-	CreateProject(recorder, request)
-	if recorder.Code != 400 {
-		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
+func TestParseBodyShouldMapBodyJsonToGivenStruct(t *testing.T) {
+	var p project
+	b := bufferCloser{bytes.NewBufferString(`{"name": "Dummy Project"}`)}
+	err := parseBody(b, &p)
+	if err != nil {
+		t.Errorf(`Expecting err to be nil, got: "%s"`, err.Error())
 	}
-	body := readBody(recorder.Body, t)
+	expected := "Dummy Project"
+	if p.Name != expected {
+		t.Errorf(`Expecting err to be "%s", got: "%s"`, expected, p.Name)
+	}
+}
+
+func TestParseBodyShouldReturnErrorWhenJsonIsInvalid(t *testing.T) {
+	var p project
+	b := bufferCloser{bytes.NewBufferString("{]ja9aW}")}
+	err := parseBody(b, &p)
 	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
-	got := strings.Replace(body, "\n", "", -1)
-	if got != expected {
-		t.Errorf(`Expected body to matches: "%s", got: "%s"`, expected, got)
+	if err.Error() != expected {
+		t.Errorf(`Expected error to matches: "%s", got: "%s"`, expected, err.Error())
+	}
+}
+
+func TestParseBodyShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
+	var p project
+	b := bufferCloser{bytes.NewBufferString("")}
+	err := parseBody(b, &p)
+	expected := "Could not parse json: unexpected end of JSON input"
+	if err.Error() != expected {
+		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, err.Error())
+	}
+}
+
+func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
+	var p project
+	b := bufferCloser{bytes.NewBufferString(`{"name": "something"}`)}
+	err := parseBody(b, p)
+	expected := "parseBody function cannot deal with struct. Use pointer"
+	if err.Error() != expected {
+		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, err.Error())
 	}
 }
 
