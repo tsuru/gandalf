@@ -41,6 +41,10 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Project needs a name", http.StatusBadRequest)
 		return
 	}
+	if p.User == "" {
+		http.Error(w, "Project needs a user", http.StatusBadRequest)
+		return
+	}
 	c := session.DB("gandalf").C("project")
 	err = c.Insert(&p)
 	if err != nil {
