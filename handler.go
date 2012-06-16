@@ -17,6 +17,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if u.Key == "" {
+		http.Error(w, "User needs a key", http.StatusBadRequest)
+		return
+	}
 	c := session.DB("gandalf").C("user")
 	err = c.Insert(&u)
 	if err != nil {

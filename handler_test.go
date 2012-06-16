@@ -38,7 +38,7 @@ func readBody(b io.Reader, t *testing.T) string {
 }
 
 func TestCreateUser(t *testing.T) {
-	b := strings.NewReader(`{"name": "brain"}`)
+	b := strings.NewReader(`{"name": "brain", "key": "some id_rsa.pub key.. use your imagination!"}`)
 	recorder, request := request("/user", b, t)
 	CreateUser(recorder, request)
 	if recorder.Code != 200 {
@@ -47,7 +47,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUserShouldSaveInDB(t *testing.T) {
-	b := strings.NewReader(`{"name": "brain"}`)
+	b := strings.NewReader(`{"name": "brain", "key": "some id_rsa.pub key.. use your imagination!"}`)
 	recorder, request := request("/user", b, t)
 	CreateUser(recorder, request)
 	c := session.DB("gandalf").C("user")
@@ -67,6 +67,21 @@ func TestCreateUserShouldRepassParseBodyErrors(t *testing.T) {
 	got := strings.Replace(body, "\n", "", -1)
 	if got != expected {
 		t.Errorf(`Expected error to matches: "%s", got: "%s"`, expected, got)
+	}
+}
+
+func TestCreateUserShouldRequireUserName(t *testing.T) {
+}
+
+func TestCreateUserShouldRequireUserKey(t *testing.T) {
+	b := strings.NewReader(`{"name": "brain"}`)
+	recorder, request := request("/user", b, t)
+	CreateUser(recorder, request)
+	body := readBody(recorder.Body, t)
+	expected := "User needs a key"
+	got := strings.Replace(body, "\n", "", -1)
+	if got != expected {
+		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
 	}
 }
 
