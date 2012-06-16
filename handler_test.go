@@ -91,7 +91,7 @@ func TestCreateUserShouldRequireUserKey(t *testing.T) {
 func TestCreateProject(t *testing.T) {
 	c := session.DB("gandalf").C("project")
 	defer c.Remove(bson.M{"name": "some_project"})
-	b := strings.NewReader(`{"name": "some_project", "user": "brain"}`)
+	b := strings.NewReader(`{"name": "some_project", "user": ["r2d2"]}`)
 	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
 	got := readBody(recorder.Body, t)
@@ -102,7 +102,7 @@ func TestCreateProject(t *testing.T) {
 }
 
 func TestCreateProjectShouldSaveInDB(t *testing.T) {
-	b := strings.NewReader(`{"name": "myProject", "user": "r2d2"}`)
+	b := strings.NewReader(`{"name": "myProject", "user": ["r2d2"]}`)
 	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
 	c := session.DB("gandalf").C("project")
@@ -115,13 +115,9 @@ func TestCreateProjectShouldSaveInDB(t *testing.T) {
 }
 
 func TestCreateProjectShouldSaveUserIdInProject(t *testing.T) {
-	b := strings.NewReader(`{"name": "myProject", "user": "r2d2"}`)
+	b := strings.NewReader(`{"name": "myProject", "user": ["r2d2", "brain"]}`)
 	recorder, request := request("/projects", b, t)
 	CreateProject(recorder, request)
-	u := user{Name: "r2d2", Key: "somekey"}
-	c2 := session.DB("gandalf").C("user")
-	c2.Insert(&u)
-	defer c2.Remove(bson.M{"_id": "r2d2"})
 	c := session.DB("gandalf").C("project")
 	defer c.Remove(bson.M{"name": "myProject"})
 	var p project
@@ -129,8 +125,8 @@ func TestCreateProjectShouldSaveUserIdInProject(t *testing.T) {
 	if err != nil {
 		t.Errorf(`There was an error while retrieving project: "%s"`, err.Error())
 	}
-	if p.User == "" {
-		t.Errorf(`Expected user to be %s, got empty.`, u.Name)
+	if len(p.User) == 0 {
+		t.Errorf(`Expected user to be %s and %s, got empty.`, "r2d2", "brain")
 	}
 }
 

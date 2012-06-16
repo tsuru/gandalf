@@ -7,5 +7,5 @@ type user struct {
 
 type project struct {
 	Name string
-	User string
+	User []string
 }

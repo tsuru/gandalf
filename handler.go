@@ -41,7 +41,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Project needs a name", http.StatusBadRequest)
 		return
 	}
-	if p.User == "" {
+	if len(p.User) == 0 {
 		http.Error(w, "Project needs a user", http.StatusBadRequest)
 		return
 	}
