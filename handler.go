@@ -31,7 +31,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateProject(w http.ResponseWriter, r *http.Request) {
-	var p project
+	var p repository
 	err := parseBody(r.Body, &p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -45,7 +45,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Project needs a user", http.StatusBadRequest)
 		return
 	}
-	c := session.DB("gandalf").C("project")
+	c := session.DB("gandalf").C("repository")
 	err = c.Insert(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

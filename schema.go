@@ -5,7 +5,7 @@ type user struct {
 	Key  string
 }
 
-type project struct {
+type repository struct {
 	Name string
 	User []string
 }

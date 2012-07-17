@@ -89,13 +89,13 @@ func TestCreateUserShouldRequireUserKey(t *testing.T) {
 }
 
 func TestCreateProject(t *testing.T) {
-	c := session.DB("gandalf").C("project")
-	defer c.Remove(bson.M{"name": "some_project"})
-	b := strings.NewReader(`{"name": "some_project", "user": ["r2d2"]}`)
-	recorder, request := request("/projects", b, t)
+	c := session.DB("gandalf").C("repository")
+	defer c.Remove(bson.M{"name": "some_repository"})
+	b := strings.NewReader(`{"name": "some_repository", "user": ["r2d2"]}`)
+	recorder, request := request("/repositories", b, t)
 	CreateProject(recorder, request)
 	got := readBody(recorder.Body, t)
-	expected := "Project some_project successfuly created"
+	expected := "Project some_repository successfuly created"
 	if got != expected {
 		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
 	}
@@ -103,27 +103,27 @@ func TestCreateProject(t *testing.T) {
 
 func TestCreateProjectShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "myProject", "user": ["r2d2"]}`)
-	recorder, request := request("/projects", b, t)
+	recorder, request := request("/repositories", b, t)
 	CreateProject(recorder, request)
-	c := session.DB("gandalf").C("project")
+	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"name": "myProject"})
-	var p project
+	var p repository
 	err := c.Find(bson.M{"name": "myProject"}).One(&p)
 	if err != nil {
-		t.Errorf(`There was an error while retrieving project: "%s"`, err.Error())
+		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
 	}
 }
 
 func TestCreateProjectShouldSaveUserIdInProject(t *testing.T) {
 	b := strings.NewReader(`{"name": "myProject", "user": ["r2d2", "brain"]}`)
-	recorder, request := request("/projects", b, t)
+	recorder, request := request("/repositories", b, t)
 	CreateProject(recorder, request)
-	c := session.DB("gandalf").C("project")
+	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"name": "myProject"})
-	var p project
+	var p repository
 	err := c.Find(bson.M{"name": "myProject"}).One(&p)
 	if err != nil {
-		t.Errorf(`There was an error while retrieving project: "%s"`, err.Error())
+		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
 	}
 	if len(p.User) == 0 {
 		t.Errorf(`Expected user to be %s and %s, got empty.`, "r2d2", "brain")
@@ -132,7 +132,7 @@ func TestCreateProjectShouldSaveUserIdInProject(t *testing.T) {
 
 func TestCreateProjectShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 	b := strings.NewReader(`{"name": "myProject"}`)
-	recorder, request := request("/projects", b, t)
+	recorder, request := request("/repositories", b, t)
 	CreateProject(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -147,7 +147,7 @@ func TestCreateProjectShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 
 func TestCreateProjectShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 	b := strings.NewReader("{}")
-	recorder, request := request("/projects", b, t)
+	recorder, request := request("/repositories", b, t)
 	CreateProject(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -161,7 +161,7 @@ func TestCreateProjectShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 }
 
 func TestParseBodyShouldMapBodyJsonToGivenStruct(t *testing.T) {
-	var p project
+	var p repository
 	b := bufferCloser{bytes.NewBufferString(`{"name": "Dummy Project"}`)}
 	err := parseBody(b, &p)
 	if err != nil {
@@ -174,7 +174,7 @@ func TestParseBodyShouldMapBodyJsonToGivenStruct(t *testing.T) {
 }
 
 func TestParseBodyShouldReturnErrorWhenJsonIsInvalid(t *testing.T) {
-	var p project
+	var p repository
 	b := bufferCloser{bytes.NewBufferString("{]ja9aW}")}
 	err := parseBody(b, &p)
 	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
@@ -184,7 +184,7 @@ func TestParseBodyShouldReturnErrorWhenJsonIsInvalid(t *testing.T) {
 }
 
 func TestParseBodyShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
-	var p project
+	var p repository
 	b := bufferCloser{bytes.NewBufferString("")}
 	err := parseBody(b, &p)
 	expected := "Could not parse json: unexpected end of JSON input"
@@ -194,7 +194,7 @@ func TestParseBodyShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 }
 
 func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
-	var p project
+	var p repository
 	b := bufferCloser{bytes.NewBufferString(`{"name": "something"}`)}
 	err := parseBody(b, p)
 	expected := "parseBody function cannot deal with struct. Use pointer"
@@ -205,7 +205,7 @@ func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
 
 func TestCreateProjectShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 	b := strings.NewReader("")
-	recorder, request := request("/projects", b, t)
+	recorder, request := request("/repositories", b, t)
 	CreateProject(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
