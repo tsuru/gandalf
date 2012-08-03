@@ -1,6 +1,6 @@
 package gandalf
 
-import "launchpad.net/mgo"
+import "labix.org/v2/mgo"
 
 var session *mgo.Session
 
