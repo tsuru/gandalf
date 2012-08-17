@@ -99,7 +99,7 @@ func TestCreateUserWihoutKey(t *testing.T) {
 
 func TestCreateRepository(t *testing.T) {
 	c := session.DB("gandalf").C("repository")
-	defer c.Remove(bson.M{"name": "some_repository"})
+	defer c.Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "user": ["r2d2"]}`)
 	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
@@ -115,9 +115,9 @@ func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
-	defer c.Remove(bson.M{"name": "myRepository"})
+	defer c.Remove(bson.M{"_id": "myRepository"})
 	var p repository
-	err := c.Find(bson.M{"name": "myRepository"}).One(&p)
+	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
 	if err != nil {
 		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
 	}
@@ -128,9 +128,9 @@ func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
-	defer c.Remove(bson.M{"name": "myRepository"})
+	defer c.Remove(bson.M{"_id": "myRepository"})
 	var p repository
-	err := c.Find(bson.M{"name": "myRepository"}).One(&p)
+	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
 	if err != nil {
 		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
 	}

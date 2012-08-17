@@ -6,6 +6,6 @@ type user struct {
 }
 
 type repository struct {
-	Name string
+	Name string `bson:"_id"`
 	User []string
 }
