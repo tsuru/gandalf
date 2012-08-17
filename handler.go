@@ -6,9 +6,33 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"labix.org/v2/mgo/bson"
 	"net/http"
 	"reflect"
 )
+
+func AddKey(w http.ResponseWriter, r *http.Request) {
+	u := user{Name: r.URL.Query().Get(":name")}
+	c := session.DB("gandalf").C("user")
+	err := c.Find(bson.M{"_id": u.Name}).One(&u)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	params := map[string]string{}
+	err = parseBody(r.Body, &params)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	u.Key = append(u.Key, params["key"])
+	err = c.Update(bson.M{"_id": u.Name}, u)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "Key \"%s\" successfuly created", params["key"])
+}
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	var u user

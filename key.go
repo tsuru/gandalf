@@ -1,10 +1,10 @@
 package gandalf
 
 import (
-    "fmt"
-    "io/ioutil"
+	"fmt"
+	"io/ioutil"
 	"os"
-    "path"
+	"path"
 )
 
 // file to write user's keys
@@ -17,14 +17,14 @@ func addKey(key string) error {
 	if err != nil {
 		return err
 	}
-    keys, err := ioutil.ReadFile(authKey)
+	keys, err := ioutil.ReadFile(authKey)
 	if err != nil {
 		return err
 	}
-    content := key
-    if len(keys) != 0 {
-        content = fmt.Sprintf("%s\n%s", keys, key)
-    }
+	content := key
+	if len(keys) != 0 {
+		content = fmt.Sprintf("%s\n%s", keys, key)
+	}
 	_, err = file.Write([]byte(content))
 	if err != nil {
 		return err

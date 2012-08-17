@@ -2,6 +2,7 @@ package gandalf
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -217,5 +218,20 @@ func TestCreateProjectShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 	CreateProject(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
+	}
+}
+
+func TestAddKey(t *testing.T) {
+	user := user{Name: "Frodo"}
+	c := session.DB("gandalf").C("user")
+	c.Insert(&user)
+	b := strings.NewReader(`{"key": "a public key"}`)
+	recorder, request := request(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
+	defer c.Remove(bson.M{"name": "Frodo"})
+	AddKey(recorder, request)
+	got := readBody(recorder.Body, t)
+	expected := "Key \"a public key\" successfuly created"
+	if got != expected {
+		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
 	}
 }
