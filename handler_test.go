@@ -38,7 +38,7 @@ func readBody(b io.Reader, t *testing.T) string {
 }
 
 func TestCreateUser(t *testing.T) {
-	b := strings.NewReader(`{"name": "brain", "key": "some id_rsa.pub key.. use your imagination!"}`)
+	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := request("/user", b, t)
 	CreateUser(recorder, request)
 	c := session.DB("gandalf").C("user")
@@ -49,7 +49,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUserShouldSaveInDB(t *testing.T) {
-	b := strings.NewReader(`{"name": "brain", "key": "some id_rsa.pub key.. use your imagination!"}`)
+	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := request("/user", b, t)
 	CreateUser(recorder, request)
 	c := session.DB("gandalf").C("user")

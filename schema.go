@@ -2,7 +2,7 @@ package gandalf
 
 type user struct {
 	Name string `bson:"_id"`
-	Key  string
+	Key  []string
 }
 
 type repository struct {
