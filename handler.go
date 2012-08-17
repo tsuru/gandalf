@@ -25,7 +25,7 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	u.Key = append(u.Key, params["key"])
+	u.Keys = append(u.Keys, params["key"])
 	err = c.Update(bson.M{"_id": u.Name}, u)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -65,7 +65,7 @@ func CreateRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Repository needs a name", http.StatusBadRequest)
 		return
 	}
-	if len(p.User) == 0 {
+	if len(p.Users) == 0 {
 		http.Error(w, "Repository needs a user", http.StatusBadRequest)
 		return
 	}

@@ -100,7 +100,7 @@ func TestCreateUserWihoutKey(t *testing.T) {
 func TestCreateRepository(t *testing.T) {
 	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"_id": "some_repository"})
-	b := strings.NewReader(`{"name": "some_repository", "user": ["r2d2"]}`)
+	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
 	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	got := readBody(recorder.Body, t)
@@ -111,7 +111,7 @@ func TestCreateRepository(t *testing.T) {
 }
 
 func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
-	b := strings.NewReader(`{"name": "myRepository", "user": ["r2d2"]}`)
+	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
 	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
@@ -124,7 +124,7 @@ func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 }
 
 func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
-	b := strings.NewReader(`{"name": "myRepository", "user": ["r2d2", "brain"]}`)
+	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2", "brain"]}`)
 	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
@@ -134,7 +134,7 @@ func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	if err != nil {
 		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
 	}
-	if len(p.User) == 0 {
+	if len(p.Users) == 0 {
 		t.Errorf(`Expected user to be %s and %s, got empty.`, "r2d2", "brain")
 	}
 }
