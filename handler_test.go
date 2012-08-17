@@ -74,6 +74,15 @@ func TestCreateUserShouldRepassParseBodyErrors(t *testing.T) {
 }
 
 func TestCreateUserShouldRequireUserName(t *testing.T) {
+	b := strings.NewReader(`{"name": ""}`)
+	recorder, request := request("/user", b, t)
+	CreateUser(recorder, request)
+	body := readBody(recorder.Body, t)
+	expected := "User needs a name"
+	got := strings.Replace(body, "\n", "", -1)
+	if got != expected {
+		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
+	}
 }
 
 func TestCreateUserWihoutKey(t *testing.T) {
