@@ -54,7 +54,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User %s successfuly created", u.Name)
 }
 
-func CreateProject(w http.ResponseWriter, r *http.Request) {
+func CreateRepository(w http.ResponseWriter, r *http.Request) {
 	var p repository
 	err := parseBody(r.Body, &p)
 	if err != nil {
@@ -62,11 +62,11 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if p.Name == "" {
-		http.Error(w, "Project needs a name", http.StatusBadRequest)
+		http.Error(w, "Repository needs a name", http.StatusBadRequest)
 		return
 	}
 	if len(p.User) == 0 {
-		http.Error(w, "Project needs a user", http.StatusBadRequest)
+		http.Error(w, "Repository needs a user", http.StatusBadRequest)
 		return
 	}
 	c := session.DB("gandalf").C("repository")
@@ -75,7 +75,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "Project %s successfuly created", p.Name)
+	fmt.Fprintf(w, "Repository %s successfuly created", p.Name)
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {
