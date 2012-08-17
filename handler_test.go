@@ -244,3 +244,19 @@ func TestAddKeyShouldReturnErorWhenUserDoesNotExists(t *testing.T) {
 		t.Errorf(`Expected code to be "404", got "%d"`, recorder.Code)
 	}
 }
+
+func TestAddKeyShouldRequireKey(t *testing.T) {
+	user := user{Name: "Frodo"}
+	c := session.DB("gandalf").C("user")
+	c.Insert(&user)
+	defer c.Remove(bson.M{"_id": "Frodo"})
+	b := strings.NewReader(`{"key": ""}`)
+	recorder, request := request("/user/Frodo/key?:name=Frodo", b, t)
+	AddKey(recorder, request)
+	body := readBody(recorder.Body, t)
+	expected := "Its need a key"
+	got := strings.Replace(body, "\n", "", -1)
+	if got != expected {
+		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
+	}
+}

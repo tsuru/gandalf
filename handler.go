@@ -25,6 +25,10 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if params["key"] == "" {
+		http.Error(w, "Its need a key", http.StatusBadRequest)
+		return
+	}
 	u.Key = append(u.Key, params["key"])
 	err = c.Update(bson.M{"_id": u.Name}, u)
 	if err != nil {
