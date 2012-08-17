@@ -16,7 +16,7 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 	c := session.DB("gandalf").C("user")
 	err := c.Find(bson.M{"_id": u.Name}).One(&u)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 	params := map[string]string{}

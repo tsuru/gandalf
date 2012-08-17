@@ -227,11 +227,20 @@ func TestAddKey(t *testing.T) {
 	c.Insert(&user)
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := request(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
-	defer c.Remove(bson.M{"name": "Frodo"})
+	defer c.Remove(bson.M{"_id": "Frodo"})
 	AddKey(recorder, request)
 	got := readBody(recorder.Body, t)
 	expected := "Key \"a public key\" successfuly created"
 	if got != expected {
 		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
+	}
+}
+
+func TestAddKeyShouldReturnErorWhenUserDoesNotExists(t *testing.T) {
+	b := strings.NewReader(`{"key": "a public key"}`)
+	recorder, request := request("/user/Frodo/key?:name=Frodo", b, t)
+	AddKey(recorder, request)
+	if recorder.Code != 404 {
+		t.Errorf(`Expected code to be "404", got "%d"`, recorder.Code)
 	}
 }
