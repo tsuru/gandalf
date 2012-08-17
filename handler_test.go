@@ -101,7 +101,7 @@ func TestCreateRepository(t *testing.T) {
 	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"name": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "user": ["r2d2"]}`)
-	recorder, request := request("/repositories", b, t)
+	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	got := readBody(recorder.Body, t)
 	expected := "Repository some_repository successfuly created"
@@ -112,7 +112,7 @@ func TestCreateRepository(t *testing.T) {
 
 func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "user": ["r2d2"]}`)
-	recorder, request := request("/repositories", b, t)
+	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"name": "myRepository"})
@@ -125,7 +125,7 @@ func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 
 func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "user": ["r2d2", "brain"]}`)
-	recorder, request := request("/repositories", b, t)
+	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"name": "myRepository"})
@@ -141,7 +141,7 @@ func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 
 func TestCreateRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository"}`)
-	recorder, request := request("/repositories", b, t)
+	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -156,7 +156,7 @@ func TestCreateRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 
 func TestCreateRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 	b := strings.NewReader("{}")
-	recorder, request := request("/repositories", b, t)
+	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -214,7 +214,7 @@ func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
 
 func TestCreateRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 	b := strings.NewReader("")
-	recorder, request := request("/repositories", b, t)
+	recorder, request := request("/repository", b, t)
 	CreateRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
