@@ -1,12 +1,12 @@
 package gandalf
 
 type user struct {
-	Name  string `bson:"_id"`
-	Keys  []string
+	Name string `bson:"_id"`
+	Keys []string
 }
 
 type repository struct {
 	Name     string `bson:"_id"`
 	Users    []string
-    IsPublic bool
+	IsPublic bool
 }

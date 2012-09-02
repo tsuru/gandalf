@@ -30,10 +30,10 @@ func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *h
 }
 
 func createUser(name string) (u user, err error) {
-    u = user{Name: "pippin"}
-    c := session.DB("gandalf").C("user")
-    err = c.Insert(&u)
-    return
+	u = user{Name: "pippin"}
+	c := session.DB("gandalf").C("user")
+	err = c.Insert(&u)
+	return
 }
 
 func readBody(b io.Reader, t *testing.T) string {
@@ -229,36 +229,36 @@ func TestCreateRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 }
 
 func TestGrantAccess(t *testing.T) {
-    u, err := createUser("pippin")
-    c := session.DB("gandalf").C("user")
+	u, err := createUser("pippin")
+	c := session.DB("gandalf").C("user")
 	defer c.Remove(bson.M{"_id": "pippin"})
-    r := repository{Name: "repo"}
-    c = Session.Repository()
-    err = c.Insert(&r)
-    if err != nil {
-        t.Errorf(`Expected error to be nil, got %s`, err.Error())
-    }
+	r := repository{Name: "repo"}
+	c = Session.Repository()
+	err = c.Insert(&r)
+	if err != nil {
+		t.Errorf(`Expected error to be nil, got %s`, err.Error())
+	}
 	defer c.Remove(bson.M{"_id": "repo"})
-    b := strings.NewReader(`{"users": ["pippin"]}`)
-    url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
-    rec, req := post(url, b, t)
-    GrantAccess(rec, req)
-    c.Find(bson.M{"_id": "repo"}).One(&r)
-    if len(r.Users) == 0 {
-        t.Errorf(`Expected repository to have one user, got 0`)
-        t.FailNow()
-    }
-    if r.Users[0] != u.Name {
-        t.Errorf(`Expected repository's user to be %s, got %s`, u.Name, r.Users[0])
-    }
+	b := strings.NewReader(`{"users": ["pippin"]}`)
+	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
+	rec, req := post(url, b, t)
+	GrantAccess(rec, req)
+	c.Find(bson.M{"_id": "repo"}).One(&r)
+	if len(r.Users) == 0 {
+		t.Errorf(`Expected repository to have one user, got 0`)
+		t.FailNow()
+	}
+	if r.Users[0] != u.Name {
+		t.Errorf(`Expected repository's user to be %s, got %s`, u.Name, r.Users[0])
+	}
 }
 
 func TestAddKey(t *testing.T) {
-    user, err := createUser("Frodo")
-    if err != nil {
-        t.Errorf("Error while creating user: %s", err.Error())
-        t.FailNow()
-    }
+	user, err := createUser("Frodo")
+	if err != nil {
+		t.Errorf("Error while creating user: %s", err.Error())
+		t.FailNow()
+	}
 	defer Session.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
