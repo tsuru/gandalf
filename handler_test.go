@@ -18,7 +18,7 @@ type bufferCloser struct {
 
 func (b bufferCloser) Close() error { return nil }
 
-func request(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
+func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
 	request, err := http.NewRequest("POST", url, b)
 	if err != nil {
 		t.Errorf("Error when creating new request: %s", err)
@@ -47,7 +47,7 @@ func readBody(b io.Reader, t *testing.T) string {
 
 func TestCreateUser(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
-	recorder, request := request("/user", b, t)
+	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
 	c := session.DB("gandalf").C("user")
 	defer c.Remove(bson.M{"_id": "brain"})
@@ -58,7 +58,7 @@ func TestCreateUser(t *testing.T) {
 
 func TestCreateUserShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
-	recorder, request := request("/user", b, t)
+	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
 	c := session.DB("gandalf").C("user")
 	var u user
@@ -71,7 +71,7 @@ func TestCreateUserShouldSaveInDB(t *testing.T) {
 
 func TestCreateUserShouldRepassParseBodyErrors(t *testing.T) {
 	b := strings.NewReader("{]9afe}")
-	recorder, request := request("/user", b, t)
+	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
 	body := readBody(recorder.Body, t)
 	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
@@ -83,7 +83,7 @@ func TestCreateUserShouldRepassParseBodyErrors(t *testing.T) {
 
 func TestCreateUserShouldRequireUserName(t *testing.T) {
 	b := strings.NewReader(`{"name": ""}`)
-	recorder, request := request("/user", b, t)
+	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
 	body := readBody(recorder.Body, t)
 	expected := "User needs a name"
@@ -95,7 +95,7 @@ func TestCreateUserShouldRequireUserName(t *testing.T) {
 
 func TestCreateUserWihoutKey(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain"}`)
-	recorder, request := request("/user", b, t)
+	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
 	c := session.DB("gandalf").C("user")
 	defer c.Remove(bson.M{"_id": "brain"})
@@ -108,7 +108,7 @@ func TestCreateRepository(t *testing.T) {
 	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
-	recorder, request := request("/repository", b, t)
+	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
 	got := readBody(recorder.Body, t)
 	expected := "Repository some_repository successfuly created"
@@ -119,7 +119,7 @@ func TestCreateRepository(t *testing.T) {
 
 func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
-	recorder, request := request("/repository", b, t)
+	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"_id": "myRepository"})
@@ -132,7 +132,7 @@ func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 
 func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2", "brain"]}`)
-	recorder, request := request("/repository", b, t)
+	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
 	c := session.DB("gandalf").C("repository")
 	defer c.Remove(bson.M{"_id": "myRepository"})
@@ -148,7 +148,7 @@ func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 
 func TestCreateRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository"}`)
-	recorder, request := request("/repository", b, t)
+	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -163,7 +163,7 @@ func TestCreateRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 
 func TestCreateRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 	b := strings.NewReader("{}")
-	recorder, request := request("/repository", b, t)
+	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
@@ -221,25 +221,10 @@ func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
 
 func TestCreateRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 	b := strings.NewReader("")
-	recorder, request := request("/repository", b, t)
+	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
-	}
-}
-
-func TestAddKey(t *testing.T) {
-	user := user{Name: "Frodo"}
-	c := session.DB("gandalf").C("user")
-	c.Insert(&user)
-	b := strings.NewReader(`{"key": "a public key"}`)
-	recorder, request := request(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
-	defer c.Remove(bson.M{"_id": "Frodo"})
-	AddKey(recorder, request)
-	got := readBody(recorder.Body, t)
-	expected := "Key \"a public key\" successfuly created"
-	if got != expected {
-		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
 	}
 }
 
@@ -256,7 +241,7 @@ func TestGrantAccess(t *testing.T) {
 	defer c.Remove(bson.M{"_id": "repo"})
     b := strings.NewReader(`{"users": ["pippin"]}`)
     url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
-    rec, req := request(url, b, t)
+    rec, req := post(url, b, t)
     GrantAccess(rec, req)
     c.Find(bson.M{"_id": "repo"}).One(&r)
     if len(r.Users) == 0 {
@@ -268,9 +253,24 @@ func TestGrantAccess(t *testing.T) {
     }
 }
 
+func TestAddKey(t *testing.T) {
+	user := user{Name: "Frodo"}
+	c := session.DB("gandalf").C("user")
+	c.Insert(&user)
+	b := strings.NewReader(`{"key": "a public key"}`)
+	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
+	defer c.Remove(bson.M{"_id": "Frodo"})
+	AddKey(recorder, request)
+	got := readBody(recorder.Body, t)
+	expected := "Key \"a public key\" successfuly created"
+	if got != expected {
+		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
+	}
+}
+
 func TestAddKeyShouldReturnErorWhenUserDoesNotExists(t *testing.T) {
 	b := strings.NewReader(`{"key": "a public key"}`)
-	recorder, request := request("/user/Frodo/key?:name=Frodo", b, t)
+	recorder, request := post("/user/Frodo/key?:name=Frodo", b, t)
 	AddKey(recorder, request)
 	if recorder.Code != 404 {
 		t.Errorf(`Expected code to be "404", got "%d"`, recorder.Code)
@@ -283,7 +283,7 @@ func TestAddKeyShouldRequireKey(t *testing.T) {
 	c.Insert(&user)
 	defer c.Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": ""}`)
-	recorder, request := request("/user/Frodo/key?:name=Frodo", b, t)
+	recorder, request := post("/user/Frodo/key?:name=Frodo", b, t)
 	AddKey(recorder, request)
 	body := readBody(recorder.Body, t)
 	expected := "A key is needed"
