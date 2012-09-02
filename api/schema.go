@@ -1,4 +1,4 @@
-package gandalf
+package api
 
 type user struct {
 	Name string `bson:"_id"`

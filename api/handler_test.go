@@ -1,8 +1,9 @@
-package gandalf
+package api
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/timeredbull/gandalf/db"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -30,8 +31,8 @@ func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *h
 }
 
 func createUser(name string) (u user, err error) {
-	u = user{Name: "pippin"}
-	err = Session.User().Insert(&u)
+	u = user{Name: name}
+	err = db.Session.User().Insert(&u)
 	return
 }
 
@@ -48,7 +49,7 @@ func TestCreateUser(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
-	defer Session.User().Remove(bson.M{"_id": "brain"})
+	defer db.Session.User().Remove(bson.M{"_id": "brain"})
 	if recorder.Code != 200 {
 		t.Errorf(`Failed to create user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
 	}
@@ -58,7 +59,7 @@ func TestCreateUserShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
-	c := Session.User()
+	c := db.Session.User()
 	var u user
 	err := c.Find(bson.M{"_id": "brain"}).One(&u)
 	defer c.Remove(bson.M{"_id": "brain"})
@@ -95,14 +96,14 @@ func TestCreateUserWihoutKey(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain"}`)
 	recorder, request := post("/user", b, t)
 	CreateUser(recorder, request)
-	defer Session.User().Remove(bson.M{"_id": "brain"})
+	defer db.Session.User().Remove(bson.M{"_id": "brain"})
 	if recorder.Code != 200 {
 		t.Errorf(`Failed to create user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
 	}
 }
 
 func TestCreateRepository(t *testing.T) {
-	defer Session.Repository().Remove(bson.M{"_id": "some_repository"})
+	defer db.Session.Repository().Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
@@ -117,7 +118,7 @@ func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
-	c := Session.Repository()
+	c := db.Session.Repository()
 	defer c.Remove(bson.M{"_id": "myRepository"})
 	var p repository
 	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
@@ -130,7 +131,7 @@ func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2", "brain"]}`)
 	recorder, request := post("/repository", b, t)
 	CreateRepository(recorder, request)
-	c := Session.Repository()
+	c := db.Session.Repository()
 	defer c.Remove(bson.M{"_id": "myRepository"})
 	var p repository
 	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
@@ -226,9 +227,9 @@ func TestCreateRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 
 func TestGrantAccess(t *testing.T) {
 	u, err := createUser("pippin")
-	defer Session.User().Remove(bson.M{"_id": "pippin"})
+	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
 	r := repository{Name: "repo"}
-	c := Session.Repository()
+	c := db.Session.Repository()
 	err = c.Insert(&r)
 	if err != nil {
 		t.Errorf(`Expected error to be nil, got %s`, err.Error())
@@ -248,7 +249,65 @@ func TestGrantAccess(t *testing.T) {
 	}
 }
 
-func TestGrantAccessShouldReturnErrorWhenUserDoesntExists(t *testing.T) {
+func TestGrantAccessShouldReturn404WhenSingleUserDoesntExists(t *testing.T) {
+	r := repository{Name: "repo"}
+	c := db.Session.Repository()
+	c.Insert(&r)
+	defer c.Remove(bson.M{"_id": "repo"})
+	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
+	b := strings.NewReader(`{"users": ["gandalf"]}`)
+	rec, req := post(url, b, t)
+	GrantAccess(rec, req)
+	if rec.Code != 404 {
+		t.Errorf(`Exepected status code to be 404, got %d`, rec.Code)
+	}
+}
+
+func TestGrantAccessShouldNotInsertInexistentSingleUser(t *testing.T) {
+	r := repository{Name: "repo"}
+	c := db.Session.Repository()
+	err := c.Insert(&r)
+	if err != nil {
+		t.Errorf("Got error while creating repository %s: %s", r.Name, err.Error())
+	}
+	defer c.Remove(bson.M{"_id": "repo"})
+	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
+	b := strings.NewReader(`{"users": ["gandalf"]}`)
+	rec, req := post(url, b, t)
+	GrantAccess(rec, req)
+	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	if err != nil {
+		t.Errorf("Got error while retrieving repository %s: %s", r.Name, err.Error())
+	}
+	if len(r.Users) != 0 {
+		t.Errorf(`Expecting repository's user len to be 0, got %d`, len(r.Users))
+	}
+}
+
+func TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(t *testing.T) {
+	r := repository{Name: "somerepo"}
+	err := db.Session.Repository().Insert(&r)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	if err != nil {
+		t.Errorf("Got error while creating repository: %s", err.Error())
+	}
+	u, err := createUser("gandalf")
+	if err != nil {
+		t.Errorf("Got error while creating user: %s", err.Error())
+	}
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
+	b := strings.NewReader(`{"users": ["gandalf", "frodo"]}`)
+	rec, req := post(url, b, t)
+	GrantAccess(rec, req)
+	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	if err != nil {
+		t.Errorf("Got error while retrieving repository: %s", err.Error())
+	}
+	if len(r.Users) != 1 {
+		fmt.Println(r.Users)
+		t.Errorf("Expecting repository's user len to be 1, got %d", len(r.Users))
+	}
 }
 
 func TestAddKey(t *testing.T) {
@@ -257,7 +316,7 @@ func TestAddKey(t *testing.T) {
 		t.Errorf("Error while creating user: %s", err.Error())
 		t.FailNow()
 	}
-	defer Session.User().Remove(bson.M{"_id": "Frodo"})
+	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
 	AddKey(recorder, request)
@@ -279,7 +338,7 @@ func TestAddKeyShouldReturnErorWhenUserDoesNotExists(t *testing.T) {
 
 func TestAddKeyShouldRequireKey(t *testing.T) {
 	user := user{Name: "Frodo"}
-	c := Session.User()
+	c := db.Session.User()
 	c.Insert(&user)
 	defer c.Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": ""}`)

@@ -1,9 +1,10 @@
-package gandalf
+package api
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/timeredbull/gandalf/db"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -13,7 +14,7 @@ import (
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
 	repo := repository{Name: r.URL.Query().Get(":name")}
-	c := Session.Repository()
+	c := db.Session.Repository()
 	c.Find(bson.M{"_id": repo.Name}).One(&repo)
 	req := map[string][]string{}
 	err := parseBody(r.Body, &req)
@@ -21,8 +22,20 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	users := req["users"]
-	repo.Users = append(repo.Users, users...)
+	for _, u := range req["users"] {
+		_, err = getUserOr404(u)
+		if err != nil {
+			if len(req["users"]) == 1 {
+				// user should exist, return error
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			} else {
+				// #TODO (flaviamissi): log a warning saying the user "u" was not found and skip it
+				continue
+			}
+		}
+		repo.Users = append(repo.Users, u)
+	}
 	err = c.Update(bson.M{"_id": repo.Name}, &repo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -32,7 +45,7 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 
 func AddKey(w http.ResponseWriter, r *http.Request) {
 	u := user{Name: r.URL.Query().Get(":name")}
-	c := Session.User()
+	c := db.Session.User()
 	err := c.Find(bson.M{"_id": u.Name}).One(&u)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -68,7 +81,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User needs a name", http.StatusBadRequest)
 		return
 	}
-	err = Session.User().Insert(&u)
+	err = db.Session.User().Insert(&u)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -83,6 +96,7 @@ func CreateRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	// #TODO (flaviamissi) ensure repository name is a valid directory name
 	if p.Name == "" {
 		http.Error(w, "Repository needs a name", http.StatusBadRequest)
 		return
@@ -91,7 +105,7 @@ func CreateRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Repository needs a user", http.StatusBadRequest)
 		return
 	}
-	err = Session.Repository().Insert(&p)
+	err = db.Session.Repository().Insert(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
