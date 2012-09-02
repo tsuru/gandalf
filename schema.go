@@ -6,6 +6,7 @@ type user struct {
 }
 
 type repository struct {
-	Name  string `bson:"_id"`
-	Users []string
+	Name     string `bson:"_id"`
+	Users    []string
+    IsPublic bool
 }
