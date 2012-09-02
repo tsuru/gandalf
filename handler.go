@@ -35,13 +35,17 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 	c := session.DB("gandalf").C("user")
 	err := c.Find(bson.M{"_id": u.Name}).One(&u)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 	params := map[string]string{}
 	err = parseBody(r.Body, &params)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if params["key"] == "" {
+		http.Error(w, "A key is needed", http.StatusBadRequest)
 		return
 	}
 	u.Keys = append(u.Keys, params["key"])

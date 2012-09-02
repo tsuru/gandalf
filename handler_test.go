@@ -234,7 +234,7 @@ func TestAddKey(t *testing.T) {
 	c.Insert(&user)
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := request(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
-	defer c.Remove(bson.M{"name": "Frodo"})
+	defer c.Remove(bson.M{"_id": "Frodo"})
 	AddKey(recorder, request)
 	got := readBody(recorder.Body, t)
 	expected := "Key \"a public key\" successfuly created"
@@ -266,4 +266,29 @@ func TestGrantAccess(t *testing.T) {
     if r.Users[0] != u.Name {
         t.Errorf(`Expected repository's user to be %s, got %s`, u.Name, r.Users[0])
     }
+}
+
+func TestAddKeyShouldReturnErorWhenUserDoesNotExists(t *testing.T) {
+	b := strings.NewReader(`{"key": "a public key"}`)
+	recorder, request := request("/user/Frodo/key?:name=Frodo", b, t)
+	AddKey(recorder, request)
+	if recorder.Code != 404 {
+		t.Errorf(`Expected code to be "404", got "%d"`, recorder.Code)
+	}
+}
+
+func TestAddKeyShouldRequireKey(t *testing.T) {
+	user := user{Name: "Frodo"}
+	c := session.DB("gandalf").C("user")
+	c.Insert(&user)
+	defer c.Remove(bson.M{"_id": "Frodo"})
+	b := strings.NewReader(`{"key": ""}`)
+	recorder, request := request("/user/Frodo/key?:name=Frodo", b, t)
+	AddKey(recorder, request)
+	body := readBody(recorder.Body, t)
+	expected := "A key is needed"
+	got := strings.Replace(body, "\n", "", -1)
+	if got != expected {
+		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
+	}
 }
