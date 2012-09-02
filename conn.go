@@ -23,3 +23,7 @@ func init() {
 func (ssn *s) Repository() *mgo.Collection {
     return ssn.conn.DB("gandalf").C("repository")
 }
+
+func (ssn *s) User() *mgo.Collection {
+    return ssn.conn.DB("gandalf").C("user")
+}
