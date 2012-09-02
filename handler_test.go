@@ -29,6 +29,13 @@ func request(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder,
 	return recorder, request
 }
 
+func createUser(name string, t *testing.T) (u user, err error) {
+    u = user{Name: "pippin"}
+    c := session.DB("gandalf").C("user")
+    err = c.Insert(&u)
+    return
+}
+
 func readBody(b io.Reader, t *testing.T) string {
 	body, err := ioutil.ReadAll(b)
 	if err != nil {
@@ -234,4 +241,29 @@ func TestAddKey(t *testing.T) {
 	if got != expected {
 		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
 	}
+}
+
+func TestGrantAccess(t *testing.T) {
+    u, err := createUser("pippin", t)
+    c := session.DB("gandalf").C("user")
+	defer c.Remove(bson.M{"_id": "pippin"})
+    r := repository{Name: "repo"}
+    c = Session.Repository()
+    err = c.Insert(&r)
+    if err != nil {
+        t.Errorf(`Expected error to be nil, got %s`, err.Error())
+    }
+	defer c.Remove(bson.M{"_id": "repo"})
+    b := strings.NewReader(`{"users": ["pippin"]}`)
+    url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
+    rec, req := request(url, b, t)
+    GrantAccess(rec, req)
+    c.Find(bson.M{"_id": "repo"}).One(&r)
+    if len(r.Users) == 0 {
+        t.Errorf(`Expected repository to have one user, got 0`)
+        t.FailNow()
+    }
+    if r.Users[0] != u.Name {
+        t.Errorf(`Expected repository's user to be %s, got %s`, u.Name, r.Users[0])
+    }
 }

@@ -11,6 +11,25 @@ import (
 	"reflect"
 )
 
+func GrantAccess(w http.ResponseWriter, r *http.Request) {
+    repo := repository{Name: r.URL.Query().Get(":name")}
+    c := session.DB("gandalf").C("repository")
+    c.Find(bson.M{"_id": repo.Name}).One(&repo)
+    req := map[string][]string{}
+    err := parseBody(r.Body, &req)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+    users := req["users"]
+    repo.Users = append(repo.Users, users...)
+    err = c.Update(bson.M{"_id": repo.Name}, &repo)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+}
+
 func AddKey(w http.ResponseWriter, r *http.Request) {
 	u := user{Name: r.URL.Query().Get(":name")}
 	c := session.DB("gandalf").C("user")
