@@ -13,7 +13,7 @@ import (
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
 	repo := repository{Name: r.URL.Query().Get(":name")}
-	c := session.DB("gandalf").C("repository")
+	c := Session.Repository()
 	c.Find(bson.M{"_id": repo.Name}).One(&repo)
 	req := map[string][]string{}
 	err := parseBody(r.Body, &req)
@@ -32,7 +32,7 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 
 func AddKey(w http.ResponseWriter, r *http.Request) {
 	u := user{Name: r.URL.Query().Get(":name")}
-	c := session.DB("gandalf").C("user")
+	c := Session.User()
 	err := c.Find(bson.M{"_id": u.Name}).One(&u)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
@@ -68,8 +68,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User needs a name", http.StatusBadRequest)
 		return
 	}
-	c := session.DB("gandalf").C("user")
-	err = c.Insert(&u)
+	err = Session.User().Insert(&u)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -92,8 +91,7 @@ func CreateRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Repository needs a user", http.StatusBadRequest)
 		return
 	}
-	c := session.DB("gandalf").C("repository")
-	err = c.Insert(&p)
+	err = Session.Repository().Insert(&p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
