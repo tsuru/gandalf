@@ -70,7 +70,7 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Key \"%s\" successfuly created", params["key"])
 }
 
-func CreateUser(w http.ResponseWriter, r *http.Request) {
+func NewUser(w http.ResponseWriter, r *http.Request) {
 	var u user
 	err := parseBody(r.Body, &u)
 	if err != nil {
@@ -89,7 +89,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User %s successfuly created", u.Name)
 }
 
-func CreateRepository(w http.ResponseWriter, r *http.Request) {
+func NewRepository(w http.ResponseWriter, r *http.Request) {
 	var p repository
 	err := parseBody(r.Body, &p)
 	if err != nil {

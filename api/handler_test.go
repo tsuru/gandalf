@@ -45,20 +45,20 @@ func readBody(b io.Reader, t *testing.T) string {
 	return string(body)
 }
 
-func TestCreateUser(t *testing.T) {
+func TestNewUser(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := post("/user", b, t)
-	CreateUser(recorder, request)
+	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
 	if recorder.Code != 200 {
 		t.Errorf(`Failed to create user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
 	}
 }
 
-func TestCreateUserShouldSaveInDB(t *testing.T) {
+func TestNewUserShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := post("/user", b, t)
-	CreateUser(recorder, request)
+	NewUser(recorder, request)
 	c := db.Session.User()
 	var u user
 	err := c.Find(bson.M{"_id": "brain"}).One(&u)
@@ -68,10 +68,10 @@ func TestCreateUserShouldSaveInDB(t *testing.T) {
 	}
 }
 
-func TestCreateUserShouldRepassParseBodyErrors(t *testing.T) {
+func TestNewUserShouldRepassParseBodyErrors(t *testing.T) {
 	b := strings.NewReader("{]9afe}")
 	recorder, request := post("/user", b, t)
-	CreateUser(recorder, request)
+	NewUser(recorder, request)
 	body := readBody(recorder.Body, t)
 	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
 	got := strings.Replace(body, "\n", "", -1)
@@ -80,10 +80,10 @@ func TestCreateUserShouldRepassParseBodyErrors(t *testing.T) {
 	}
 }
 
-func TestCreateUserShouldRequireUserName(t *testing.T) {
+func TestNewUserShouldRequireUserName(t *testing.T) {
 	b := strings.NewReader(`{"name": ""}`)
 	recorder, request := post("/user", b, t)
-	CreateUser(recorder, request)
+	NewUser(recorder, request)
 	body := readBody(recorder.Body, t)
 	expected := "User needs a name"
 	got := strings.Replace(body, "\n", "", -1)
@@ -92,21 +92,21 @@ func TestCreateUserShouldRequireUserName(t *testing.T) {
 	}
 }
 
-func TestCreateUserWihoutKey(t *testing.T) {
+func TestNewUserWihoutKey(t *testing.T) {
 	b := strings.NewReader(`{"name": "brain"}`)
 	recorder, request := post("/user", b, t)
-	CreateUser(recorder, request)
+	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
 	if recorder.Code != 200 {
 		t.Errorf(`Failed to create user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
 	}
 }
 
-func TestCreateRepository(t *testing.T) {
+func TestNewRepository(t *testing.T) {
 	defer db.Session.Repository().Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, t)
-	CreateRepository(recorder, request)
+	NewRepository(recorder, request)
 	got := readBody(recorder.Body, t)
 	expected := "Repository some_repository successfuly created"
 	if got != expected {
@@ -114,10 +114,10 @@ func TestCreateRepository(t *testing.T) {
 	}
 }
 
-func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
+func TestNewRepositoryShouldSaveInDB(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, t)
-	CreateRepository(recorder, request)
+	NewRepository(recorder, request)
 	c := db.Session.Repository()
 	defer c.Remove(bson.M{"_id": "myRepository"})
 	var p repository
@@ -127,10 +127,10 @@ func TestCreateRepositoryShouldSaveInDB(t *testing.T) {
 	}
 }
 
-func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
+func TestNewRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2", "brain"]}`)
 	recorder, request := post("/repository", b, t)
-	CreateRepository(recorder, request)
+	NewRepository(recorder, request)
 	c := db.Session.Repository()
 	defer c.Remove(bson.M{"_id": "myRepository"})
 	var p repository
@@ -143,10 +143,10 @@ func TestCreateRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	}
 }
 
-func TestCreateRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
+func TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 	b := strings.NewReader(`{"name": "myRepository"}`)
 	recorder, request := post("/repository", b, t)
-	CreateRepository(recorder, request)
+	NewRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
 	}
@@ -158,10 +158,10 @@ func TestCreateRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 	}
 }
 
-func TestCreateRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
+func TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 	b := strings.NewReader("{}")
 	recorder, request := post("/repository", b, t)
-	CreateRepository(recorder, request)
+	NewRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
 	}
@@ -216,10 +216,10 @@ func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
 	}
 }
 
-func TestCreateRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
+func TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 	b := strings.NewReader("")
 	recorder, request := post("/repository", b, t)
-	CreateRepository(recorder, request)
+	NewRepository(recorder, request)
 	if recorder.Code != 400 {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
 	}
