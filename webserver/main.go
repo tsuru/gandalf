@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/bmizerany/pat"
-	"github.com/timeredbull/gandalf"
+	"github.com/timeredbull/gandalf/api"
 	"log"
 	"net/http"
 )
@@ -13,8 +13,8 @@ func main() {
 	flag.Parse()
 
 	router := pat.New()
-	router.Post("/user", http.HandlerFunc(gandalf.CreateUser))
-	router.Post("/repository", http.HandlerFunc(gandalf.CreateRepository))
+	router.Post("/user", http.HandlerFunc(api.CreateUser))
+	router.Post("/repository", http.HandlerFunc(api.CreateRepository))
 
 	if !*dry {
 		log.Fatal(http.ListenAndServe(":8080", router))
