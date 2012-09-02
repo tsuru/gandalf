@@ -29,7 +29,7 @@ func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *h
 	return recorder, request
 }
 
-func createUser(name string, t *testing.T) (u user, err error) {
+func createUser(name string) (u user, err error) {
     u = user{Name: "pippin"}
     c := session.DB("gandalf").C("user")
     err = c.Insert(&u)
@@ -229,7 +229,7 @@ func TestCreateRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 }
 
 func TestGrantAccess(t *testing.T) {
-    u, err := createUser("pippin", t)
+    u, err := createUser("pippin")
     c := session.DB("gandalf").C("user")
 	defer c.Remove(bson.M{"_id": "pippin"})
     r := repository{Name: "repo"}
@@ -254,12 +254,14 @@ func TestGrantAccess(t *testing.T) {
 }
 
 func TestAddKey(t *testing.T) {
-	user := user{Name: "Frodo"}
-	c := session.DB("gandalf").C("user")
-	c.Insert(&user)
+    user, err := createUser("Frodo")
+    if err != nil {
+        t.Errorf("Error while creating user: %s", err.Error())
+        t.FailNow()
+    }
+	defer Session.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
-	defer c.Remove(bson.M{"_id": "Frodo"})
 	AddKey(recorder, request)
 	got := readBody(recorder.Body, t)
 	expected := "Key \"a public key\" successfuly created"
