@@ -3,23 +3,25 @@ package db
 import "labix.org/v2/mgo"
 
 type session struct {
-	conn *mgo.Session
+	DB *mgo.Database
 }
 
 var Session = session{}
 
 func init() {
 	var err error
-	Session.conn, err = mgo.Dial("localhost:27017")
+	var s *mgo.Session
+	s, err = mgo.Dial("localhost:27017")
+	Session.DB = s.DB("gandalf")
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (ssn *session) Repository() *mgo.Collection {
-	return ssn.conn.DB("gandalf").C("repository")
+func (s *session) Repository() *mgo.Collection {
+	return s.DB.C("repository")
 }
 
-func (ssn *session) User() *mgo.Collection {
-	return ssn.conn.DB("gandalf").C("user")
+func (s *session) User() *mgo.Collection {
+	return s.DB.C("user")
 }
