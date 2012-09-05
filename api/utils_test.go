@@ -2,12 +2,13 @@ package api
 
 import (
 	"github.com/timeredbull/gandalf/db"
+	"github.com/timeredbull/gandalf/user"
 	"labix.org/v2/mgo/bson"
 	"testing"
 )
 
 func TestGetUserOr404(t *testing.T) {
-	u := user{Name: "umi"}
+	u := user.User{Name: "umi"}
 	err := db.Session.User().Insert(&u)
 	if err != nil {
 		t.Errorf("Got error while creating user: %s", err.Error())

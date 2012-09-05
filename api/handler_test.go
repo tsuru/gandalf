@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/repository"
+	"github.com/timeredbull/gandalf/user"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -31,8 +32,8 @@ func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *h
 	return recorder, request
 }
 
-func createUser(name string) (u user, err error) {
-	u = user{Name: name}
+func createUser(name string) (u user.User, err error) {
+	u = user.User{Name: name}
 	err = db.Session.User().Insert(&u)
 	return
 }
@@ -61,7 +62,7 @@ func TestNewUserShouldSaveInDB(t *testing.T) {
 	recorder, request := post("/user", b, t)
 	NewUser(recorder, request)
 	c := db.Session.User()
-	var u user
+	var u user.User
 	err := c.Find(bson.M{"_id": "brain"}).One(&u)
 	defer c.Remove(bson.M{"_id": "brain"})
 	if err != nil {
@@ -338,9 +339,9 @@ func TestAddKeyShouldReturnErorWhenUserDoesNotExists(t *testing.T) {
 }
 
 func TestAddKeyShouldRequireKey(t *testing.T) {
-	user := user{Name: "Frodo"}
+	u := user.User{Name: "Frodo"}
 	c := db.Session.User()
-	c.Insert(&user)
+	c.Insert(&u)
 	defer c.Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": ""}`)
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, t)
