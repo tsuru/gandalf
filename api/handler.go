@@ -97,7 +97,6 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	// #TODO (flaviamissi) ensure repository name is a valid directory name
 	if repo.Name == "" {
 		http.Error(w, "Repository needs a name", http.StatusBadRequest)
 		return
