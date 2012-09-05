@@ -13,8 +13,8 @@ func main() {
 	flag.Parse()
 
 	router := pat.New()
-	router.Post("/user", http.HandlerFunc(api.CreateUser))
-	router.Post("/repository", http.HandlerFunc(api.CreateRepository))
+	router.Post("/user", http.HandlerFunc(api.NewUser))
+	router.Post("/repository", http.HandlerFunc(api.NewRepository))
 
 	if !*dry {
 		log.Fatal(http.ListenAndServe(":8080", router))
