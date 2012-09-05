@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
+	"github.com/timeredbull/gandalf/repository"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -120,7 +121,7 @@ func TestNewRepositoryShouldSaveInDB(t *testing.T) {
 	NewRepository(recorder, request)
 	c := db.Session.Repository()
 	defer c.Remove(bson.M{"_id": "myRepository"})
-	var p repository
+	var p repository.Repository
 	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
 	if err != nil {
 		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
@@ -133,7 +134,7 @@ func TestNewRepositoryShouldSaveUserIdInRepository(t *testing.T) {
 	NewRepository(recorder, request)
 	c := db.Session.Repository()
 	defer c.Remove(bson.M{"_id": "myRepository"})
-	var p repository
+	var p repository.Repository
 	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
 	if err != nil {
 		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
@@ -174,7 +175,7 @@ func TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 }
 
 func TestParseBodyShouldMapBodyJsonToGivenStruct(t *testing.T) {
-	var p repository
+	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString(`{"name": "Dummy Repository"}`)}
 	err := parseBody(b, &p)
 	if err != nil {
@@ -187,7 +188,7 @@ func TestParseBodyShouldMapBodyJsonToGivenStruct(t *testing.T) {
 }
 
 func TestParseBodyShouldReturnErrorWhenJsonIsInvalid(t *testing.T) {
-	var p repository
+	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString("{]ja9aW}")}
 	err := parseBody(b, &p)
 	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
@@ -197,7 +198,7 @@ func TestParseBodyShouldReturnErrorWhenJsonIsInvalid(t *testing.T) {
 }
 
 func TestParseBodyShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
-	var p repository
+	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString("")}
 	err := parseBody(b, &p)
 	expected := "Could not parse json: unexpected end of JSON input"
@@ -207,7 +208,7 @@ func TestParseBodyShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 }
 
 func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
-	var p repository
+	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString(`{"name": "something"}`)}
 	err := parseBody(b, p)
 	expected := "parseBody function cannot deal with struct. Use pointer"
@@ -228,7 +229,7 @@ func TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 func TestGrantAccess(t *testing.T) {
 	u, err := createUser("pippin")
 	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
-	r := repository{Name: "repo"}
+	r := repository.Repository{Name: "repo"}
 	c := db.Session.Repository()
 	err = c.Insert(&r)
 	if err != nil {
@@ -250,7 +251,7 @@ func TestGrantAccess(t *testing.T) {
 }
 
 func TestGrantAccessShouldReturn404WhenSingleUserDoesntExists(t *testing.T) {
-	r := repository{Name: "repo"}
+	r := repository.Repository{Name: "repo"}
 	c := db.Session.Repository()
 	c.Insert(&r)
 	defer c.Remove(bson.M{"_id": "repo"})
@@ -264,7 +265,7 @@ func TestGrantAccessShouldReturn404WhenSingleUserDoesntExists(t *testing.T) {
 }
 
 func TestGrantAccessShouldNotInsertInexistentSingleUser(t *testing.T) {
-	r := repository{Name: "repo"}
+	r := repository.Repository{Name: "repo"}
 	c := db.Session.Repository()
 	err := c.Insert(&r)
 	if err != nil {
@@ -285,7 +286,7 @@ func TestGrantAccessShouldNotInsertInexistentSingleUser(t *testing.T) {
 }
 
 func TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(t *testing.T) {
-	r := repository{Name: "somerepo"}
+	r := repository.Repository{Name: "somerepo"}
 	err := db.Session.Repository().Insert(&r)
 	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
 	if err != nil {

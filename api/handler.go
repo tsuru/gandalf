@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
+	"github.com/timeredbull/gandalf/repository"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -13,7 +14,7 @@ import (
 )
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
-	repo := repository{Name: r.URL.Query().Get(":name")}
+	repo := repository.Repository{Name: r.URL.Query().Get(":name")}
 	c := db.Session.Repository()
 	c.Find(bson.M{"_id": repo.Name}).One(&repo)
 	req := map[string][]string{}
@@ -26,7 +27,6 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 		_, err = getUserOr404(u)
 		if err != nil {
 			if len(req["users"]) == 1 {
-				// user should exist, return error
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			} else {
@@ -44,7 +44,7 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddKey(w http.ResponseWriter, r *http.Request) {
-	u := user{Name: r.URL.Query().Get(":name")}
+	u := user.User{Name: r.URL.Query().Get(":name")}
 	c := db.Session.User()
 	err := c.Find(bson.M{"_id": u.Name}).One(&u)
 	if err != nil {
@@ -71,7 +71,7 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewUser(w http.ResponseWriter, r *http.Request) {
-	var u user
+	var u user.User
 	err := parseBody(r.Body, &u)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -90,7 +90,7 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewRepository(w http.ResponseWriter, r *http.Request) {
-	var p repository
+	var p repository.Repository
 	err := parseBody(r.Body, &p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
