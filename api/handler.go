@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/repository"
+	"github.com/timeredbull/gandalf/user"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -90,27 +91,27 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewRepository(w http.ResponseWriter, r *http.Request) {
-	var p repository.Repository
-	err := parseBody(r.Body, &p)
+	var repo repository.Repository
+	err := parseBody(r.Body, &repo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	// #TODO (flaviamissi) ensure repository name is a valid directory name
-	if p.Name == "" {
+	if repo.Name == "" {
 		http.Error(w, "Repository needs a name", http.StatusBadRequest)
 		return
 	}
-	if len(p.Users) == 0 {
+	if len(repo.Users) == 0 {
 		http.Error(w, "Repository needs a user", http.StatusBadRequest)
 		return
 	}
-	err = db.Session.Repository().Insert(&p)
+	err = db.Session.Repository().Insert(&repo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "Repository %s successfuly created", p.Name)
+	fmt.Fprintf(w, "Repository %s successfuly created", repo.Name)
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {
