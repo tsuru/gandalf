@@ -97,7 +97,7 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-    rep, err := repository.New(repo.Name, repo.Users, repo.IsPublic)
+	rep, err := repository.New(repo.Name, repo.Users, repo.IsPublic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
