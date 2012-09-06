@@ -97,20 +97,12 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if repo.Name == "" {
-		http.Error(w, "Repository needs a name", http.StatusBadRequest)
-		return
-	}
-	if len(repo.Users) == 0 {
-		http.Error(w, "Repository needs a user", http.StatusBadRequest)
-		return
-	}
-	err = db.Session.Repository().Insert(&repo)
+    rep, err := repository.New(repo.Name, repo.Users, repo.IsPublic)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "Repository %s successfuly created", repo.Name)
+	fmt.Fprintf(w, "Repository %s successfuly created", rep.Name)
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {

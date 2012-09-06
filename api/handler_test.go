@@ -153,7 +153,7 @@ func TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
 	}
 	body := readBody(recorder.Body, t)
-	expected := "Repository needs a user"
+	expected := "Validation Error: check the repository name and/or users length"
 	got := strings.Replace(body, "\n", "", -1)
 	if got != expected {
 		t.Errorf(`Expected body to matches: "%s", got: "%s"`, expected, got)
@@ -168,7 +168,7 @@ func TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
 	}
 	body := readBody(recorder.Body, t)
-	expected := "Repository needs a name"
+	expected := "Validation Error: check the repository name and/or users length"
 	got := strings.Replace(body, "\n", "", -1)
 	if got != expected {
 		t.Errorf(`Expected body to matches: "%s", got: "%s"`, expected, got)

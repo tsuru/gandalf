@@ -15,7 +15,7 @@ type Repository struct {
 func New(name string, users []string, isPublic bool) (r *Repository, err error) {
 	r = &Repository{Name: name, Users: users, IsPublic: isPublic}
 	if !r.isValid() {
-		err = errors.New("Validation Error: repository needs a valid name")
+		err = errors.New("Validation Error: check the repository name and/or users length")
 		return
 	}
 	err = db.Session.Repository().Insert(&r)

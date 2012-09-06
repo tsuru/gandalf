@@ -43,7 +43,7 @@ func TestNewBreaksOnValidationError(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expecting an error, got nil")
 	}
-	expected := "Validation Error: repository needs a valid name"
+	expected := "Validation Error: check the repository name and/or users length"
 	got := err.Error()
 	if got != expected {
 		t.Errorf(`Expected error to be "%s", got "%s"`, expected, got)
