@@ -63,3 +63,17 @@ func TestRepositoryIsNotValidWithInvalidName(t *testing.T) {
 		t.Errorf("Expecting repository not to be valid")
 	}
 }
+
+func TestRepositoryShoudBeInvalidWIthoutAnyUsers(t *testing.T) {
+	r := Repository{Name: "foo_bar", Users: []string{}, IsPublic: true}
+	if r.isValid() {
+		t.Errorf("Expecting repository not to be valid")
+	}
+}
+
+func TestRepositoryShouldBeValidWithoutIsPublic(t *testing.T) {
+	r := Repository{Name: "someName", Users: []string{"smeagol"}}
+	if !r.isValid() {
+		t.Errorf("Expecting repository to be valid")
+	}
+}

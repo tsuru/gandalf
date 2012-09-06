@@ -27,5 +27,5 @@ func (r *Repository) isValid() bool {
 	if e != nil {
 		panic(e)
 	}
-	return !m
+	return !m && len(r.Users) != 0
 }
