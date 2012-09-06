@@ -50,8 +50,15 @@ func TestNewBreaksOnValidationError(t *testing.T) {
 	}
 }
 
-func TestRepositoryIsValid(t *testing.T) {
+func TestRepositoryIsNotValidWithoutAName(t *testing.T) {
 	r := Repository{Users: []string{"gollum"}, IsPublic: true}
+	if r.isValid() {
+		t.Errorf("Expecting repository not to be valid")
+	}
+}
+
+func TestRepositoryIsNotValidWithInvalidName(t *testing.T) {
+	r := Repository{Name: "foo bar", Users: []string{"gollum"}, IsPublic: true}
 	if r.isValid() {
 		t.Errorf("Expecting repository not to be valid")
 	}

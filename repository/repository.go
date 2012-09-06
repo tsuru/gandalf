@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"github.com/timeredbull/gandalf/db"
+	"regexp"
 )
 
 type Repository struct {
@@ -12,7 +13,6 @@ type Repository struct {
 }
 
 func New(name string, users []string, isPublic bool) (r *Repository, err error) {
-	// #TODO (flaviamissi) ensure repository name is a valid directory name
 	r = &Repository{Name: name, Users: users, IsPublic: isPublic}
 	if !r.isValid() {
 		err = errors.New("Validation Error: repository needs a valid name")
@@ -23,8 +23,9 @@ func New(name string, users []string, isPublic bool) (r *Repository, err error) 
 }
 
 func (r *Repository) isValid() bool {
-	if r.Name == "" {
-		return false
+	m, e := regexp.Match(`(^$)|\W+|\s+`, []byte(r.Name))
+	if e != nil {
+		panic(e)
 	}
-	return true
+	return !m
 }
