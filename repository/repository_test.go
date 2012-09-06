@@ -42,6 +42,7 @@ func TestNewBreaksOnValidationError(t *testing.T) {
 	_, err := New("", []string{"smeagol"}, false)
 	if err == nil {
 		t.Errorf("Expecting an error, got nil")
+        t.FailNow()
 	}
 	expected := "Validation Error: check the repository name and/or users length"
 	got := err.Error()
