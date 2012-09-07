@@ -38,6 +38,19 @@ func TestNewUserShouldStoreUserInDatabase(t *testing.T) {
 	}
 }
 
+func TestNewChecksIfUserIsValidBeforeStoring(t *testing.T) {
+	_, err := New("", []string{})
+	if err == nil {
+		t.Errorf("Expected err not to be nil")
+		t.FailNow()
+	}
+	got := err.Error()
+	expected := "Validation Error: user name is not valid"
+	if got != expected {
+		t.Errorf(`Expected error to be "%s", got "%s"`, expected, got)
+	}
+}
+
 func TestIsValidReturnsErrorWhenUserDoesNotHaveAName(t *testing.T) {
 	u := User{Keys: []string{"id_rsa foooBar"}}
 	v, err := u.isValid()
@@ -56,7 +69,7 @@ func TestIsValidReturnsErrorWhenUserDoesNotHaveAName(t *testing.T) {
 }
 
 func TestIsValidShouldNotAcceptEmptyUserName(t *testing.T) {
-	u := User{Name: "", Keys: []string{"id_rsa foooBar"}}
+	u := User{Keys: []string{"id_rsa foooBar"}}
 	v, err := u.isValid()
 	if v {
 		t.Errorf(`Expected user to be invalid`)
