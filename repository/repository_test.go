@@ -42,9 +42,9 @@ func TestNewBreaksOnValidationError(t *testing.T) {
 	_, err := New("", []string{"smeagol"}, false)
 	if err == nil {
 		t.Errorf("Expecting an error, got nil")
-        t.FailNow()
+		t.FailNow()
 	}
-	expected := "Validation Error: check the repository name and/or users length"
+	expected := "Validation Error: repository name is not valid"
 	got := err.Error()
 	if got != expected {
 		t.Errorf(`Expected error to be "%s", got "%s"`, expected, got)
@@ -53,28 +53,59 @@ func TestNewBreaksOnValidationError(t *testing.T) {
 
 func TestRepositoryIsNotValidWithoutAName(t *testing.T) {
 	r := Repository{Users: []string{"gollum"}, IsPublic: true}
-	if r.isValid() {
+	v, err := r.isValid()
+	if v {
 		t.Errorf("Expecting repository not to be valid")
+	}
+	if err == nil {
+		t.Errorf("Expecting error not to be nil")
+		t.FailNow()
+	}
+	got := err.Error()
+	expected := "Validation Error: repository name is not valid"
+	if got != expected {
+		t.Errorf(`Expecting error to be "%s", got "%s"`, expected, got)
 	}
 }
 
 func TestRepositoryIsNotValidWithInvalidName(t *testing.T) {
 	r := Repository{Name: "foo bar", Users: []string{"gollum"}, IsPublic: true}
-	if r.isValid() {
+	v, err := r.isValid()
+	if v {
 		t.Errorf("Expecting repository not to be valid")
+	}
+	if err == nil {
+		t.Errorf("Expecting error not to be nil")
+		t.FailNow()
+	}
+	got := err.Error()
+	expected := "Validation Error: repository name is not valid"
+	if got != expected {
+		t.Errorf(`Expecting error to be "%s", got "%s"`, expected, got)
 	}
 }
 
 func TestRepositoryShoudBeInvalidWIthoutAnyUsers(t *testing.T) {
 	r := Repository{Name: "foo_bar", Users: []string{}, IsPublic: true}
-	if r.isValid() {
+	v, err := r.isValid()
+	if v {
 		t.Errorf("Expecting repository not to be valid")
+	}
+	if err == nil {
+		t.Errorf("Expecting error not to be nil")
+		t.FailNow()
+	}
+	got := err.Error()
+	expected := "Validation Error: repository should have at least one user"
+	if got != expected {
+		t.Errorf(`Expecting error to be "%s", got "%s"`, expected, got)
 	}
 }
 
 func TestRepositoryShouldBeValidWithoutIsPublic(t *testing.T) {
 	r := Repository{Name: "someName", Users: []string{"smeagol"}}
-	if !r.isValid() {
+	v, _ := r.isValid()
+	if !v {
 		t.Errorf("Expecting repository to be valid")
 	}
 }
