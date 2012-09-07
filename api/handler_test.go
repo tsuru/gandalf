@@ -87,7 +87,7 @@ func TestNewUserShouldRequireUserName(t *testing.T) {
 	recorder, request := post("/user", b, t)
 	NewUser(recorder, request)
 	body := readBody(recorder.Body, t)
-	expected := "User needs a name"
+	expected := "Validation Error: user name is not valid"
 	got := strings.Replace(body, "\n", "", -1)
 	if got != expected {
 		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
@@ -153,7 +153,7 @@ func TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
 	}
 	body := readBody(recorder.Body, t)
-	expected := "Validation Error: check the repository name and/or users length"
+	expected := "Validation Error: repository should have at least one user"
 	got := strings.Replace(body, "\n", "", -1)
 	if got != expected {
 		t.Errorf(`Expected body to matches: "%s", got: "%s"`, expected, got)
@@ -168,7 +168,7 @@ func TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
 		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
 	}
 	body := readBody(recorder.Body, t)
-	expected := "Validation Error: check the repository name and/or users length"
+	expected := "Validation Error: repository name is not valid"
 	got := strings.Replace(body, "\n", "", -1)
 	if got != expected {
 		t.Errorf(`Expected body to matches: "%s", got: "%s"`, expected, got)

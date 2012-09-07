@@ -72,19 +72,15 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewUser(w http.ResponseWriter, r *http.Request) {
-	var u user.User
-	err := parseBody(r.Body, &u)
+	var usr user.User
+	err := parseBody(r.Body, &usr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if u.Name == "" {
-		http.Error(w, "User needs a name", http.StatusBadRequest)
-		return
-	}
-	err = db.Session.User().Insert(&u)
+	u, err := user.New(usr.Name, usr.Keys)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	fmt.Fprintf(w, "User %s successfuly created", u.Name)
