@@ -33,3 +33,7 @@ func (u *User) isValid() (v bool, err error) {
 	}
 	return
 }
+
+func Remove(u *User) error {
+	return db.Session.User().RemoveId(u.Name)
+}

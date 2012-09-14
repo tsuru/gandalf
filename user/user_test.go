@@ -92,3 +92,21 @@ func TestIsValidShouldAcceptEmailsAsUserName(t *testing.T) {
 		t.Errorf(`Expected user to be valid`)
 	}
 }
+
+func TestRemove(t *testing.T) {
+	u, err := New("someuser", []string{})
+	if err != nil {
+		t.Errorf(`Got error while creating user: "%s"`, err.Error())
+	}
+	err = Remove(u)
+	if err != nil {
+		t.Errorf(`Got error while removing user: "%s"`, err.Error())
+	}
+	lenght, err := db.Session.User().Find(bson.M{"_id": u.Name}).Count()
+	if err != nil {
+		t.Errorf(`Got error while finding user: "%s"`, err.Error())
+	}
+	if lenght != 0 {
+		t.Errorf("User someuser shoud not exist")
+	}
+}
