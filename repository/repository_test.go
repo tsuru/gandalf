@@ -5,135 +5,103 @@ import (
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/fs"
 	"labix.org/v2/mgo/bson"
+	. "launchpad.net/gocheck"
 	"testing"
 )
 
-func TestNewShouldCreateANewRepository(t *testing.T) {
-	r, err := New("myRepo", []string{"smeagol", "saruman"}, true)
-	defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
-	if err != nil {
-		t.Errorf("Unexpected error while creating new repository: %s", err.Error())
-	}
-	if r.Name != "myRepo" {
-		t.Errorf(`Expected repository name to be "myRepo", got "%s"`, r.Name)
-	}
-	if r.Users == nil {
-		t.Errorf(`Expected repository users to be {"smeagol", "saruman"}, got "%s"`, r.Users)
-	}
-	if !r.IsPublic {
-		t.Errorf(`Expected repository to be public`)
-	}
+func Test(t *testing.T) { TestingT(t) }
+
+type S struct {
+	tmpdir string
 }
 
-func TestNewShouldRecordItOnDatabase(t *testing.T) {
+var _ = Suite(&S{})
+
+func (s *S) SetUpSuite(c *C) {
+	var err error
+	s.tmpdir, err = commandmocker.Add("git", "$*")
+	c.Check(err, IsNil)
+}
+
+func (s *S) TearDownSuite(c *C) {
+	commandmocker.Remove(s.tmpdir)
+}
+
+func (s *S) TestNewShouldCreateANewRepository(c *C) {
+	users := []string{"smeagol", "saruman"}
+	r, err := New("myRepo", users, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
+	c.Assert(r.Name, Equals, "myRepo")
+	c.Assert(r.Users, DeepEquals, users)
+	c.Assert(r.IsPublic, Equals, true)
+}
+
+func (s *S) TestNewShouldRecordItOnDatabase(c *C) {
 	r, err := New("someRepo", []string{"smeagol"}, true)
 	defer db.Session.Repository().Remove(bson.M{"_id": "someRepo"})
-	if err != nil {
-		t.Errorf("Unexpected error while creating new repository: %s", err.Error())
-	}
+	c.Assert(err, IsNil)
 	err = db.Session.Repository().Find(bson.M{"_id": "someRepo"}).One(&r)
-	if err != nil {
-		t.Errorf("Unexpected error while retrieving new repository: %s", err.Error())
-	}
-	if r.Name != "someRepo" || r.Users == nil || !r.IsPublic {
-		t.Errorf("Retrieved parameters from database doens't match")
-	}
+	c.Assert(err, IsNil)
+	c.Assert(r.Name, Equals, "someRepo")
+	c.Assert(r.Users, DeepEquals, []string{"smeagol"})
+	c.Assert(r.IsPublic, Equals, true)
 }
 
-func TestNewBreaksOnValidationError(t *testing.T) {
+func (s *S) TestNewBreaksOnValidationError(c *C) {
 	_, err := New("", []string{"smeagol"}, false)
-	if err == nil {
-		t.Errorf("Expecting an error, got nil")
-		t.FailNow()
-	}
+	c.Check(err, NotNil)
 	expected := "Validation Error: repository name is not valid"
 	got := err.Error()
-	if got != expected {
-		t.Errorf(`Expected error to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestRepositoryIsNotValidWithoutAName(t *testing.T) {
+func (s *S) TestRepositoryIsNotValidWithoutAName(c *C) {
 	r := Repository{Users: []string{"gollum"}, IsPublic: true}
 	v, err := r.isValid()
-	if v {
-		t.Errorf("Expecting repository not to be valid")
-	}
-	if err == nil {
-		t.Errorf("Expecting error not to be nil")
-		t.FailNow()
-	}
+	c.Assert(v, Equals, false)
+	c.Check(err, NotNil)
 	got := err.Error()
 	expected := "Validation Error: repository name is not valid"
-	if got != expected {
-		t.Errorf(`Expecting error to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestRepositoryIsNotValidWithInvalidName(t *testing.T) {
+func (s *S) TestRepositoryIsNotValidWithInvalidName(c *C) {
 	r := Repository{Name: "foo bar", Users: []string{"gollum"}, IsPublic: true}
 	v, err := r.isValid()
-	if v {
-		t.Errorf("Expecting repository not to be valid")
-	}
-	if err == nil {
-		t.Errorf("Expecting error not to be nil")
-		t.FailNow()
-	}
+	c.Assert(v, Equals, false)
+	c.Check(err, NotNil)
 	got := err.Error()
 	expected := "Validation Error: repository name is not valid"
-	if got != expected {
-		t.Errorf(`Expecting error to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestRepositoryShoudBeInvalidWIthoutAnyUsers(t *testing.T) {
+func (s *S) TestRepositoryShoudBeInvalidWIthoutAnyUsers(c *C) {
 	r := Repository{Name: "foo_bar", Users: []string{}, IsPublic: true}
 	v, err := r.isValid()
-	if v {
-		t.Errorf("Expecting repository not to be valid")
-	}
-	if err == nil {
-		t.Errorf("Expecting error not to be nil")
-		t.FailNow()
-	}
+	c.Assert(v, Equals, false)
+	c.Assert(err, NotNil)
 	got := err.Error()
 	expected := "Validation Error: repository should have at least one user"
-	if got != expected {
-		t.Errorf(`Expecting error to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestRepositoryShouldBeValidWithoutIsPublic(t *testing.T) {
+func (s *S) TestRepositoryShouldBeValidWithoutIsPublic(c *C) {
 	r := Repository{Name: "someName", Users: []string{"smeagol"}}
 	v, _ := r.isValid()
-	if !v {
-		t.Errorf("Expecting repository to be valid")
-	}
+	c.Assert(v, Equals, true)
 }
 
-func TestNewShouldCreateNewGitBareRepository(t *testing.T) {
-	dir, err := commandmocker.Add("git", "$*")
-	if err != nil {
-		t.Errorf(`Unpexpected error while mocking git cmd: %s`, err.Error())
-		t.FailNow()
-	}
-	defer commandmocker.Remove(dir)
-	_, err = New("myRepo", []string{"pumpkin"}, true)
-	if err != nil {
-		t.Errorf(`Unexpected error while creating repository: %s`, err.Error())
-	}
+func (s *S) TestNewShouldCreateNewGitBareRepository(c *C) {
+	_, err := New("myRepo", []string{"pumpkin"}, true)
+	c.Assert(err, IsNil)
 	defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
-	if !commandmocker.Ran(dir) {
-		t.Errorf("Expected New to create git bare repo")
-	}
+	c.Assert(commandmocker.Ran(s.tmpdir), Equals, true)
 }
 
-func TestFsystemShouldSetGlobalFsystemWhenItsNil(t *testing.T) {
+func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
 	fsystem = nil
 	fsys := filesystem()
 	_, ok := fsys.(fs.Fs)
-	if !ok {
-		t.Errorf("Expected filesystem function to return a fs.Fs")
-	}
+	c.Assert(ok, Equals, true)
 }

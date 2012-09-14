@@ -25,6 +25,7 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	if err != nil {
 		return r, err
 	}
+	// should be called before saving the repository on db
 	err = newBare(name)
 	if err != nil {
 		return r, err
