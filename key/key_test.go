@@ -1,4 +1,4 @@
-package gandalf
+package key
 
 import (
 	"fmt"
