@@ -2,23 +2,26 @@ package db
 
 import (
 	"labix.org/v2/mgo"
+	. "launchpad.net/gocheck"
 	"testing"
 )
 
-func TestSessionRepositoryShouldReturnAMongoCollection(t *testing.T) {
+func Test(t *testing.T) { TestingT(t) }
+
+type S struct{}
+
+var _ = Suite(&S{})
+
+func (s *S) TestSessionRepositoryShouldReturnAMongoCollection(c *C) {
 	var rep interface{}
 	rep = Session.Repository()
 	_, ok := rep.(*mgo.Collection)
-	if !ok {
-		t.Errorf("Expected rep to be a collection")
-	}
+	c.Assert(ok, Equals, true)
 }
 
-func TestSessionUserShouldReturnAMongoCollection(t *testing.T) {
+func (s *S) TestSessionUserShouldReturnAMongoCollection(c *C) {
 	var usr interface{}
 	usr = Session.User()
 	_, ok := usr.(*mgo.Collection)
-	if !ok {
-		t.Errorf("expected usr to be a collection")
-	}
+	c.Assert(ok, Equals, true)
 }

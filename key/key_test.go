@@ -3,10 +3,17 @@ package key
 import (
 	"fmt"
 	"io/ioutil"
+	. "launchpad.net/gocheck"
 	"os"
 	"path"
 	"testing"
 )
+
+func Test(t *testing.T) { TestingT(t) }
+
+type S struct{}
+
+var _ = Suite(&S{})
 
 func changeAuthKey() {
 	authKey = "testdata/authorized_keys"
@@ -20,79 +27,47 @@ func clearAuthKeyFile() bool {
 	return true
 }
 
-func TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeys(t *testing.T) {
+func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeys(c *C) {
 	home := os.Getenv("HOME")
 	expected := path.Join(home, "authorized_keys")
-	if authKey != expected {
-		t.Errorf(`expected authKey to be %s, got: %s`, expected, authKey)
-	}
+	c.Assert(authKey, Equals, expected)
 }
 
-func TestShouldAddKeyWithoutError(t *testing.T) {
+func (s *S) TestShouldAddKeyWithoutError(c *C) {
 	changeAuthKey()
 	key := "somekey blaaaaaaa r2d2@host"
 	err := Add(key)
-	if err != nil {
-		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
-	}
+	c.Assert(err, IsNil)
 	ok := clearAuthKeyFile()
-	if !ok {
-		t.Errorf("Could not truncate file... :/")
-		t.FailNow()
-	}
+	c.Assert(ok, Equals, true)
 }
 
-func TestShouldWriteKeyInFile(t *testing.T) {
+func (s *S) TestShouldWriteKeyInFile(c *C) {
 	changeAuthKey()
 	key := "somekey blaaaaaaa r2d2@host"
 	err := Add(key)
-	if err != nil {
-		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	b, err := ioutil.ReadFile(authKey)
-	if err != nil {
-		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	got := string(b)
-	if got != key {
-		t.Errorf(`Expecing authorized_keys to be "%s", got "%s"`, key, got)
-	}
+	c.Assert(got, Equals, key)
 	ok := clearAuthKeyFile()
-	if !ok {
-		t.Errorf("Could not truncate file... :/")
-		t.FailNow()
-	}
+	c.Assert(ok, Equals, true)
 }
 
-func TestShouldAppendKeyInFile(t *testing.T) {
+func (s *S) TestShouldAppendKeyInFile(c *C) {
 	changeAuthKey()
 	key1 := "somekey blaaaaaaa r2d2@host"
 	err := Add(key1)
-	if err != nil {
-		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	key2 := "someotherkey fooo r2d2@host"
 	err = Add(key2)
-	if err != nil {
-		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	b, err := ioutil.ReadFile(authKey)
-	if err != nil {
-		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	got := string(b)
 	expected := fmt.Sprintf("%s\n%s", key1, key2)
-	if got != expected {
-		t.Errorf(`Expecing authorized_keys to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 	ok := clearAuthKeyFile()
-	if !ok {
-		t.Errorf("Could not truncate file... :/")
-		t.FailNow()
-	}
+	c.Assert(ok, Equals, true)
 }
