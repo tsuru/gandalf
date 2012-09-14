@@ -15,6 +15,9 @@ type Repository struct {
 	IsPublic bool
 }
 
+// Creates a representation of a git repository
+// This function creates a git repository using the "bare-dir" config
+// and saves repository's meta data in the database
 func New(name string, users []string, isPublic bool) (*Repository, error) {
 	r := &Repository{Name: name, Users: users, IsPublic: isPublic}
 	v, err := r.isValid()
@@ -32,6 +35,10 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	return r, nil
 }
 
+// Validates a repository
+// A valid repository must have:
+//  - a name without any special chars only alphanumeric and underlines are allowed.
+//  - at least one user in users array
 func (r *Repository) isValid() (v bool, err error) {
 	v = true
 	m, e := regexp.Match(`(^$)|\W+|\s+`, []byte(r.Name))
