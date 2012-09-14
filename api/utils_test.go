@@ -12,8 +12,8 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-type S struct{
-    tmpdir string
+type S struct {
+	tmpdir string
 }
 
 var _ = Suite(&S{})
@@ -21,14 +21,14 @@ var _ = Suite(&S{})
 func (s *S) SetUpSuite(c *C) {
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
 	fsystem = rfs
-    var err error
-    s.tmpdir, err = commandmocker.Add("git", "")
-    c.Assert(err, IsNil)
+	var err error
+	s.tmpdir, err = commandmocker.Add("git", "")
+	c.Assert(err, IsNil)
 }
 
 func (s *S) TearDownSuite(c *C) {
-    fsystem = nil
-    commandmocker.Remove(s.tmpdir)
+	fsystem = nil
+	commandmocker.Remove(s.tmpdir)
 }
 
 func (s *S) TestGetUserOr404(c *C) {
