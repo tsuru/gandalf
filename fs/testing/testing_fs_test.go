@@ -274,7 +274,7 @@ func (s *S) TestFailureFsRemoveAll(c *C) {
     fs := FailureFs{}
     err := fs.RemoveAll("/my/file")
     c.Assert(err, NotNil)
-    c.Assert(err, FitsTypeOf, &os.PathError)
+    c.Assert(err, FitsTypeOf, &os.PathError{})
 	c.Assert(err.(*os.PathError).Err, DeepEquals, syscall.ENOENT)
 	c.Assert(err.(*os.PathError).Path, Equals, "/my/file")
 	c.Assert(fs.HasAction("removeall /my/file"), Equals, true)
