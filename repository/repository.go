@@ -16,19 +16,19 @@ type Repository struct {
 }
 
 func New(name string, users []string, isPublic bool) (*Repository, error) {
-    r := &Repository{Name: name, Users: users, IsPublic: isPublic}
-    v, err := r.isValid()
+	r := &Repository{Name: name, Users: users, IsPublic: isPublic}
+	v, err := r.isValid()
 	if !v {
 		return r, err
 	}
 	err = db.Session.Repository().Insert(&r)
-    if err != nil {
-        return r, err
-    }
-    err = newBare(name)
-    if err != nil {
-        return r, err
-    }
+	if err != nil {
+		return r, err
+	}
+	err = newBare(name)
+	if err != nil {
+		return r, err
+	}
 	return r, nil
 }
 
@@ -51,8 +51,8 @@ func (r *Repository) isValid() (v bool, err error) {
 }
 
 func filesystem() fs.Fs {
-    if fsystem == nil {
-        return fs.OsFs{}
-    }
-    return fsystem
+	if fsystem == nil {
+		return fs.OsFs{}
+	}
+	return fsystem
 }

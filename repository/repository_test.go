@@ -113,27 +113,27 @@ func TestRepositoryShouldBeValidWithoutIsPublic(t *testing.T) {
 }
 
 func TestNewShouldCreateNewGitBareRepository(t *testing.T) {
-    dir, err := commandmocker.Add("git", "$*")
-    if err != nil {
-        t.Errorf(`Unpexpected error while mocking git cmd: %s`, err.Error())
-        t.FailNow()
-    }
-    defer commandmocker.Remove(dir)
+	dir, err := commandmocker.Add("git", "$*")
+	if err != nil {
+		t.Errorf(`Unpexpected error while mocking git cmd: %s`, err.Error())
+		t.FailNow()
+	}
+	defer commandmocker.Remove(dir)
 	_, err = New("myRepo", []string{"pumpkin"}, true)
-    if err != nil {
-        t.Errorf(`Unexpected error while creating repository: %s`, err.Error())
-    }
-    defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
-    if !commandmocker.Ran(dir) {
-        t.Errorf("Expected New to create git bare repo")
-    }
+	if err != nil {
+		t.Errorf(`Unexpected error while creating repository: %s`, err.Error())
+	}
+	defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
+	if !commandmocker.Ran(dir) {
+		t.Errorf("Expected New to create git bare repo")
+	}
 }
 
 func TestFsystemShouldSetGlobalFsystemWhenItsNil(t *testing.T) {
-    fsystem = nil
-    fsys := filesystem()
-    _, ok := fsys.(fs.Fs)
-    if !ok {
-        t.Errorf("Expected filesystem function to return a fs.Fs")
-    }
+	fsystem = nil
+	fsys := filesystem()
+	_, ok := fsys.(fs.Fs)
+	if !ok {
+		t.Errorf("Expected filesystem function to return a fs.Fs")
+	}
 }
