@@ -4,30 +4,29 @@ import (
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/user"
 	"labix.org/v2/mgo/bson"
+	. "launchpad.net/gocheck"
 	"testing"
 )
 
-func TestGetUserOr404(t *testing.T) {
+func Test(t *testing.T) { TestingT(t) }
+
+type S struct{}
+
+var _ = Suite(&S{})
+
+func (s *S) TestGetUserOr404(c *C) {
 	u := user.User{Name: "umi"}
 	err := db.Session.User().Insert(&u)
-	if err != nil {
-		t.Errorf("Got error while creating user: %s", err.Error())
-	}
+	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	rUser, err := getUserOr404("umi")
-	if err != nil {
-		t.Errorf("Got error while creating user: %s", err.Error())
-	}
-	if rUser.Name != "umi" {
-		t.Errorf(`Expected retieved user's name to be umi, got: %s`, rUser.Name)
-	}
+	c.Assert(err, IsNil)
+	c.Assert(rUser.Name, Equals, "umi")
 }
 
-func TestGetUserOr404ShouldReturn404WhenUserDoesntExists(t *testing.T) {
+func (s *S) TestGetUserOr404ShouldReturn404WhenUserDoesntExists(c *C) {
 	_, e := getUserOr404("umi")
 	expected := "User umi not found"
 	got := e.Error()
-	if got != expected {
-		t.Errorf(`Expected error to be "%s", got: %s`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
