@@ -32,12 +32,6 @@ func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *h
 	return recorder, request
 }
 
-func createUser(name string) (u user.User, err error) {
-	u = user.User{Name: name}
-	err = db.Session.User().Insert(&u)
-	return
-}
-
 func readBody(b io.Reader, t *testing.T) string {
 	body, err := ioutil.ReadAll(b)
 	if err != nil {
@@ -228,7 +222,7 @@ func TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 }
 
 func TestGrantAccess(t *testing.T) {
-	u, err := createUser("pippin")
+	u, err := user.New("pippin", []string{})
 	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
 	r := repository.Repository{Name: "repo"}
 	c := db.Session.Repository()
@@ -293,7 +287,7 @@ func TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(t *testing.T) 
 	if err != nil {
 		t.Errorf("Got error while creating repository: %s", err.Error())
 	}
-	u, err := createUser("gandalf")
+	u, err := user.New("gandalf", []string{})
 	if err != nil {
 		t.Errorf("Got error while creating user: %s", err.Error())
 	}
@@ -313,7 +307,7 @@ func TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(t *testing.T) 
 }
 
 func TestAddKey(t *testing.T) {
-	user, err := createUser("Frodo")
+	user, err := user.New("Frodo", []string{})
 	if err != nil {
 		t.Errorf("Error while creating user: %s", err.Error())
 		t.FailNow()
@@ -355,7 +349,7 @@ func TestAddKeyShouldRequireKey(t *testing.T) {
 }
 
 func TestRemoveUser(t *testing.T) {
-	u, err := createUser("username")
+	u, err := user.New("username", []string{})
 	if err != nil {
 		t.Errorf(`Failed to create user "%s"`, u.Name)
 	}
@@ -373,7 +367,7 @@ func TestRemoveUser(t *testing.T) {
 }
 
 func TestRemoveUserShouldRemoveFromDB(t *testing.T) {
-	u, err := createUser("anuser")
+	u, err := user.New("anuser", []string{})
 	if err != nil {
 		t.Errorf(`Failed to create user "%s"`, u.Name)
 	}
