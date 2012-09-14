@@ -4,8 +4,10 @@ import (
 	"github.com/timeredbull/commandmocker"
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/fs"
+	fstesting "github.com/timeredbull/gandalf/fs/testing"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
+	"path"
 	"testing"
 )
 
@@ -107,6 +109,40 @@ func (s *S) TestNewShouldNotStoreRepoInDbWhenBareCreationFails(c *C) {
 	c.Check(err, NotNil)
 	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
 	c.Assert(err, ErrorMatches, "^not found$")
+}
+
+func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *C) {
+	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	fsystem = rfs
+	defer func() { fsystem = nil }()
+	r, err := New("myRepo", []string{"pumpkin"}, false)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name}) //remove me!
+	err = Remove(r)
+	c.Assert(err, IsNil)
+	action := "removeall " + path.Join(bareLocation(), "myRepo")
+	c.Assert(rfs.HasAction(action), Equals, true)
+}
+
+func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *C) {
+	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	fsystem = rfs
+	defer func() { fsystem = nil }()
+	r, err := New("myRepo", []string{"pumpkin"}, false)
+	c.Assert(err, IsNil)
+	err = Remove(r)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	c.Assert(err, ErrorMatches, "^not found$")
+}
+
+func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDatabase(c *C) {
+	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	fsystem = rfs
+	defer func() { fsystem = nil }()
+	r := &Repository{Name: "fooBar"}
+	err := Remove(r)
+	c.Assert(err, ErrorMatches, "^Could not remove repository: not found$")
 }
 
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {

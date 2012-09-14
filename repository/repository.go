@@ -2,19 +2,21 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"github.com/timeredbull/config"
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/fs"
+	"labix.org/v2/mgo/bson"
 	"regexp"
 )
 
 func init() {
-    err := config.ReadConfigFile("/etc/gandalf.conf")
-    if err != nil {
-        msg := `Could not find gandalf config file. Searched on /etc/gandalf.conf.
+	err := config.ReadConfigFile("/etc/gandalf.conf")
+	if err != nil {
+		msg := `Could not find gandalf config file. Searched on /etc/gandalf.conf.
 For an example conf check gandalf/etc/gandalf.conf file.`
-        panic(msg)
-    }
+		panic(msg)
+	}
 }
 
 var fsystem fs.Fs
@@ -43,6 +45,21 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 		return r, err
 	}
 	return r, nil
+}
+
+// Removes a repository representation
+// Deletes the repository from the database and
+// removes it's bare repository
+func Remove(r *Repository) error {
+	err := removeBare(r.Name)
+	if err != nil {
+		return err
+	}
+	err = db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	if err != nil {
+		return fmt.Errorf("Could not remove repository: %s", err.Error())
+	}
+	return nil
 }
 
 // Validates a repository
