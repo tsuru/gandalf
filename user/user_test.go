@@ -3,110 +3,75 @@ package user
 import (
 	"github.com/timeredbull/gandalf/db"
 	"labix.org/v2/mgo/bson"
+	. "launchpad.net/gocheck"
 	"testing"
 )
 
-func TestNewUserReturnsAStructFilled(t *testing.T) {
+func (s *S) Test(c *C) { TestingT(t) }
+
+type S struct{}
+
+var _ = Suite(&S{})
+
+func (s *S) TestNewUserReturnsAStructFilled(c *C) {
 	u, err := New("someuser", []string{"id_rsa someKeyChars"})
-	if err != nil {
-		t.Errorf(`Got error while creating user: "%s"`, err.Error())
-	}
+	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	if u.Name != "someuser" {
-		t.Errorf(`Expected user name to be "someuser", got "%s"`, u.Name)
-	}
-	if len(u.Keys) == 0 {
-		t.Errorf(`Expected user to have 1 key, got %d`, len(u.Keys))
-	}
+	c.Assert(u.Name, Equals, "someuser")
+	c.Assert(len(u.Keys), Equals, 0)
 }
 
-func TestNewUserShouldStoreUserInDatabase(t *testing.T) {
+func (s *S) TestNewUserShouldStoreUserInDatabase(c *C) {
 	u, err := New("someuser", []string{"id_rsa someKeyChars"})
-	if err != nil {
-		t.Errorf(`Got error while creating user: "%s"`, err.Error())
-	}
+	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	err = db.Session.User().Find(bson.M{"_id": u.Name}).One(&u)
-	if err != nil {
-		t.Errorf(`Got error while creating user: "%s"`, err.Error())
-	}
-	if u.Name != "someuser" {
-		t.Errorf(`Expected user name to be "someuser", got "%s"`, u.Name)
-	}
-	if len(u.Keys) == 0 {
-		t.Errorf(`Expected user to have 1 key, got %d`, len(u.Keys))
-	}
+	c.Assert(err, IsNil)
+	c.Assert(u.Name, Equals, "someuser")
+	c.Assert(len(u.Keys), Equals, 0)
 }
 
-func TestNewChecksIfUserIsValidBeforeStoring(t *testing.T) {
+func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *C) {
 	_, err := New("", []string{})
-	if err == nil {
-		t.Errorf("Expected err not to be nil")
-		t.FailNow()
-	}
+	c.Assert(err, NotNil)
 	got := err.Error()
 	expected := "Validation Error: user name is not valid"
-	if got != expected {
-		t.Errorf(`Expected error to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestIsValidReturnsErrorWhenUserDoesNotHaveAName(t *testing.T) {
+func (s *S) TestIsValidReturnsErrorWhenUserDoesNotHaveAName(c *C) {
 	u := User{Keys: []string{"id_rsa foooBar"}}
 	v, err := u.isValid()
-	if v {
-		t.Errorf(`Expected user to be invalid`)
-	}
-	if err == nil {
-		t.Errorf(`Expected error not to be nil`)
-		t.FailNow()
-	}
+	c.Assert(v, Equals, false)
+	c.Assert(err, NotNil)
 	expected := "Validation Error: user name is not valid"
 	got := err.Error()
-	if got != expected {
-		t.Errorf(`Expected error to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestIsValidShouldNotAcceptEmptyUserName(t *testing.T) {
+func (s *S) TestIsValidShouldNotAcceptEmptyUserName(c *C) {
 	u := User{Keys: []string{"id_rsa foooBar"}}
 	v, err := u.isValid()
-	if v {
-		t.Errorf(`Expected user to be invalid`)
-	}
-	if err == nil {
-		t.Errorf(`Expected error not to be nil`)
-		t.FailNow()
-	}
+	c.Assert(v, Equals, false)
+	c.Assert(err, NotNil)
 	expected := "Validation Error: user name is not valid"
 	got := err.Error()
-	if got != expected {
-		t.Errorf(`Expected error to be "%s", got "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestIsValidShouldAcceptEmailsAsUserName(t *testing.T) {
+func (s *S) TestIsValidShouldAcceptEmailsAsUserName(c *C) {
 	u := User{Name: "r2d2@gmail.com", Keys: []string{"id_rsa foooBar"}}
-	v, _ := u.isValid()
-	if !v {
-		t.Errorf(`Expected user to be valid`)
-	}
+	v, err := u.isValid()
+	c.Assert(err, IsNil)
+	c.Assert(v, Equals, true)
 }
 
-func TestRemove(t *testing.T) {
+func (s *S) TestRemove(c *C) {
 	u, err := New("someuser", []string{})
-	if err != nil {
-		t.Errorf(`Got error while creating user: "%s"`, err.Error())
-	}
+	c.Assert(err, IsNil)
 	err = Remove(u)
-	if err != nil {
-		t.Errorf(`Got error while removing user: "%s"`, err.Error())
-	}
+	c.Assert(err, IsNil)
 	lenght, err := db.Session.User().Find(bson.M{"_id": u.Name}).Count()
-	if err != nil {
-		t.Errorf(`Got error while finding user: "%s"`, err.Error())
-	}
-	if lenght != 0 {
-		t.Errorf("User someuser shoud not exist")
-	}
+	c.Assert(err, IsNil)
+	c.Assert(lenght, Equals, 0)
 }
