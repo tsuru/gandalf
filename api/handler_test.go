@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
+	"github.com/timeredbull/gandalf/fs"
 	"github.com/timeredbull/gandalf/repository"
 	"github.com/timeredbull/gandalf/user"
 	"io"
@@ -298,4 +299,11 @@ func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
 	lenght, err := collection.Find(bson.M{"_id": u.Name}).Count()
 	c.Assert(err, IsNil)
 	c.Assert(lenght, Equals, 0)
+}
+
+func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
+	fsystem = nil
+	fsys := filesystem()
+	_, ok := fsys.(fs.Fs)
+	c.Assert(ok, Equals, true)
 }

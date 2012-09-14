@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
+	"github.com/timeredbull/gandalf/fs"
 	"github.com/timeredbull/gandalf/repository"
 	"github.com/timeredbull/gandalf/user"
 	"io"
@@ -13,6 +14,8 @@ import (
 	"net/http"
 	"reflect"
 )
+
+var fsystem fs.Fs
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
 	repo := repository.Repository{Name: r.URL.Query().Get(":name")}
@@ -125,4 +128,11 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 		return errors.New(e)
 	}
 	return nil
+}
+
+func filesystem() fs.Fs {
+	if fsystem == nil {
+		return fs.OsFs{}
+	}
+	return fsystem
 }
