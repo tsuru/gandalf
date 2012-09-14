@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/timeredbull/commandmocker"
 	"github.com/timeredbull/gandalf/db"
-	fstesting "github.com/timeredbull/gandalf/fs/testing"
 	"github.com/timeredbull/gandalf/user"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
@@ -19,15 +18,12 @@ type S struct{
 var _ = Suite(&S{})
 
 func (s *S) SetUpSuite(c *C) {
-	rfs := &fstesting.RecordingFs{FileContent: "foo"}
-	fsystem = rfs
     var err error
     s.tmpdir, err = commandmocker.Add("git", "")
     c.Assert(err, IsNil)
 }
 
 func (s *S) TearDownSuite(c *C) {
-    fsystem = nil
     commandmocker.Remove(s.tmpdir)
 }
 

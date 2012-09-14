@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
-	"github.com/timeredbull/gandalf/fs"
 	"github.com/timeredbull/gandalf/repository"
 	"github.com/timeredbull/gandalf/user"
 	"io"
@@ -14,8 +13,6 @@ import (
 	"net/http"
 	"reflect"
 )
-
-var fsystem fs.Fs
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
 	repo := repository.Repository{Name: r.URL.Query().Get(":name")}
@@ -114,6 +111,15 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Repository %s successfuly created", rep.Name)
 }
 
+func RemoveRepository(w http.ResponseWriter, r *http.Request) {
+    repo := &repository.Repository{Name: r.URL.Query().Get(":name")}
+    err := repository.Remove(repo)
+    if err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+    }
+    fmt.Fprintf(w, "Repository %s successfuly removed", repo.Name)
+}
+
 func parseBody(body io.ReadCloser, result interface{}) error {
 	if reflect.ValueOf(result).Kind() == reflect.Struct {
 		return errors.New("parseBody function cannot deal with struct. Use pointer")
@@ -128,11 +134,4 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 		return errors.New(e)
 	}
 	return nil
-}
-
-func filesystem() fs.Fs {
-	if fsystem == nil {
-		return fs.OsFs{}
-	}
-	return fsystem
 }
