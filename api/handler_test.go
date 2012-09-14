@@ -353,3 +353,44 @@ func TestAddKeyShouldRequireKey(t *testing.T) {
 		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
 	}
 }
+
+func TestRemoveUser(t *testing.T) {
+	u, err := createUser("username")
+	if err != nil {
+		t.Errorf(`Failed to create user "%s"`, u.Name)
+	}
+	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
+	request, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		t.Errorf("Error when creating new request: %s", err)
+		t.FailNow()
+	}
+	recorder := httptest.NewRecorder()
+	RemoveUser(recorder, request)
+	if recorder.Code != 200 {
+		t.Errorf(`Failed to remove user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
+	}
+}
+
+func TestRemoveUserShouldRemoveFromDB(t *testing.T) {
+	u, err := createUser("anuser")
+	if err != nil {
+		t.Errorf(`Failed to create user "%s"`, u.Name)
+	}
+	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
+	request, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		t.Errorf("Error when creating new request: %s", err)
+		t.FailNow()
+	}
+	recorder := httptest.NewRecorder()
+	RemoveUser(recorder, request)
+	c := db.Session.User()
+	lenght, err := c.Find(bson.M{"_id": u.Name}).Count()
+	if err != nil {
+		t.Errorf(`Error when searching for user: "%s"`, err.Error())
+	}
+	if lenght != 0 {
+		t.Errorf("User someuser shoud not exist")
+	}
+}
