@@ -21,12 +21,11 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	if !v {
 		return r, err
 	}
-	err = db.Session.Repository().Insert(&r)
+	err = newBare(name)
 	if err != nil {
 		return r, err
 	}
-	// should be called before saving the repository on db
-	err = newBare(name)
+	err = db.Session.Repository().Insert(&r)
 	if err != nil {
 		return r, err
 	}

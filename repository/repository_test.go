@@ -99,6 +99,16 @@ func (s *S) TestNewShouldCreateNewGitBareRepository(c *C) {
 	c.Assert(commandmocker.Ran(s.tmpdir), Equals, true)
 }
 
+func (s *S) TestNewShouldNotStoreRepoInDbWhenBareCreationFails(c *C) {
+	dir, err := commandmocker.Error("git", "", 1)
+	c.Check(err, IsNil)
+	defer commandmocker.Remove(dir)
+	r, err := New("myRepo", []string{"pumpkin"}, true)
+	c.Check(err, NotNil)
+	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	c.Assert(err, ErrorMatches, "^not found$")
+}
+
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
 	fsystem = nil
 	fsys := filesystem()
