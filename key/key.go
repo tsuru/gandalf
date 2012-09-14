@@ -10,8 +10,8 @@ import (
 // file to write user's keys
 var authKey string = path.Join(os.Getenv("HOME"), "authorized_keys")
 
-// writes a key in authKey file
-func addKey(key string) error {
+// Add writes a key in authKey file
+func Add(key string) error {
 	file, err := os.OpenFile(authKey, os.O_WRONLY, 0755)
 	defer file.Close()
 	if err != nil {
