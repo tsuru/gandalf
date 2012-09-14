@@ -1,7 +1,7 @@
 package testing
 
 import (
-	"github.com/timeredbull/tsuru/fs"
+	"github.com/timeredbull/gandalf/fs"
 	. "launchpad.net/gocheck"
 	"os"
 	"syscall"
