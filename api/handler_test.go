@@ -9,10 +9,10 @@ import (
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
+	. "launchpad.net/gocheck"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"testing"
 )
 
 type bufferCloser struct {
@@ -21,370 +21,281 @@ type bufferCloser struct {
 
 func (b bufferCloser) Close() error { return nil }
 
-func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *http.Request) {
+func post(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
 	request, err := http.NewRequest("POST", url, b)
-	if err != nil {
-		t.Errorf("Error when creating new request: %s", err)
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	request.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 	return recorder, request
 }
 
-func readBody(b io.Reader, t *testing.T) string {
+func readBody(b io.Reader, c *C) string {
 	body, err := ioutil.ReadAll(b)
-	if err != nil {
-		t.Errorf("Error when reading body: %s", err)
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	return string(body)
 }
 
-func TestNewUser(t *testing.T) {
+func (s *S) TestNewUser(c *C) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
-	recorder, request := post("/user", b, t)
+	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
-	if recorder.Code != 200 {
-		t.Errorf(`Failed to create user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
-	}
+	c.Assert(recorder.Code, Equals, 200)
 }
 
-func TestNewUserShouldSaveInDB(t *testing.T) {
+func (s *S) TestNewUserShouldSaveInDB(c *C) {
 	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
-	recorder, request := post("/user", b, t)
+	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
-	c := db.Session.User()
+	collection := db.Session.User()
 	var u user.User
-	err := c.Find(bson.M{"_id": "brain"}).One(&u)
-	defer c.Remove(bson.M{"_id": "brain"})
-	if err != nil {
-		t.Errorf(`Error when searching for user: "%s"`, err.Error())
-	}
+	err := collection.Find(bson.M{"_id": "brain"}).One(&u)
+	defer collection.Remove(bson.M{"_id": "brain"})
+	c.Assert(err, IsNil)
 }
 
-func TestNewUserShouldRepassParseBodyErrors(t *testing.T) {
+func (s *S) TestNewUserShouldRepassParseBodyErrors(c *C) {
 	b := strings.NewReader("{]9afe}")
-	recorder, request := post("/user", b, t)
+	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
-	body := readBody(recorder.Body, t)
+	body := readBody(recorder.Body, c)
 	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
 	got := strings.Replace(body, "\n", "", -1)
-	if got != expected {
-		t.Errorf(`Expected error to matches: "%s", got: "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestNewUserShouldRequireUserName(t *testing.T) {
+func (s *S) TestNewUserShouldRequireUserName(c *C) {
 	b := strings.NewReader(`{"name": ""}`)
-	recorder, request := post("/user", b, t)
+	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
-	body := readBody(recorder.Body, t)
+	body := readBody(recorder.Body, c)
 	expected := "Validation Error: user name is not valid"
 	got := strings.Replace(body, "\n", "", -1)
-	if got != expected {
-		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestNewUserWihoutKey(t *testing.T) {
+func (s *S) TestNewUserWihoutKey(c *C) {
 	b := strings.NewReader(`{"name": "brain"}`)
-	recorder, request := post("/user", b, t)
+	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
-	if recorder.Code != 200 {
-		t.Errorf(`Failed to create user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
-	}
+	c.Assert(recorder.Code, Equals, 200)
 }
 
-func TestNewRepository(t *testing.T) {
+func (s *S) TestNewRepository(c *C) {
 	defer db.Session.Repository().Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
-	recorder, request := post("/repository", b, t)
+	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	got := readBody(recorder.Body, t)
+	got := readBody(recorder.Body, c)
 	expected := "Repository some_repository successfuly created"
-	if got != expected {
-		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestNewRepositoryShouldSaveInDB(t *testing.T) {
+func (s *S) TestNewRepositoryShouldSaveInDB(c *C) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
-	recorder, request := post("/repository", b, t)
+	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	c := db.Session.Repository()
-	defer c.Remove(bson.M{"_id": "myRepository"})
+	collection := db.Session.Repository()
+	defer collection.Remove(bson.M{"_id": "myRepository"})
 	var p repository.Repository
-	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
-	if err != nil {
-		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
-	}
+	err := collection.Find(bson.M{"_id": "myRepository"}).One(&p)
+	c.Assert(err, IsNil)
 }
 
-func TestNewRepositoryShouldSaveUserIdInRepository(t *testing.T) {
+func (s *S) TestNewRepositoryShouldSaveUserIdInRepository(c *C) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2", "brain"]}`)
-	recorder, request := post("/repository", b, t)
+	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	c := db.Session.Repository()
-	defer c.Remove(bson.M{"_id": "myRepository"})
+	collection := db.Session.Repository()
+	defer collection.Remove(bson.M{"_id": "myRepository"})
 	var p repository.Repository
-	err := c.Find(bson.M{"_id": "myRepository"}).One(&p)
-	if err != nil {
-		t.Errorf(`There was an error while retrieving repository: "%s"`, err.Error())
-	}
-	if len(p.Users) == 0 {
-		t.Errorf(`Expected user to be %s and %s, got empty.`, "r2d2", "brain")
-	}
+	err := collection.Find(bson.M{"_id": "myRepository"}).One(&p)
+	c.Assert(err, IsNil)
+	c.Assert(len(p.Users), Not(Equals), 0)
 }
 
-func TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(t *testing.T) {
+func (s *S) TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(c *C) {
 	b := strings.NewReader(`{"name": "myRepository"}`)
-	recorder, request := post("/repository", b, t)
+	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	if recorder.Code != 400 {
-		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
-	}
-	body := readBody(recorder.Body, t)
+	c.Assert(recorder.Code, Equals, 400)
+	body := readBody(recorder.Body, c)
 	expected := "Validation Error: repository should have at least one user"
 	got := strings.Replace(body, "\n", "", -1)
-	if got != expected {
-		t.Errorf(`Expected body to matches: "%s", got: "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(t *testing.T) {
+func (s *S) TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(c *C) {
 	b := strings.NewReader("{}")
-	recorder, request := post("/repository", b, t)
+	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	if recorder.Code != 400 {
-		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
-	}
-	body := readBody(recorder.Body, t)
+	c.Assert(recorder.Code, Equals, 400)
+	body := readBody(recorder.Body, c)
 	expected := "Validation Error: repository name is not valid"
 	got := strings.Replace(body, "\n", "", -1)
-	if got != expected {
-		t.Errorf(`Expected body to matches: "%s", got: "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestParseBodyShouldMapBodyJsonToGivenStruct(t *testing.T) {
+func (s *S) TestParseBodyShouldMapBodyJsonToGivenStruct(c *C) {
 	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString(`{"name": "Dummy Repository"}`)}
 	err := parseBody(b, &p)
-	if err != nil {
-		t.Errorf(`Expecting err to be nil, got: "%s"`, err.Error())
-	}
+	c.Assert(err, IsNil)
 	expected := "Dummy Repository"
-	if p.Name != expected {
-		t.Errorf(`Expecting err to be "%s", got: "%s"`, expected, p.Name)
-	}
+	c.Assert(p.Name, Equals, expected)
 }
 
-func TestParseBodyShouldReturnErrorWhenJsonIsInvalid(t *testing.T) {
+func (s *S) TestParseBodyShouldReturnErrorWhenJsonIsInvalid(c *C) {
 	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString("{]ja9aW}")}
 	err := parseBody(b, &p)
+	c.Assert(err, NotNil)
 	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
-	if err.Error() != expected {
-		t.Errorf(`Expected error to matches: "%s", got: "%s"`, expected, err.Error())
-	}
+	c.Assert(err.Error(), Equals, expected)
 }
 
-func TestParseBodyShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
+func (s *S) TestParseBodyShouldReturnErrorWhenBodyIsEmpty(c *C) {
 	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString("")}
 	err := parseBody(b, &p)
+	c.Assert(err, NotNil)
 	expected := "Could not parse json: unexpected end of JSON input"
-	if err.Error() != expected {
-		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, err.Error())
-	}
+	c.Assert(err.Error(), Equals, expected)
 }
 
-func TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(t *testing.T) {
+func (s *S) TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(c *C) {
 	var p repository.Repository
 	b := bufferCloser{bytes.NewBufferString(`{"name": "something"}`)}
 	err := parseBody(b, p)
+	c.Assert(err, NotNil)
 	expected := "parseBody function cannot deal with struct. Use pointer"
-	if err.Error() != expected {
-		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, err.Error())
-	}
+	c.Assert(err.Error(), Equals, expected)
 }
 
-func TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
+func (s *S) TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(c *C) {
 	b := strings.NewReader("")
-	recorder, request := post("/repository", b, t)
+	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	if recorder.Code != 400 {
-		t.Errorf(`Expected code to be "400", got "%d"`, recorder.Code)
-	}
+	c.Assert(recorder.Code, Equals, 400)
 }
 
-func TestGrantAccess(t *testing.T) {
+func (s *S) TestGrantAccess(c *C) {
 	u, err := user.New("pippin", []string{})
 	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
+	c.Assert(err, IsNil)
 	r := repository.Repository{Name: "repo"}
-	c := db.Session.Repository()
-	err = c.Insert(&r)
-	if err != nil {
-		t.Errorf(`Expected error to be nil, got %s`, err.Error())
-	}
-	defer c.Remove(bson.M{"_id": "repo"})
+	collection := db.Session.Repository()
+	err = collection.Insert(&r)
+	c.Assert(err, IsNil)
+	defer collection.Remove(bson.M{"_id": "repo"})
 	b := strings.NewReader(`{"users": ["pippin"]}`)
 	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
-	rec, req := post(url, b, t)
+	rec, req := post(url, b, c)
 	GrantAccess(rec, req)
-	c.Find(bson.M{"_id": "repo"}).One(&r)
-	if len(r.Users) == 0 {
-		t.Errorf(`Expected repository to have one user, got 0`)
-		t.FailNow()
-	}
-	if r.Users[0] != u.Name {
-		t.Errorf(`Expected repository's user to be %s, got %s`, u.Name, r.Users[0])
-	}
+	collection.Find(bson.M{"_id": "repo"}).One(&r)
+	c.Assert(len(r.Users), Not(Equals), 0)
+	c.Assert(r.Users[0], Equals, u.Name)
 }
 
-func TestGrantAccessShouldReturn404WhenSingleUserDoesntExists(t *testing.T) {
+func (s *S) TestGrantAccessShouldReturn404WhenSingleUserDoesntExists(c *C) {
 	r := repository.Repository{Name: "repo"}
-	c := db.Session.Repository()
-	c.Insert(&r)
-	defer c.Remove(bson.M{"_id": "repo"})
+	collection := db.Session.Repository()
+	collection.Insert(&r)
+	defer collection.Remove(bson.M{"_id": "repo"})
 	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
 	b := strings.NewReader(`{"users": ["gandalf"]}`)
-	rec, req := post(url, b, t)
+	rec, req := post(url, b, c)
 	GrantAccess(rec, req)
-	if rec.Code != 404 {
-		t.Errorf(`Exepected status code to be 404, got %d`, rec.Code)
-	}
+	c.Assert(rec.Code, Equals, 404)
 }
 
-func TestGrantAccessShouldNotInsertInexistentSingleUser(t *testing.T) {
+func (s *S) TestGrantAccessShouldNotInsertInexistentSingleUser(c *C) {
 	r := repository.Repository{Name: "repo"}
-	c := db.Session.Repository()
-	err := c.Insert(&r)
-	if err != nil {
-		t.Errorf("Got error while creating repository %s: %s", r.Name, err.Error())
-	}
-	defer c.Remove(bson.M{"_id": "repo"})
+	collection := db.Session.Repository()
+	err := collection.Insert(&r)
+	c.Assert(err, IsNil)
+	defer collection.Remove(bson.M{"_id": "repo"})
 	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
 	b := strings.NewReader(`{"users": ["gandalf"]}`)
-	rec, req := post(url, b, t)
+	rec, req := post(url, b, c)
 	GrantAccess(rec, req)
 	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
-	if err != nil {
-		t.Errorf("Got error while retrieving repository %s: %s", r.Name, err.Error())
-	}
-	if len(r.Users) != 0 {
-		t.Errorf(`Expecting repository's user len to be 0, got %d`, len(r.Users))
-	}
+	c.Assert(err, IsNil)
+	c.Assert(len(r.Users), Equals, 0)
 }
 
-func TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(t *testing.T) {
+func (s *S) TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(c *C) {
 	r := repository.Repository{Name: "somerepo"}
 	err := db.Session.Repository().Insert(&r)
 	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
-	if err != nil {
-		t.Errorf("Got error while creating repository: %s", err.Error())
-	}
+	c.Assert(err, IsNil)
 	u, err := user.New("gandalf", []string{})
-	if err != nil {
-		t.Errorf("Got error while creating user: %s", err.Error())
-	}
+	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
 	b := strings.NewReader(`{"users": ["gandalf", "frodo"]}`)
-	rec, req := post(url, b, t)
+	rec, req := post(url, b, c)
 	GrantAccess(rec, req)
 	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
-	if err != nil {
-		t.Errorf("Got error while retrieving repository: %s", err.Error())
-	}
-	if len(r.Users) != 1 {
-		fmt.Println(r.Users)
-		t.Errorf("Expecting repository's user len to be 1, got %d", len(r.Users))
-	}
+	c.Assert(err, IsNil)
+	c.Assert(len(r.Users), Equals, 1)
 }
 
-func TestAddKey(t *testing.T) {
+func (s *S) TestAddKey(c *C) {
 	user, err := user.New("Frodo", []string{})
-	if err != nil {
-		t.Errorf("Error while creating user: %s", err.Error())
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": "a public key"}`)
-	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, t)
+	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, c)
 	AddKey(recorder, request)
-	got := readBody(recorder.Body, t)
+	got := readBody(recorder.Body, c)
 	expected := "Key \"a public key\" successfuly created"
-	if got != expected {
-		t.Errorf(`Expected body to be "%s", got: "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestAddKeyShouldReturnErorWhenUserDoesNotExists(t *testing.T) {
+func (s *S) TestAddKeyShouldReturnErorWhenUserDoesNotExists(c *C) {
 	b := strings.NewReader(`{"key": "a public key"}`)
-	recorder, request := post("/user/Frodo/key?:name=Frodo", b, t)
+	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
-	if recorder.Code != 404 {
-		t.Errorf(`Expected code to be "404", got "%d"`, recorder.Code)
-	}
+	c.Assert(recorder.Code, Equals, 404)
 }
 
-func TestAddKeyShouldRequireKey(t *testing.T) {
+func (s *S) TestAddKeyShouldRequireKey(c *C) {
 	u := user.User{Name: "Frodo"}
-	c := db.Session.User()
-	c.Insert(&u)
-	defer c.Remove(bson.M{"_id": "Frodo"})
+	collection := db.Session.User()
+	collection.Insert(&u)
+	defer collection.Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": ""}`)
-	recorder, request := post("/user/Frodo/key?:name=Frodo", b, t)
+	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
-	body := readBody(recorder.Body, t)
+	body := readBody(recorder.Body, c)
 	expected := "A key is needed"
 	got := strings.Replace(body, "\n", "", -1)
-	if got != expected {
-		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
-	}
+	c.Assert(got, Equals, expected)
 }
 
-func TestRemoveUser(t *testing.T) {
+func (s *S) TestRemoveUser(c *C) {
 	u, err := user.New("username", []string{})
-	if err != nil {
-		t.Errorf(`Failed to create user "%s"`, u.Name)
-	}
+	c.Assert(err, IsNil)
 	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		t.Errorf("Error when creating new request: %s", err)
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	RemoveUser(recorder, request)
-	if recorder.Code != 200 {
-		t.Errorf(`Failed to remove user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
-	}
+	c.Assert(recorder.Code, Equals, 200)
 }
 
-func TestRemoveUserShouldRemoveFromDB(t *testing.T) {
+func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
 	u, err := user.New("anuser", []string{})
-	if err != nil {
-		t.Errorf(`Failed to create user "%s"`, u.Name)
-	}
+	c.Assert(err, IsNil)
 	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		t.Errorf("Error when creating new request: %s", err)
-		t.FailNow()
-	}
+	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	RemoveUser(recorder, request)
-	c := db.Session.User()
-	lenght, err := c.Find(bson.M{"_id": u.Name}).Count()
-	if err != nil {
-		t.Errorf(`Error when searching for user: "%s"`, err.Error())
-	}
-	if lenght != 0 {
-		t.Errorf("User someuser shoud not exist")
-	}
+	collection := db.Session.User()
+	lenght, err := collection.Find(bson.M{"_id": u.Name}).Count()
+	c.Assert(err, IsNil)
+	c.Assert(lenght, Equals, 0)
 }
