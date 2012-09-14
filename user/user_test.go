@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func (s *S) Test(c *C) { TestingT(t) }
+func Test(t *testing.T) { TestingT(t) }
 
 type S struct{}
 
@@ -18,7 +18,7 @@ func (s *S) TestNewUserReturnsAStructFilled(c *C) {
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	c.Assert(u.Name, Equals, "someuser")
-	c.Assert(len(u.Keys), Equals, 0)
+	c.Assert(len(u.Keys), Not(Equals), 0)
 }
 
 func (s *S) TestNewUserShouldStoreUserInDatabase(c *C) {
@@ -28,7 +28,7 @@ func (s *S) TestNewUserShouldStoreUserInDatabase(c *C) {
 	err = db.Session.User().Find(bson.M{"_id": u.Name}).One(&u)
 	c.Assert(err, IsNil)
 	c.Assert(u.Name, Equals, "someuser")
-	c.Assert(len(u.Keys), Equals, 0)
+	c.Assert(len(u.Keys), Not(Equals), 0)
 }
 
 func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *C) {
