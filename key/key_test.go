@@ -1,4 +1,4 @@
-package gandalf
+package key
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ func TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeys(t *testing.T) {
 func TestShouldAddKeyWithoutError(t *testing.T) {
 	changeAuthKey()
 	key := "somekey blaaaaaaa r2d2@host"
-	err := addKey(key)
+	err := Add(key)
 	if err != nil {
 		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
 	}
@@ -45,7 +45,7 @@ func TestShouldAddKeyWithoutError(t *testing.T) {
 func TestShouldWriteKeyInFile(t *testing.T) {
 	changeAuthKey()
 	key := "somekey blaaaaaaa r2d2@host"
-	err := addKey(key)
+	err := Add(key)
 	if err != nil {
 		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
 		t.FailNow()
@@ -69,13 +69,13 @@ func TestShouldWriteKeyInFile(t *testing.T) {
 func TestShouldAppendKeyInFile(t *testing.T) {
 	changeAuthKey()
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := addKey(key1)
+	err := Add(key1)
 	if err != nil {
 		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
 		t.FailNow()
 	}
 	key2 := "someotherkey fooo r2d2@host"
-	err = addKey(key2)
+	err = Add(key2)
 	if err != nil {
 		t.Errorf(`Expecting err to be nil, got: %s`, err.Error())
 		t.FailNow()

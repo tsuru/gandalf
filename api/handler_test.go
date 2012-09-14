@@ -32,12 +32,6 @@ func post(url string, b io.Reader, t *testing.T) (*httptest.ResponseRecorder, *h
 	return recorder, request
 }
 
-func createUser(name string) (u user.User, err error) {
-	u = user.User{Name: name}
-	err = db.Session.User().Insert(&u)
-	return
-}
-
 func readBody(b io.Reader, t *testing.T) string {
 	body, err := ioutil.ReadAll(b)
 	if err != nil {
@@ -228,7 +222,7 @@ func TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(t *testing.T) {
 }
 
 func TestGrantAccess(t *testing.T) {
-	u, err := createUser("pippin")
+	u, err := user.New("pippin", []string{})
 	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
 	r := repository.Repository{Name: "repo"}
 	c := db.Session.Repository()
@@ -293,7 +287,7 @@ func TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(t *testing.T) 
 	if err != nil {
 		t.Errorf("Got error while creating repository: %s", err.Error())
 	}
-	u, err := createUser("gandalf")
+	u, err := user.New("gandalf", []string{})
 	if err != nil {
 		t.Errorf("Got error while creating user: %s", err.Error())
 	}
@@ -313,7 +307,7 @@ func TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(t *testing.T) 
 }
 
 func TestAddKey(t *testing.T) {
-	user, err := createUser("Frodo")
+	user, err := user.New("Frodo", []string{})
 	if err != nil {
 		t.Errorf("Error while creating user: %s", err.Error())
 		t.FailNow()
@@ -351,5 +345,46 @@ func TestAddKeyShouldRequireKey(t *testing.T) {
 	got := strings.Replace(body, "\n", "", -1)
 	if got != expected {
 		t.Errorf(`Expected error to matches "%s", got: "%s"`, expected, got)
+	}
+}
+
+func TestRemoveUser(t *testing.T) {
+	u, err := user.New("username", []string{})
+	if err != nil {
+		t.Errorf(`Failed to create user "%s"`, u.Name)
+	}
+	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
+	request, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		t.Errorf("Error when creating new request: %s", err)
+		t.FailNow()
+	}
+	recorder := httptest.NewRecorder()
+	RemoveUser(recorder, request)
+	if recorder.Code != 200 {
+		t.Errorf(`Failed to remove user, expected "%d" status code, got: "%d"`, 200, recorder.Code)
+	}
+}
+
+func TestRemoveUserShouldRemoveFromDB(t *testing.T) {
+	u, err := user.New("anuser", []string{})
+	if err != nil {
+		t.Errorf(`Failed to create user "%s"`, u.Name)
+	}
+	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
+	request, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		t.Errorf("Error when creating new request: %s", err)
+		t.FailNow()
+	}
+	recorder := httptest.NewRecorder()
+	RemoveUser(recorder, request)
+	c := db.Session.User()
+	lenght, err := c.Find(bson.M{"_id": u.Name}).Count()
+	if err != nil {
+		t.Errorf(`Error when searching for user: "%s"`, err.Error())
+	}
+	if lenght != 0 {
+		t.Errorf("User someuser shoud not exist")
 	}
 }

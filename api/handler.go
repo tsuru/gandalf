@@ -86,6 +86,16 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User %s successfuly created", u.Name)
 }
 
+func RemoveUser(w http.ResponseWriter, r *http.Request) {
+	u := &user.User{Name: r.URL.Query().Get(":name")}
+	err := user.Remove(u)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Fprintf(w, "User %s successfuly removed", u)
+}
+
 func NewRepository(w http.ResponseWriter, r *http.Request) {
 	var repo repository.Repository
 	err := parseBody(r.Body, &repo)
