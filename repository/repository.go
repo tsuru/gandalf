@@ -3,8 +3,11 @@ package repository
 import (
 	"errors"
 	"github.com/timeredbull/gandalf/db"
+	"github.com/timeredbull/gandalf/fs"
 	"regexp"
 )
+
+var fsystem fs.Fs
 
 type Repository struct {
 	Name     string `bson:"_id"`
@@ -12,15 +15,21 @@ type Repository struct {
 	IsPublic bool
 }
 
-func New(name string, users []string, isPublic bool) (r *Repository, err error) {
-	r = &Repository{Name: name, Users: users, IsPublic: isPublic}
-	var v bool
-	v, err = r.isValid()
+func New(name string, users []string, isPublic bool) (*Repository, error) {
+    r := &Repository{Name: name, Users: users, IsPublic: isPublic}
+    v, err := r.isValid()
 	if !v {
-		return
+		return r, err
 	}
 	err = db.Session.Repository().Insert(&r)
-	return
+    if err != nil {
+        return r, err
+    }
+    err = newBare(name)
+    if err != nil {
+        return r, err
+    }
+	return r, nil
 }
 
 func (r *Repository) isValid() (v bool, err error) {
@@ -39,4 +48,11 @@ func (r *Repository) isValid() (v bool, err error) {
 		err = errors.New("Validation Error: repository should have at least one user")
 	}
 	return
+}
+
+func filesystem() fs.Fs {
+    if fsystem == nil {
+        return fs.OsFs{}
+    }
+    return fsystem
 }

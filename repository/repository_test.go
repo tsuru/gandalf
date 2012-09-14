@@ -1,12 +1,14 @@
 package repository
 
 import (
+	"github.com/timeredbull/commandmocker"
 	"github.com/timeredbull/gandalf/db"
+	"github.com/timeredbull/gandalf/fs"
 	"labix.org/v2/mgo/bson"
 	"testing"
 )
 
-func TestNewShouldCreateANew(t *testing.T) {
+func TestNewShouldCreateANewRepository(t *testing.T) {
 	r, err := New("myRepo", []string{"smeagol", "saruman"}, true)
 	defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
 	if err != nil {
@@ -108,4 +110,30 @@ func TestRepositoryShouldBeValidWithoutIsPublic(t *testing.T) {
 	if !v {
 		t.Errorf("Expecting repository to be valid")
 	}
+}
+
+func TestNewShouldCreateNewGitBareRepository(t *testing.T) {
+    dir, err := commandmocker.Add("git", "$*")
+    if err != nil {
+        t.Errorf(`Unpexpected error while mocking git cmd: %s`, err.Error())
+        t.FailNow()
+    }
+    defer commandmocker.Remove(dir)
+	_, err = New("myRepo", []string{"pumpkin"}, true)
+    if err != nil {
+        t.Errorf(`Unexpected error while creating repository: %s`, err.Error())
+    }
+    defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
+    if !commandmocker.Ran(dir) {
+        t.Errorf("Expected New to create git bare repo")
+    }
+}
+
+func TestFsystemShouldSetGlobalFsystemWhenItsNil(t *testing.T) {
+    fsystem = nil
+    fsys := filesystem()
+    _, ok := fsys.(fs.Fs)
+    if !ok {
+        t.Errorf("Expected filesystem function to return a fs.Fs")
+    }
 }
