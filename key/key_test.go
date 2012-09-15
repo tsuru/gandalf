@@ -71,3 +71,21 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 	ok := clearAuthKeyFile()
 	c.Assert(ok, Equals, true)
 }
+
+func (s *S) TestRemoveKey(c *C) {
+	changeAuthKey()
+	key1 := "somekey blaaaaaaa r2d2@host"
+	err := Add(key1)
+	c.Assert(err, IsNil)
+	key2 := "someotherkey fooo r2d2@host"
+	err = Add(key2)
+	c.Assert(err, IsNil)
+	err = Remove(key1)
+	b, err := ioutil.ReadFile(authKey)
+	c.Assert(err, IsNil)
+	got := string(b)
+	expected := fmt.Sprintf("%s", key2)
+	c.Assert(got, Equals, expected)
+	ok := clearAuthKeyFile()
+	c.Assert(ok, Equals, true)
+}

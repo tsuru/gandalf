@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 )
 
 // file to write user's keys
@@ -26,6 +27,24 @@ func Add(key string) error {
 		content = fmt.Sprintf("%s\n%s", keys, key)
 	}
 	_, err = file.Write([]byte(content))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Remove a key from auhtKey file
+func Remove(key string) error {
+	file, err := os.OpenFile(authKey, os.O_RDWR, 0755)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	keys, err := ioutil.ReadAll(file)
+	content := strings.Replace(string(keys), key+"\n", "", -1)
+	err = file.Truncate(0)
+	_, err = file.Seek(0, 0)
+	_, err = file.WriteString(content)
 	if err != nil {
 		return err
 	}
