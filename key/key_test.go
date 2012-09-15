@@ -89,3 +89,31 @@ func (s *S) TestRemoveKey(c *C) {
 	ok := clearAuthKeyFile()
 	c.Assert(ok, Equals, true)
 }
+
+func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
+	changeAuthKey()
+	key1 := "somekey blaaaaaaa r2d2@host"
+	err := Remove(key1)
+	c.Assert(err, IsNil)
+	b, err := ioutil.ReadFile(authKey)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, "")
+	ok := clearAuthKeyFile()
+	c.Assert(ok, Equals, true)
+}
+
+func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
+	changeAuthKey()
+	key1 := "somekey blaaaaaaa r2d2@host"
+	err := Add(key1)
+	c.Assert(err, IsNil)
+	err = Remove(key1)
+	c.Assert(err, IsNil)
+	b, err := ioutil.ReadFile(authKey)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, "")
+	ok := clearAuthKeyFile()
+	c.Assert(ok, Equals, true)
+}

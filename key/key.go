@@ -43,6 +43,7 @@ func Remove(key string) error {
 	}
 	keys, err := ioutil.ReadAll(file)
 	content := strings.Replace(string(keys), key+"\n", "", -1)
+	content = strings.Replace(content, key, "", -1)
 	err = file.Truncate(0)
 	_, err = file.Seek(0, 0)
 	_, err = file.WriteString(content)
