@@ -11,8 +11,8 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-type S struct{
-    tmpdir string
+type S struct {
+	tmpdir string
 }
 
 var _ = Suite(&S{})
