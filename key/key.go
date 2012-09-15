@@ -13,12 +13,12 @@ var authKey string = path.Join(os.Getenv("HOME"), "authorized_keys")
 
 // Add writes a key in authKey file
 func Add(key string) error {
-	file, err := os.OpenFile(authKey, os.O_WRONLY, 0755)
+	file, err := os.OpenFile(authKey, os.O_RDWR, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
 	}
-	keys, err := ioutil.ReadFile(authKey)
+	keys, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,8 @@ func Add(key string) error {
 	if len(keys) != 0 {
 		content = fmt.Sprintf("%s\n%s", keys, key)
 	}
-	_, err = file.Write([]byte(content))
+	_, err = file.Seek(0, 0)
+	_, err = file.WriteString(content)
 	if err != nil {
 		return err
 	}
