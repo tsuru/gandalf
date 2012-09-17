@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/timeredbull/gandalf/db"
-	"github.com/timeredbull/gandalf/fs"
 	"github.com/timeredbull/gandalf/repository"
 	"github.com/timeredbull/gandalf/user"
 	"io"
@@ -301,9 +300,23 @@ func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
 	c.Assert(lenght, Equals, 0)
 }
 
-func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
-	fsystem = nil
-	fsys := filesystem()
-	_, ok := fsys.(fs.Fs)
-	c.Assert(ok, Equals, true)
+func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *C) {
+    r, err := repository.New("myRepo", []string{"pippin"}, true)
+    c.Assert(err, IsNil)
+    url := fmt.Sprintf("repository/%s/?:name=%s", r.Name, r.Name)
+    request, err := http.NewRequest("DELETE", url, nil)
+    c.Assert(err, IsNil)
+    recorder := httptest.NewRecorder()
+    RemoveRepository(recorder, request)
+    err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+    c.Assert(err, ErrorMatches, "^not found$")
+}
+
+func (s *S) TestRemoveRepositoryShouldReturn400OnFailure(c *C) {
+    url := fmt.Sprintf("repository/%s/?:name=%s", "foo", "foo")
+    request, err := http.NewRequest("DELETE", url, nil)
+    c.Assert(err, IsNil)
+    recorder := httptest.NewRecorder()
+    RemoveRepository(recorder, request)
+	c.Assert(recorder.Code, Equals, 400)
 }
