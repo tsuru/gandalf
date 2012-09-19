@@ -4,3 +4,4 @@ before_install:
   - sudo apt-get install mercurial bzr -qq
 install: make get
 script: make test
+services: mongodb
