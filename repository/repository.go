@@ -3,21 +3,11 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"github.com/timeredbull/config"
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/fs"
 	"labix.org/v2/mgo/bson"
 	"regexp"
 )
-
-func init() {
-	err := config.ReadConfigFile("/etc/gandalf.conf")
-	if err != nil {
-		msg := `Could not find gandalf config file. Searched on /etc/gandalf.conf.
-For an example conf check gandalf/etc/gandalf.conf file.`
-		panic(msg)
-	}
-}
 
 var fsystem fs.Fs
 

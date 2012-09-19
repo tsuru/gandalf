@@ -112,12 +112,12 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveRepository(w http.ResponseWriter, r *http.Request) {
-    repo := &repository.Repository{Name: r.URL.Query().Get(":name")}
-    err := repository.Remove(repo)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-    }
-    fmt.Fprintf(w, "Repository %s successfuly removed", repo.Name)
+	repo := &repository.Repository{Name: r.URL.Query().Get(":name")}
+	err := repository.Remove(repo)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	fmt.Fprintf(w, "Repository %s successfuly removed", repo.Name)
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {

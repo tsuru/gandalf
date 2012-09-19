@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/timeredbull/commandmocker"
+	"github.com/timeredbull/config"
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/user"
 	"labix.org/v2/mgo/bson"
@@ -18,13 +19,14 @@ type S struct {
 var _ = Suite(&S{})
 
 func (s *S) SetUpSuite(c *C) {
-    var err error
-    s.tmpdir, err = commandmocker.Add("git", "")
-    c.Assert(err, IsNil)
+	err := config.ReadConfigFile("../etc/gandalf.conf")
+	c.Assert(err, IsNil)
+	s.tmpdir, err = commandmocker.Add("git", "")
+	c.Assert(err, IsNil)
 }
 
 func (s *S) TearDownSuite(c *C) {
-    commandmocker.Remove(s.tmpdir)
+	commandmocker.Remove(s.tmpdir)
 }
 
 func (s *S) TestGetUserOr404(c *C) {

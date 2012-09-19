@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/timeredbull/commandmocker"
+	"github.com/timeredbull/config"
 	"github.com/timeredbull/gandalf/db"
 	"github.com/timeredbull/gandalf/fs"
 	fstesting "github.com/timeredbull/gandalf/fs/testing"
@@ -20,7 +21,8 @@ type S struct {
 var _ = Suite(&S{})
 
 func (s *S) SetUpSuite(c *C) {
-	var err error
+	err := config.ReadConfigFile("../etc/gandalf.conf")
+	c.Assert(err, IsNil)
 	s.tmpdir, err = commandmocker.Add("git", "$*")
 	c.Check(err, IsNil)
 }
