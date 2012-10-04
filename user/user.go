@@ -2,7 +2,7 @@ package user
 
 import (
 	"errors"
-	"github.com/timeredbull/gandalf/db"
+	"github.com/globocom/gandalf/db"
 	"regexp"
 )
 

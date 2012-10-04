@@ -3,9 +3,9 @@ package repository
 import (
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
-	"github.com/timeredbull/gandalf/db"
-	"github.com/timeredbull/gandalf/fs"
-	fstesting "github.com/timeredbull/gandalf/fs/testing"
+	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/fs"
+	fstesting "github.com/globocom/gandalf/fs/testing"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
 	"path"

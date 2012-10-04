@@ -3,8 +3,8 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"github.com/timeredbull/gandalf/db"
-	"github.com/timeredbull/gandalf/fs"
+	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/fs"
 	"labix.org/v2/mgo/bson"
 	"regexp"
 )

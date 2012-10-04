@@ -3,8 +3,8 @@ package api
 import (
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
-	"github.com/timeredbull/gandalf/db"
-	"github.com/timeredbull/gandalf/user"
+	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/user"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
 	"testing"

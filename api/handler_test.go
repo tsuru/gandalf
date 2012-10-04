@@ -3,9 +3,9 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"github.com/timeredbull/gandalf/db"
-	"github.com/timeredbull/gandalf/repository"
-	"github.com/timeredbull/gandalf/user"
+	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/repository"
+	"github.com/globocom/gandalf/user"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"

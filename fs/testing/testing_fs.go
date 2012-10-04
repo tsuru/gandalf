@@ -5,7 +5,7 @@ package testing
 
 import (
 	"fmt"
-	"github.com/timeredbull/gandalf/fs"
+	"github.com/globocom/gandalf/fs"
 	"os"
 	"strings"
 	"syscall"

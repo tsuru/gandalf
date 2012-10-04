@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/timeredbull/gandalf/db"
+	"github.com/globocom/gandalf/db"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
 	"testing"

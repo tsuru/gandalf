@@ -3,7 +3,7 @@ package repository
 import (
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
-	"github.com/timeredbull/gandalf/fs/testing"
+	"github.com/globocom/gandalf/fs/testing"
 	. "launchpad.net/gocheck"
 	"path"
 )

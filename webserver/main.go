@@ -4,7 +4,7 @@ import (
 	"flag"
 	"github.com/bmizerany/pat"
 	"github.com/globocom/config"
-	"github.com/timeredbull/gandalf/api"
+	"github.com/globocom/gandalf/api"
 	"log"
 	"net/http"
 )
