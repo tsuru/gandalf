@@ -2,7 +2,7 @@ package repository
 
 import (
 	"fmt"
-	"github.com/timeredbull/config"
+	"github.com/globocom/config"
 	"os/exec"
 	"path"
 )

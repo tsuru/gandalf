@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/bmizerany/pat"
-	"github.com/timeredbull/config"
+	"github.com/globocom/config"
 	"github.com/timeredbull/gandalf/api"
 	"log"
 	"net/http"

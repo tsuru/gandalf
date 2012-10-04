@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"github.com/timeredbull/commandmocker"
-	"github.com/timeredbull/config"
+	"github.com/globocom/commandmocker"
+	"github.com/globocom/config"
 	"github.com/timeredbull/gandalf/fs/testing"
 	. "launchpad.net/gocheck"
 	"path"
