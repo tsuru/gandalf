@@ -23,9 +23,9 @@ func New(name string, keys []string) (*User, error) {
 
 func (u *User) isValid() (isValid bool, err error) {
 	isValid = true
-	m, e := regexp.Match(`\s|[^aA-zZ0-9\.@]|(^$)`, []byte(u.Name))
-	if e != nil {
-		panic(e)
+	m, err := regexp.Match(`\s|[^aA-zZ0-9\.@]|(^$)`, []byte(u.Name))
+	if err != nil {
+		panic(err)
 	}
 	if m {
 		isValid = false
