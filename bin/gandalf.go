@@ -69,6 +69,17 @@ func requestedRepository() (repository.Repository, error) {
 	return repo, nil
 }
 
+func validateCmd() error {
+	r, err := regexp.Compile(`git-([\w-]+) '([\w-]+)\.git'`)
+	if err != nil {
+		panic(err)
+	}
+	if m := r.FindStringSubmatch(os.Getenv("SSH_ORIGINAL_COMMAND")); len(m) < 3 {
+		return errors.New("You've tried to execute some weird command, I'm deliberately denying you to execute that, get over it.")
+	}
+	return nil
+}
+
 func main() {
 	// (flaviamissi): should we call a validate function before anything? (I think so)
 	a := action()

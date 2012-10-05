@@ -92,6 +92,18 @@ func (s *S) TestRequestedRepositoryShouldGetArgumentInSSH_ORIGINAL_COMMANDAndRet
 	c.Assert(repo.Name, Equals, r.Name)
 }
 
+func (s *S) TestRequestRepositoryShouldDeduceCorrectlyRepositoryNameWithDash(c *C) {
+	r := repository.Repository{Name: "foo-bar"}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foo-bar.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	repo, err := requestedRepository()
+	c.Assert(err, IsNil)
+	c.Assert(repo.Name, Equals, r.Name)
+}
+
 func (s *S) TestRequestRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhatIsExpected(c *C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
@@ -108,4 +120,18 @@ func (s *S) TestRequestRepositoryShouldReturnEmptyRepositoryStructOnError(c *C) 
 	repo, err := requestedRepository()
 	c.Assert(err, NotNil)
 	c.Assert(repo.Name, Equals, "")
+}
+
+func (s *S) TestValidateCmdReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	err := validateCmd()
+	c.Assert(err, ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to execute that, get over it.$")
+}
+
+func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'my-repo.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	err := validateCmd()
+	c.Assert(err, IsNil)
 }
