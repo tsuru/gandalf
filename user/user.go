@@ -13,12 +13,10 @@ type User struct {
 
 func New(name string, keys []string) (*User, error) {
 	u := &User{Name: name, Keys: keys}
-	v, err := u.isValid()
-	if !v {
+	if v, err := u.isValid(); !v {
 		return u, err
 	}
-	err = db.Session.User().Insert(&u)
-	return u, err
+	return u, db.Session.User().Insert(&u)
 }
 
 func (u *User) isValid() (isValid bool, err error) {
