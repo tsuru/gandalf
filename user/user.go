@@ -22,16 +22,14 @@ func New(name string, keys []string) (*User, error) {
 }
 
 func (u *User) isValid() (isValid bool, err error) {
-	isValid = true
 	m, err := regexp.Match(`\s|[^aA-zZ0-9\.@]|(^$)`, []byte(u.Name))
 	if err != nil {
 		panic(err)
 	}
 	if m {
-		isValid = false
-		err = errors.New("Validation Error: user name is not valid")
+		return false, errors.New("Validation Error: user name is not valid")
 	}
-	return
+	return true, nil
 }
 
 func Remove(u *User) error {
