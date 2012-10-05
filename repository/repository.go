@@ -37,9 +37,8 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	return r, nil
 }
 
-// Removes a repository representation
 // Deletes the repository from the database and
-// removes it's bare repository
+// removes it's bare git repository
 func Remove(r *Repository) error {
 	err := removeBare(r.Name)
 	if err != nil {
