@@ -15,6 +15,8 @@ import (
 )
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
+	// it's need a intermediary method to grant access to a user into a repository
+	// something equivalent to what we have in NewUser handler
 	repo := repository.Repository{Name: r.URL.Query().Get(":name")}
 	c := db.Session.Repository()
 	c.Find(bson.M{"_id": repo.Name}).One(&repo)
@@ -25,6 +27,7 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, u := range req["users"] {
+		// TODO (flaviamissi): query all only once, then iterate over them?
 		_, err = getUserOr404(u)
 		if err != nil {
 			if len(req["users"]) == 1 {
