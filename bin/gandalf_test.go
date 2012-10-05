@@ -6,6 +6,7 @@ import (
 	"github.com/globocom/gandalf/user"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
+	"os"
 	"testing"
 )
 
@@ -65,4 +66,28 @@ func (s *S) TestHasReadPermissionShouldReturnFalseWhenUserDoesNotHavePermissionT
 	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
 	allowed := hasReadPermission(s.user, r)
 	c.Assert(allowed, Equals, false)
+}
+
+func (s *S) TestActionShouldReturnTheCommandBeingExecutedBySSH_ORIGINAL_COMMANDEnvVar(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "test-cmd")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	cmd := action()
+	c.Assert(cmd, Equals, "test-cmd")
+}
+
+func (s *S) TestActionShouldReturnEmptyWhenEnvVarIsNotSet(c *C) {
+	cmd := action()
+	c.Assert(cmd, Equals, "")
+}
+
+func (s *S) TestRequestedRepositoryShouldGetArgumentInSSH_ORIGINAL_COMMANDAndRetrieveTheEquivalentDatabaseRepository(c *C) {
+    r := repository.Repository{Name: "foo"}
+    err := db.Session.Repository().Insert(&r)
+    c.Assert(err, IsNil)
+    defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foo.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+    repo, err := requestedRepository()
+    c.Assert(err, IsNil)
+    c.Assert(repo.Name, Equals, r.Name)
 }
