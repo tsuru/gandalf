@@ -81,13 +81,31 @@ func (s *S) TestActionShouldReturnEmptyWhenEnvVarIsNotSet(c *C) {
 }
 
 func (s *S) TestRequestedRepositoryShouldGetArgumentInSSH_ORIGINAL_COMMANDAndRetrieveTheEquivalentDatabaseRepository(c *C) {
-    r := repository.Repository{Name: "foo"}
-    err := db.Session.Repository().Insert(&r)
-    c.Assert(err, IsNil)
-    defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	r := repository.Repository{Name: "foo"}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
-    repo, err := requestedRepository()
-    c.Assert(err, IsNil)
-    c.Assert(repo.Name, Equals, r.Name)
+	repo, err := requestedRepository()
+	c.Assert(err, IsNil)
+	c.Assert(repo.Name, Equals, r.Name)
+}
+
+func (s *S) TestRequestRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhatIsExpected(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	_, err := requestedRepository()
+	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something you shouldn't$")
+}
+
+func (s *S) TestRequestRepositoryShouldReturnErrorWhenThereIsNoCommandPassedToSSH_ORIGINAL_COMMAND(c *C) {
+	_, err := requestedRepository()
+	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something you shouldn't$")
+}
+
+func (s *S) TestRequestRepositoryShouldReturnEmptyRepositoryStructOnError(c *C) {
+	repo, err := requestedRepository()
+	c.Assert(err, NotNil)
+	c.Assert(repo.Name, Equals, "")
 }

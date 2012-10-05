@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"labix.org/v2/mgo/bson"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -44,11 +46,31 @@ func action() string {
 	return strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")[0]
 }
 
+// Get the repository name requested in SSH_ORIGINAL_COMMAND and gets
+// the related document on the database and returns it.
+// this function does two distinct things (maybe it should'n), it
+// parses the SSH_ORIGINAL_COMMAND and returns a "validation" error if it doesn't
+// matches the expected format and gets the repository from the database based on the info
+// obtained by the SSH_ORIGINAL_COMMAND parse.
 func requestedRepository() (repository.Repository, error) {
-    strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")[1]
+	r, err := regexp.Compile(`[\w-]+ '([\w-]+)\.git'`)
+	if err != nil {
+		panic(err)
+	}
+	m := r.FindStringSubmatch(os.Getenv("SSH_ORIGINAL_COMMAND"))
+	if len(m) < 2 {
+		return repository.Repository{}, errors.New("Cannot deduce repository name from command. You are probably trying to do something you shouldn't")
+	}
+	repoName := m[1]
+	var repo repository.Repository
+	if err = db.Session.Repository().Find(bson.M{"_id": repoName}).One(&repo); err != nil {
+		return repository.Repository{}, err
+	}
+	return repo, nil
 }
 
 func main() {
+	// (flaviamissi): should we call a validate function before anything? (I think so)
 	a := action()
 	var u user.User
 	err := db.Session.User().Find(bson.M{"_id": os.Args[1]}).One(&u)
@@ -58,6 +80,5 @@ func main() {
 	// user is trying to write into repository
 	// see man git-receive-pack
 	if a == "git-receive-pack" {
-
 	}
 }
