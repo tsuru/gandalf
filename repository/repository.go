@@ -22,30 +22,22 @@ type Repository struct {
 // and saves repository's meta data in the database
 func New(name string, users []string, isPublic bool) (*Repository, error) {
 	r := &Repository{Name: name, Users: users, IsPublic: isPublic}
-	v, err := r.isValid()
-	if !v {
+	if v, err := r.isValid(); !v {
 		return r, err
 	}
-	err = newBare(name)
-	if err != nil {
+	if err := newBare(name); err != nil {
 		return r, err
 	}
-	err = db.Session.Repository().Insert(&r)
-	if err != nil {
-		return r, err
-	}
-	return r, nil
+	return r, db.Session.Repository().Insert(&r)
 }
 
 // Deletes the repository from the database and
 // removes it's bare git repository
 func Remove(r *Repository) error {
-	err := removeBare(r.Name)
-	if err != nil {
+	if err := removeBare(r.Name); err != nil {
 		return err
 	}
-	err = db.Session.Repository().Remove(bson.M{"_id": r.Name})
-	if err != nil {
+	if err := db.Session.Repository().Remove(bson.M{"_id": r.Name}); err != nil {
 		return fmt.Errorf("Could not remove repository: %s", err.Error())
 	}
 	return nil
@@ -55,22 +47,18 @@ func Remove(r *Repository) error {
 // A valid repository must have:
 //  - a name without any special chars only alphanumeric and underlines are allowed.
 //  - at least one user in users array
-func (r *Repository) isValid() (v bool, err error) {
-	v = true
+func (r *Repository) isValid() (bool, error) {
 	m, e := regexp.Match(`(^$)|\W+|\s+`, []byte(r.Name))
 	if e != nil {
 		panic(e)
 	}
 	if m {
-		v = false
-		err = errors.New("Validation Error: repository name is not valid")
-		return
+		return false, errors.New("Validation Error: repository name is not valid")
 	}
 	if len(r.Users) == 0 {
-		v = false
-		err = errors.New("Validation Error: repository should have at least one user")
+		return false, errors.New("Validation Error: repository should have at least one user")
 	}
-	return
+	return true, nil
 }
 
 func filesystem() fs.Fs {
