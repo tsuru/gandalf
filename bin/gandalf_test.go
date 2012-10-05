@@ -45,3 +45,24 @@ func (s *S) TestHasWritePermissionShouldReturnFalseWhenUserCannotWriteinRepo(c *
 	allowed := hasWritePermission(s.user, r)
 	c.Assert(allowed, Equals, false)
 }
+
+func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsPublic(c *C) {
+	r := &repository.Repository{Name: "myotherapp", IsPublic: true}
+	db.Session.Repository().Insert(&r)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	allowed := hasReadPermission(s.user, r)
+	c.Assert(allowed, Equals, true)
+}
+
+func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToReadAndWrite(c *C) {
+	allowed := hasReadPermission(s.user, s.repo)
+	c.Assert(allowed, Equals, true)
+}
+
+func (s *S) TestHasReadPermissionShouldReturnFalseWhenUserDoesNotHavePermissionToReadWriteAndRepoIsNotPublic(c *C) {
+	r := &repository.Repository{Name: "myotherapp", IsPublic: false}
+	db.Session.Repository().Insert(&r)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	allowed := hasReadPermission(s.user, r)
+	c.Assert(allowed, Equals, false)
+}

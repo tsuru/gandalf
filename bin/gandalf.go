@@ -15,3 +15,15 @@ func hasWritePermission(u *user.User, r *repository.Repository) (allowed bool) {
 	}
 	return false
 }
+
+func hasReadPermission(u *user.User, r *repository.Repository) (allowed bool) {
+	if r.IsPublic {
+		return true
+	}
+	for _, userName := range r.Users {
+		if u.Name == userName {
+			return true
+		}
+	}
+	return false
+}
