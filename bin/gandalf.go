@@ -91,44 +91,11 @@ func main() {
 		return
 	}
 	a := action()
-	var u user.User
-	if err := db.Session.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
-		fmt.Println("Error obtaining user. Gandalf database is probably in an inconsistent state.")
-		return
-	}
-	repo, err := requestedRepository()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	cmdStr := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
-	// user is trying to write into repository
-	// see man git-receive-pack
 	if a == "git-receive-pack" {
-		if hasWritePermission(&u, &repo) {
-			cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
-			err = cmd.Run()
-			if err != nil {
-				fmt.Println("Got error while executing command:")
-				fmt.Println(err.Error())
-			}
-			return
-		}
-		fmt.Println("Permission denied.")
-		fmt.Println("You don't have access to write in this repository.")
+		executeAction(hasWritePermission, "You don't have access to write in this repository.", os.Stdout)
 	}
 	if a == "git-upload-pack" {
-		if hasReadPermission(&u, &repo) {
-			cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
-			err = cmd.Run()
-			if err != nil {
-				fmt.Println("Got error while executing command:")
-				fmt.Println(err.Error())
-			}
-			return
-		}
-		fmt.Println("Permission denied.")
-		fmt.Println("You don't have access to read this repository.")
+		executeAction(hasReadPermission, "You don't have access to read this repository.", os.Stdout)
 	}
 }
 

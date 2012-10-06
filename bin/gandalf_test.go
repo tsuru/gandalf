@@ -168,7 +168,38 @@ func (s *S) ExampleExecuteActionOutputsErrorWhenUserDoesNotExists(c *C) {
 	stdout := new(bytes.Buffer)
 	errorMsg := "You don't have access to write in this repository."
 	executeAction(hasWritePermission, errorMsg, stdout)
-	c.Assert(commandmocker.Ran(dir), Equals, false)
 	// //Output: FIXME should test that the output is correct
 	// Error obtaining user. Gandalf database is probably in an inconsistent state.
+}
+
+func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExists(c *C) {
+	dir, err := commandmocker.Add("git-receive-pack", "$*")
+	c.Check(err, IsNil)
+	defer commandmocker.Remove(dir)
+	os.Args = []string{"gandalf", "god"}
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myapp.git'")
+	defer func() {
+		os.Args = []string{}
+		os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	}()
+	stdout := new(bytes.Buffer)
+	errorMsg := "You don't have access to write in this repository."
+	executeAction(hasWritePermission, errorMsg, stdout)
+	c.Assert(commandmocker.Ran(dir), Equals, false)
+}
+
+func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenRepositoryDoesNotExists(c *C) {
+	dir, err := commandmocker.Add("git-receive-pack", "$*")
+	c.Check(err, IsNil)
+	defer commandmocker.Remove(dir)
+	os.Args = []string{"gandalf", s.user.Name}
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'ghostapp.git'")
+	defer func() {
+		os.Args = []string{}
+		os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	}()
+	stdout := new(bytes.Buffer)
+	errorMsg := "You don't have access to write in this repository."
+	executeAction(hasWritePermission, errorMsg, stdout)
+	c.Assert(commandmocker.Ran(dir), Equals, false)
 }
