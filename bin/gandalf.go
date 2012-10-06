@@ -89,9 +89,11 @@ func main() {
 	a := action()
 	if a == "git-receive-pack" {
 		executeAction(hasWritePermission, "You don't have access to write in this repository.", os.Stdout)
+		return
 	}
 	if a == "git-upload-pack" {
 		executeAction(hasReadPermission, "You don't have access to read this repository.", os.Stdout)
+		return
 	}
 }
 
