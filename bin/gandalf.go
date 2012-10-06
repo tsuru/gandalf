@@ -14,8 +14,6 @@ import (
 	"strings"
 )
 
-// TODO: receive argument with user name
-
 func hasWritePermission(u *user.User, r *repository.Repository) (allowed bool) {
 	for _, userName := range r.Users {
 		if u.Name == userName {
@@ -66,9 +64,7 @@ func requestedRepository() (repository.Repository, error) {
 	repoName := m[1]
 	var repo repository.Repository
 	if err = db.Session.Repository().Find(bson.M{"_id": repoName}).One(&repo); err != nil {
-		// TODO (flaviamissi): improve error message, now, if the repository does not exists
-		// only a "not found" is returned, it sucks
-		return repository.Repository{}, err
+		return repository.Repository{}, errors.New("Repository not found")
 	}
 	return repo, nil
 }

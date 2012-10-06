@@ -94,7 +94,7 @@ func (s *S) TestRequestedRepositoryShouldGetArgumentInSSH_ORIGINAL_COMMANDAndRet
 	c.Assert(repo.Name, Equals, r.Name)
 }
 
-func (s *S) TestRequestRepositoryShouldDeduceCorrectlyRepositoryNameWithDash(c *C) {
+func (s *S) TestRequestedRepositoryShouldDeduceCorrectlyRepositoryNameWithDash(c *C) {
 	r := repository.Repository{Name: "foo-bar"}
 	err := db.Session.Repository().Insert(&r)
 	c.Assert(err, IsNil)
@@ -106,19 +106,26 @@ func (s *S) TestRequestRepositoryShouldDeduceCorrectlyRepositoryNameWithDash(c *
 	c.Assert(repo.Name, Equals, r.Name)
 }
 
-func (s *S) TestRequestRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhatIsExpected(c *C) {
+func (s *S) TestRequestedRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhatIsExpected(c *C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, err := requestedRepository()
 	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something you shouldn't$")
 }
 
-func (s *S) TestRequestRepositoryShouldReturnErrorWhenThereIsNoCommandPassedToSSH_ORIGINAL_COMMAND(c *C) {
+func (s *S) TestRequestedRepositoryShouldReturnErrorWhenThereIsNoCommandPassedToSSH_ORIGINAL_COMMAND(c *C) {
 	_, err := requestedRepository()
 	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something you shouldn't$")
 }
 
-func (s *S) TestRequestRepositoryShouldReturnEmptyRepositoryStructOnError(c *C) {
+func (s *S) TestRequestedRepositoryShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'inexistent-repo.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	_, err := requestedRepository()
+	c.Assert(err, ErrorMatches, "^Repository not found$")
+}
+
+func (s *S) TestRequestedRepositoryShouldReturnEmptyRepositoryStructOnError(c *C) {
 	repo, err := requestedRepository()
 	c.Assert(err, NotNil)
 	c.Assert(repo.Name, Equals, "")
