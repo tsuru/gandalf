@@ -6,6 +6,7 @@ import (
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
+	"io"
 	"labix.org/v2/mgo/bson"
 	"os"
 	"os/exec"
@@ -65,6 +66,8 @@ func requestedRepository() (repository.Repository, error) {
 	repoName := m[1]
 	var repo repository.Repository
 	if err = db.Session.Repository().Find(bson.M{"_id": repoName}).One(&repo); err != nil {
+		// TODO (flaviamissi): improve error message, now, if the repository does not exists
+		// only a "not found" is returned, it sucks
 		return repository.Repository{}, err
 	}
 	return repo, nil
@@ -129,7 +132,28 @@ func main() {
 	}
 }
 
-//func execute...(fn func, repo, user)
-//when receiving a git-receive-pack fn will be hasWritePermission
-//when not, hasReadPermission
-//the function will also retrieve the user and repository from the database
+func executeAction(f func(*user.User, *repository.Repository) bool, errMsg string, stdout io.Writer) {
+	var u user.User
+	if err := db.Session.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
+		fmt.Println("Error obtaining user. Gandalf database is probably in an inconsistent state.")
+		return
+	}
+	repo, err := requestedRepository()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	if f(&u, &repo) {
+		cmdStr := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
+		cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
+		cmd.Stdout = stdout
+		err = cmd.Run()
+		if err != nil {
+			fmt.Println("Got error while executing command:")
+			fmt.Println(err.Error())
+		}
+		return
+	}
+	fmt.Println("Permission denied.")
+	fmt.Println(errMsg)
+}

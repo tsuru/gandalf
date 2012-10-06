@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"github.com/globocom/commandmocker"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
@@ -134,4 +136,39 @@ func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitC
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	err := validateCmd()
 	c.Assert(err, IsNil)
+}
+
+func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermission(c *C) {
+	dir, err := commandmocker.Add("git-receive-pack", "$*")
+	c.Check(err, IsNil)
+	defer commandmocker.Remove(dir)
+	os.Args = []string{"gandalf", s.user.Name}
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myapp.git'")
+	defer func() {
+		os.Args = []string{}
+		os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	}()
+	stdout := new(bytes.Buffer)
+	errorMsg := "You don't have access to write in this repository."
+	executeAction(hasWritePermission, errorMsg, stdout)
+	c.Assert(commandmocker.Ran(dir), Equals, true)
+	c.Assert(stdout.String(), Matches, "'myapp.git'")
+}
+
+func (s *S) ExampleExecuteActionOutputsErrorWhenUserDoesNotExists(c *C) {
+	dir, err := commandmocker.Add("git-receive-pack", "$*")
+	c.Check(err, IsNil)
+	defer commandmocker.Remove(dir)
+	os.Args = []string{"gandalf", "god"}
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myapp.git'")
+	defer func() {
+		os.Args = []string{}
+		os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	}()
+	stdout := new(bytes.Buffer)
+	errorMsg := "You don't have access to write in this repository."
+	executeAction(hasWritePermission, errorMsg, stdout)
+	c.Assert(commandmocker.Ran(dir), Equals, false)
+	// //Output: FIXME should test that the output is correct
+	// Error obtaining user. Gandalf database is probably in an inconsistent state.
 }
