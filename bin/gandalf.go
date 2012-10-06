@@ -69,6 +69,9 @@ func requestedRepository() (repository.Repository, error) {
 	return repo, nil
 }
 
+// Checks whether a command is a valid git command
+// The following format is allowed:
+//   git-([\w-]+) '([\w-]+)\.git'
 func validateCmd() error {
 	r, err := regexp.Compile(`git-([\w-]+) '([\w-]+)\.git'`)
 	if err != nil {
@@ -80,23 +83,10 @@ func validateCmd() error {
 	return nil
 }
 
-func main() {
-	err := validateCmd()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	a := action()
-	if a == "git-receive-pack" {
-		executeAction(hasWritePermission, "You don't have access to write in this repository.", os.Stdout)
-		return
-	}
-	if a == "git-upload-pack" {
-		executeAction(hasReadPermission, "You don't have access to read this repository.", os.Stdout)
-		return
-	}
-}
-
+// Executes the SSH_ORIGINAL_COMMAND based on the condition
+// defined by the `f` parameter.
+// Also receives a custom error message to print to the end user and a
+// stdout object, where the SSH_ORIGINAL_COMMAND output is going to be written
 func executeAction(f func(*user.User, *repository.Repository) bool, errMsg string, stdout io.Writer) {
 	var u user.User
 	if err := db.Session.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
@@ -121,4 +111,21 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 	}
 	fmt.Println("Permission denied.")
 	fmt.Println(errMsg)
+}
+
+func main() {
+	err := validateCmd()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	a := action()
+	if a == "git-receive-pack" {
+		executeAction(hasWritePermission, "You don't have access to write in this repository.", os.Stdout)
+		return
+	}
+	if a == "git-upload-pack" {
+		executeAction(hasReadPermission, "You don't have access to read this repository.", os.Stdout)
+		return
+	}
 }
