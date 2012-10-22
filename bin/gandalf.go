@@ -71,7 +71,7 @@ func requestedRepository() (repository.Repository, error) {
 
 // Checks whether a command is a valid git command
 // The following format is allowed:
-//   git-([\w-]+) '([\w-]+)\.git'
+//  git-([\w-]+) '([\w-]+)\.git'
 func validateCmd() error {
 	r, err := regexp.Compile(`git-([\w-]+) '([\w-]+)\.git'`)
 	if err != nil {

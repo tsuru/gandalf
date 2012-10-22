@@ -27,7 +27,7 @@ func clearAuthKeyFile() bool {
 	return true
 }
 
-func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeys(c *C) {
+func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
 	home := os.Getenv("HOME")
 	expected := path.Join(home, "authorized_keys")
 	c.Assert(authKey, Equals, expected)
