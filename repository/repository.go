@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/globocom/gandalf/db"
-	"github.com/globocom/gandalf/fs"
+	"github.com/globocom/tsuru/fs"
 	"labix.org/v2/mgo/bson"
 	"regexp"
 )
