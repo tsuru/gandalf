@@ -11,14 +11,14 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-type S struct{
-    origKeyFile string
+type S struct {
+	origKeyFile string
 }
 
 var _ = Suite(&S{})
 
 func (s *S) SetUpSuite(c *C) {
-    s.origKeyFile = authKey
+	s.origKeyFile = authKey
 }
 
 func (s *S) SetUpTest(c *C) {
@@ -61,7 +61,7 @@ func (s *S) TestShouldWriteKeyInFile(c *C) {
 	b, err := ioutil.ReadFile(authKey)
 	c.Assert(err, IsNil)
 	got := string(b)
-	c.Assert(got, Equals, key)
+	c.Assert(got, Equals, formatKey(key))
 }
 
 func (s *S) TestShouldAppendKeyInFile(c *C) {
@@ -74,7 +74,18 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 	b, err := ioutil.ReadFile(authKey)
 	c.Assert(err, IsNil)
 	got := string(b)
-	expected := fmt.Sprintf("%s\n%s", key1, key2)
+	expected := fmt.Sprintf(".*%s\n.*%s", key1, key2)
+	c.Assert(got, Matches, expected)
+}
+
+func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
+	key := "somekey bleeeerh r2d2@host"
+	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s", key)
+	err := Add(key)
+	c.Assert(err, IsNil)
+	b, err := ioutil.ReadFile(authKey)
+	c.Assert(err, IsNil)
+	got := string(b)
 	c.Assert(got, Equals, expected)
 }
 
@@ -89,8 +100,8 @@ func (s *S) TestRemoveKey(c *C) {
 	b, err := ioutil.ReadFile(authKey)
 	c.Assert(err, IsNil)
 	got := string(b)
-	expected := fmt.Sprintf("%s", key2)
-	c.Assert(got, Equals, expected)
+	expected := fmt.Sprintf(".*%s", key2)
+	c.Assert(got, Matches, expected)
 }
 
 func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
@@ -113,4 +124,11 @@ func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 	c.Assert(err, IsNil)
 	got := string(b)
 	c.Assert(got, Equals, "")
+}
+
+func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {
+	key := "somekeeey fooo bar@bar.com"
+	got := formatKey(key)
+	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s", key)
+	c.Assert(got, Equals, expected)
 }

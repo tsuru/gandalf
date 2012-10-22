@@ -22,9 +22,9 @@ func Add(key string) error {
 	if err != nil {
 		return err
 	}
-	content := key
+	content := formatKey(key) // TODO (flaviamissi): formatKey function to concatenate
 	if len(keys) != 0 {
-		content = fmt.Sprintf("%s\n%s", keys, key)
+		content = fmt.Sprintf("%s\n%s", keys, formatKey(key))
 	}
 	_, err = file.Seek(0, 0)
 	_, err = file.WriteString(content)
@@ -42,6 +42,7 @@ func Remove(key string) error {
 		return err
 	}
 	keys, err := ioutil.ReadAll(file)
+	key = formatKey(key)
 	content := strings.Replace(string(keys), key+"\n", "", -1)
 	content = strings.Replace(content, key, "", -1)
 	err = file.Truncate(0)
@@ -51,4 +52,9 @@ func Remove(key string) error {
 		return err
 	}
 	return nil
+}
+
+func formatKey(key string) string {
+	keyTmpl := "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s"
+	return fmt.Sprintf(keyTmpl, key)
 }
