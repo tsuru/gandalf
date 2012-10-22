@@ -11,9 +11,24 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-type S struct{}
+type S struct{
+    origKeyFile string
+}
 
 var _ = Suite(&S{})
+
+func (s *S) SetUpSuite(c *C) {
+    s.origKeyFile = authKey
+}
+
+func (s *S) SetUpTest(c *C) {
+	changeAuthKey()
+}
+
+func (s *S) TearDownTest(c *C) {
+	ok := clearAuthKeyFile()
+	c.Assert(ok, Equals, true)
+}
 
 func changeAuthKey() {
 	authKey = "testdata/authorized_keys"
@@ -30,20 +45,16 @@ func clearAuthKeyFile() bool {
 func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
 	home := os.Getenv("HOME")
 	expected := path.Join(home, "authorized_keys")
-	c.Assert(authKey, Equals, expected)
+	c.Assert(s.origKeyFile, Equals, expected)
 }
 
 func (s *S) TestShouldAddKeyWithoutError(c *C) {
-	changeAuthKey()
 	key := "somekey blaaaaaaa r2d2@host"
 	err := Add(key)
 	c.Assert(err, IsNil)
-	ok := clearAuthKeyFile()
-	c.Assert(ok, Equals, true)
 }
 
 func (s *S) TestShouldWriteKeyInFile(c *C) {
-	changeAuthKey()
 	key := "somekey blaaaaaaa r2d2@host"
 	err := Add(key)
 	c.Assert(err, IsNil)
@@ -51,12 +62,9 @@ func (s *S) TestShouldWriteKeyInFile(c *C) {
 	c.Assert(err, IsNil)
 	got := string(b)
 	c.Assert(got, Equals, key)
-	ok := clearAuthKeyFile()
-	c.Assert(ok, Equals, true)
 }
 
 func (s *S) TestShouldAppendKeyInFile(c *C) {
-	changeAuthKey()
 	key1 := "somekey blaaaaaaa r2d2@host"
 	err := Add(key1)
 	c.Assert(err, IsNil)
@@ -68,12 +76,9 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 	got := string(b)
 	expected := fmt.Sprintf("%s\n%s", key1, key2)
 	c.Assert(got, Equals, expected)
-	ok := clearAuthKeyFile()
-	c.Assert(ok, Equals, true)
 }
 
 func (s *S) TestRemoveKey(c *C) {
-	changeAuthKey()
 	key1 := "somekey blaaaaaaa r2d2@host"
 	err := Add(key1)
 	c.Assert(err, IsNil)
@@ -86,12 +91,9 @@ func (s *S) TestRemoveKey(c *C) {
 	got := string(b)
 	expected := fmt.Sprintf("%s", key2)
 	c.Assert(got, Equals, expected)
-	ok := clearAuthKeyFile()
-	c.Assert(ok, Equals, true)
 }
 
 func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
-	changeAuthKey()
 	key1 := "somekey blaaaaaaa r2d2@host"
 	err := Remove(key1)
 	c.Assert(err, IsNil)
@@ -99,12 +101,9 @@ func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
 	c.Assert(err, IsNil)
 	got := string(b)
 	c.Assert(got, Equals, "")
-	ok := clearAuthKeyFile()
-	c.Assert(ok, Equals, true)
 }
 
 func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
-	changeAuthKey()
 	key1 := "somekey blaaaaaaa r2d2@host"
 	err := Add(key1)
 	c.Assert(err, IsNil)
@@ -114,6 +113,4 @@ func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 	c.Assert(err, IsNil)
 	got := string(b)
 	c.Assert(got, Equals, "")
-	ok := clearAuthKeyFile()
-	c.Assert(ok, Equals, true)
 }
