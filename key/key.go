@@ -22,7 +22,7 @@ func Add(key string) error {
 	if err != nil {
 		return err
 	}
-	content := formatKey(key) // TODO (flaviamissi): formatKey function to concatenate
+	content := formatKey(key)
 	if len(keys) != 0 {
 		content = fmt.Sprintf("%s\n%s", keys, formatKey(key))
 	}
