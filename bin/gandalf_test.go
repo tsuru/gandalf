@@ -135,7 +135,7 @@ func (s *S) TestValidateCmdReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	err := validateCmd()
-	c.Assert(err, ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to execute that, get over it.$")
+	c.Assert(err, ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
 func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *C) {
