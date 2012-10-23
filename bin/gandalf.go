@@ -46,7 +46,7 @@ func action() string {
 	return strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")[0]
 }
 
-// Get the repository name requested in SSH_ORIGINAL_COMMAND and gets
+// Get the repository name requested in SSH_ORIGINAL_COMMAND and retrieves
 // the related document on the database and returns it.
 // this function does two distinct things (maybe it should'n), it
 // parses the SSH_ORIGINAL_COMMAND and returns a "validation" error if it doesn't
@@ -78,7 +78,7 @@ func validateCmd() error {
 		panic(err)
 	}
 	if m := r.FindStringSubmatch(os.Getenv("SSH_ORIGINAL_COMMAND")); len(m) < 3 {
-		return errors.New("You've tried to execute some weird command, I'm deliberately denying you to execute that, get over it.")
+		return errors.New("You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
 	}
 	return nil
 }
