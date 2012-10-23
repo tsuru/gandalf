@@ -2,7 +2,7 @@ get: get-test get-prod
 
 get-test:
 	@/bin/echo "Installing test dependencies... "
-	@go list -f '{{range .TestImports}}{{.}} {{end}}' ./... | tr ' ' '\n' |\
+	@go list -f '{{range .XTestImports}}{{.}} {{end}}' ./... | tr ' ' '\n' |\
 		grep '^.*\..*/.*$$' | grep -v 'github.com/globocom/gandalf' |\
 		sort | uniq | xargs go get >/dev/null 2>&1
 	@/bin/echo "ok"
