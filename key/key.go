@@ -2,6 +2,7 @@ package key
 
 import (
 	"fmt"
+	"github.com/globocom/config"
 	"io/ioutil"
 	"os"
 	"path"
@@ -55,6 +56,10 @@ func Remove(key string) error {
 }
 
 func formatKey(key string) string {
-	keyTmpl := "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s"
-	return fmt.Sprintf(keyTmpl, key)
+	binPath, err := config.GetString("bin-path")
+	if err != nil {
+		panic(err.Error())
+	}
+	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s" %s`
+	return fmt.Sprintf(keyTmpl, binPath, key)
 }

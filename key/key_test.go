@@ -2,6 +2,7 @@ package key
 
 import (
 	"fmt"
+	"github.com/globocom/config"
 	"io/ioutil"
 	. "launchpad.net/gocheck"
 	"os"
@@ -19,6 +20,8 @@ var _ = Suite(&S{})
 
 func (s *S) SetUpSuite(c *C) {
 	s.origKeyFile = authKey
+	err := config.ReadConfigFile("../etc/gandalf.conf")
+	c.Check(err, IsNil)
 }
 
 func (s *S) SetUpTest(c *C) {
@@ -80,13 +83,13 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 
 func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
 	key := "somekey bleeeerh r2d2@host"
-	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s", key)
+	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
 	err := Add(key)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadFile(authKey)
 	c.Assert(err, IsNil)
 	got := string(b)
-	c.Assert(got, Equals, expected)
+	c.Assert(got, Matches, expected)
 }
 
 func (s *S) TestRemoveKey(c *C) {
@@ -129,6 +132,21 @@ func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {
 	key := "somekeeey fooo bar@bar.com"
 	got := formatKey(key)
-	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s", key)
+	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
+	c.Assert(got, Matches, expected)
+}
+
+func (s *S) TestFormatKeyShouldAddCommandAfterSshRestrictions(c *C) {
+	key := "somekeyyyy fooow bar@bar.com"
+	got := formatKey(key)
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/usr/local/bin/gandalf.go" %s`, key)
+	c.Assert(got, Equals, expected)
+}
+
+func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *C) {
+	config.Set("bin-path", "/foo/bar/hi.go")
+	key := "lol loool bar@bar.com"
+	got := formatKey(key)
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/foo/bar/hi.go" %s`, key)
 	c.Assert(got, Equals, expected)
 }
