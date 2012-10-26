@@ -3,6 +3,7 @@ package key
 import (
 	"fmt"
 	"github.com/globocom/config"
+	"github.com/globocom/tsuru/fs"
 	"io/ioutil"
 	"os"
 	"path"
@@ -11,10 +12,11 @@ import (
 
 // file to write user's keys
 var authKey string = path.Join(os.Getenv("HOME"), "authorized_keys")
+var fsystem fs.Fs
 
 // Add writes a key in authKey file
 func Add(key string) error {
-	file, err := os.OpenFile(authKey, os.O_RDWR, 0755)
+	file, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -37,7 +39,7 @@ func Add(key string) error {
 
 // Remove a key from auhtKey file
 func Remove(key string) error {
-	file, err := os.OpenFile(authKey, os.O_RDWR, 0755)
+	file, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -62,4 +64,11 @@ func formatKey(key string) string {
 	}
 	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s" %s`
 	return fmt.Sprintf(keyTmpl, binPath, key)
+}
+
+func filesystem() fs.Fs {
+	if fsystem == nil {
+		return fs.OsFs{}
+	}
+	return fsystem
 }
