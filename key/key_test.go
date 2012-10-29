@@ -21,7 +21,6 @@ type S struct {
 var _ = Suite(&S{})
 
 func (s *S) SetUpSuite(c *C) {
-	s.origKeyFile = authKey
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Check(err, IsNil)
 	s.rfs = &fstesting.RecordingFs{}
@@ -32,17 +31,9 @@ func (s *S) TearDownSuite(c *C) {
 	fsystem = nil
 }
 
-func (s *S) SetUpTest(c *C) {
-	s.changeAuthKey()
-}
-
 func (s *S) TearDownTest(c *C) {
 	ok := s.clearAuthKeyFile()
 	c.Assert(ok, Equals, true)
-}
-
-func (s *S) changeAuthKey() {
-	authKey = "testdata/authorized_keys"
 }
 
 func (s *S) clearAuthKeyFile() bool {
@@ -59,7 +50,7 @@ func (s *S) clearAuthKeyFile() bool {
 func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
 	home := os.Getenv("HOME")
 	expected := path.Join(home, "authorized_keys")
-	c.Assert(s.origKeyFile, Equals, expected)
+	c.Assert(authKey, Equals, expected)
 }
 
 func (s *S) TestShouldAddKeyWithoutError(c *C) {
