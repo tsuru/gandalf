@@ -29,9 +29,10 @@ func Add(key string) error {
 	if len(keys) != 0 {
 		content = fmt.Sprintf("%s\n%s", keys, formatKey(key))
 	}
-	_, err = file.Seek(0, 0)
-	_, err = file.WriteString(content)
-	if err != nil {
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+	if _, err := file.WriteString(content); err != nil {
 		return err
 	}
 	return nil
