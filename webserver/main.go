@@ -11,13 +11,14 @@ import (
 
 func main() {
 	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
+	configFile := flag.String("config", "/etc/gandalf.conf", "Gandalf configuration file")
 	flag.Parse()
 
-	err := config.ReadConfigFile("/etc/gandalf.conf")
+	err := config.ReadConfigFile(*configFile)
 	if err != nil {
-		msg := `Could not find gandalf config file. Searched on /etc/gandalf.conf.
+		msg := `Could not find gandalf config file. Searched on %s.
 For an example conf check gandalf/etc/gandalf.conf file.`
-		panic(msg)
+		log.Panicf(msg, *configFile)
 	}
 	router := pat.New()
 	router.Post("/user", http.HandlerFunc(api.NewUser))
