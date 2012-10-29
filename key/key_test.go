@@ -3,7 +3,6 @@ package key
 import (
 	"fmt"
 	"github.com/globocom/config"
-	"github.com/globocom/tsuru/fs"
 	fstesting "github.com/globocom/tsuru/fs/testing"
 	"io/ioutil"
 	. "launchpad.net/gocheck"
@@ -34,20 +33,20 @@ func (s *S) TearDownSuite(c *C) {
 }
 
 func (s *S) SetUpTest(c *C) {
-	changeAuthKey()
+	s.changeAuthKey()
 }
 
 func (s *S) TearDownTest(c *C) {
-	ok := clearAuthKeyFile()
+	ok := s.clearAuthKeyFile()
 	c.Assert(ok, Equals, true)
 }
 
-func changeAuthKey() {
+func (s *S) changeAuthKey() {
 	authKey = "testdata/authorized_keys"
 }
 
-func clearAuthKeyFile() bool {
-	f, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
+func (s *S) clearAuthKeyFile() bool {
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	if err != nil {
 		return false
 	}
@@ -65,15 +64,15 @@ func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C)
 
 func (s *S) TestShouldAddKeyWithoutError(c *C) {
 	key := "somekey blaaaaaaa r2d2@host"
-	err := Add(key)
+	err := Add(key, s.rfs)
 	c.Assert(err, IsNil)
 }
 
 func (s *S) TestShouldWriteKeyInFile(c *C) {
 	key := "somekey blaaaaaaa r2d2@host"
-	err := Add(key)
+	err := Add(key, s.rfs)
 	c.Assert(err, IsNil)
-	f, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
 	got := string(b)
@@ -82,12 +81,12 @@ func (s *S) TestShouldWriteKeyInFile(c *C) {
 
 func (s *S) TestShouldAppendKeyInFile(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Add(key1)
+	err := Add(key1, s.rfs)
 	c.Assert(err, IsNil)
 	key2 := "someotherkey fooo r2d2@host"
-	err = Add(key2)
+	err = Add(key2, s.rfs)
 	c.Assert(err, IsNil)
-	f, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -99,9 +98,9 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
 	key := "somekey bleeeerh r2d2@host"
 	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
-	err := Add(key)
+	err := Add(key, s.rfs)
 	c.Assert(err, IsNil)
-	f, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -111,13 +110,13 @@ func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
 
 func (s *S) TestRemoveKey(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Add(key1)
+	err := Add(key1, s.rfs)
 	c.Assert(err, IsNil)
 	key2 := "someotherkey fooo r2d2@host"
-	err = Add(key2)
+	err = Add(key2, s.rfs)
 	c.Assert(err, IsNil)
-	err = Remove(key1)
-	f, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
+	err = Remove(key1, s.rfs)
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -128,9 +127,9 @@ func (s *S) TestRemoveKey(c *C) {
 
 func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Remove(key1)
+	err := Remove(key1, s.rfs)
 	c.Assert(err, IsNil)
-	f, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -140,11 +139,11 @@ func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
 
 func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Add(key1)
+	err := Add(key1, s.rfs)
 	c.Assert(err, IsNil)
-	err = Remove(key1)
+	err = Remove(key1, s.rfs)
 	c.Assert(err, IsNil)
-	f, err := filesystem().OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -172,13 +171,4 @@ func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *C) {
 	got := formatKey(key)
 	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/foo/bar/hi.go" %s`, key)
 	c.Assert(got, Equals, expected)
-}
-
-func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
-	oldFs := fsystem
-	fsystem = nil
-	defer func() { fsystem = oldFs }()
-	fsys := filesystem()
-	_, ok := fsys.(fs.Fs)
-	c.Assert(ok, Equals, true)
 }
