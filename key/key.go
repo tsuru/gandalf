@@ -14,7 +14,9 @@ import (
 var authKey string = path.Join(os.Getenv("HOME"), "authorized_keys")
 var fsystem fs.Fs
 
-// Add writes a key in authKey file
+// Writes `key` in authorized_keys file (from current user)
+// It does not writes in the database, there is no need for that since the key
+// object is embedded on the user's document
 func Add(key string, fsystem fs.Fs) error {
 	file, err := fsystem.OpenFile(authKey, os.O_RDWR, 0755)
 	defer file.Close()
