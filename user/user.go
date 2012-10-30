@@ -19,12 +19,10 @@ func New(name string, keys []string) (*User, error) {
 	if v, err := u.isValid(); !v {
 		return u, err
 	}
-	// extract to method
-	fSystem := filesystem()
-	for _, k := range keys {
-		key.Add(k, fSystem)
+	if err := db.Session.User().Insert(&u); err != nil {
+		return u, err
 	}
-	return u, db.Session.User().Insert(&u)
+	return u, u.writeKeys(keys)
 }
 
 func (u *User) isValid() (isValid bool, err error) {
