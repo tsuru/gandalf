@@ -24,7 +24,7 @@ def build():
         abort("gandalf must be built on linux_amd64 for deployment, you're on %s_%s" % (goos, goarch))
     local("mkdir -p dist")
     local("go clean ./...")
-    local("go build -a -o dist/gandalf-webserver ./api/gandalf-webserver")
+    local("go build -a -o dist/gandalf-webserver ./webserver")
 
 
 def clean():
