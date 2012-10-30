@@ -5,6 +5,7 @@ import (
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/key"
 	"github.com/globocom/tsuru/fs"
+	"labix.org/v2/mgo/bson"
 	"regexp"
 )
 
@@ -35,6 +36,22 @@ func (u *User) isValid() (isValid bool, err error) {
 		return false, errors.New("Validation Error: user name is not valid")
 	}
 	return true, nil
+}
+
+func (u *User) AddKeys(keys []string) error {
+	// the key is saved in the database without any the needed formats (like command and no-pty)
+	u.Keys = append(u.Keys, keys...)
+	err := db.Session.User().Update(bson.M{"_id": u.Name}, u)
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		err := key.Add(k, filesystem())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func Remove(u *User) error {

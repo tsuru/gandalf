@@ -74,12 +74,8 @@ func (s *S) TestNewWritesKeyInAuthorizedKeys(c *C) {
 	u, err := New("piccolo", []string{"idrsakey piccolo@myhost"})
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	authFile := path.Join(os.Getenv("HOME"), "authorized_keys")
-	f, err := filesystem().OpenFile(authFile, os.O_RDWR, 0755)
-	c.Assert(err, IsNil)
-	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	c.Assert(string(b), Matches, ".*idrsakey piccolo@myhost")
+	keys := s.authKeysContent(c)
+	c.Assert(keys, Matches, ".*idrsakey piccolo@myhost")
 }
 
 func (s *S) TestIsValidReturnsErrorWhenUserDoesNotHaveAName(c *C) {
@@ -107,6 +103,28 @@ func (s *S) TestIsValidShouldAcceptEmailsAsUserName(c *C) {
 	v, err := u.isValid()
 	c.Assert(err, IsNil)
 	c.Assert(v, Equals, true)
+}
+
+func (s *S) TestAddKeysShouldWriteToUsersDocument(c *C) {
+	u, err := New("pippin", []string{})
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	key := "ssh-rsa mykey pippin@nowhere"
+	err = u.AddKeys([]string{key})
+	c.Assert(err, IsNil)
+	err = db.Session.User().Find(bson.M{"_id": u.Name}).One(&u)
+	c.Assert(err, IsNil)
+	c.Assert(u.Keys, DeepEquals, []string{key})
+}
+
+func (s *S) TestAddKeysShouldWriteToAuthorizedKeysFile(c *C) {
+	u, err := New("pippin", []string{})
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	err = u.AddKeys([]string{"ssh-rsa mykey pippin@nowhere"})
+	c.Assert(err, IsNil)
+	keys := s.authKeysContent(c)
+	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
 }
 
 func (s *S) TestRemove(c *C) {
