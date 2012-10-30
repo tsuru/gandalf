@@ -9,8 +9,6 @@ import (
 	"regexp"
 )
 
-var fsystem fs.Fs
-
 type Repository struct {
 	Name     string `bson:"_id"`
 	Users    []string
@@ -60,6 +58,8 @@ func (r *Repository) isValid() (bool, error) {
 	}
 	return true, nil
 }
+
+var fsystem fs.Fs
 
 func filesystem() fs.Fs {
 	if fsystem == nil {
