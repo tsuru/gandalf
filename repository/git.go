@@ -25,7 +25,7 @@ func newBare(name string) error {
 	cmd := exec.Command("git", "init", "--bare", path.Join(bareLocation(), name))
 	_, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Could not create git bare repository: %s", err.Error())
+		return fmt.Errorf("Could not create git bare repository: %s", err)
 	}
 	return nil
 }
@@ -33,7 +33,7 @@ func newBare(name string) error {
 func removeBare(name string) error {
 	err := filesystem().RemoveAll(path.Join(bareLocation(), name))
 	if err != nil {
-		return fmt.Errorf("Could not remove git bare repository: %s", err.Error())
+		return fmt.Errorf("Could not remove git bare repository: %s", err)
 	}
 	return nil
 }

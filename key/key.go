@@ -63,7 +63,7 @@ func Remove(key string, fsystem fs.Fs) error {
 func formatKey(key string) string {
 	binPath, err := config.GetString("bin-path")
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s" %s`
 	return fmt.Sprintf(keyTmpl, binPath, key)
