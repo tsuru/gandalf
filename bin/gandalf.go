@@ -95,7 +95,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 	}
 	repo, err := requestedRepository()
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 		return
 	}
 	if f(&u, &repo) {
@@ -105,7 +105,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		err = cmd.Run()
 		if err != nil {
 			fmt.Println("Got error while executing command:")
-			fmt.Println(err.Error())
+			fmt.Println(err)
 		}
 		return
 	}
@@ -116,7 +116,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 func main() {
 	err := validateCmd()
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
 		return
 	}
 	a := action()

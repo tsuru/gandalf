@@ -38,7 +38,7 @@ func Remove(r *Repository) error {
 		return err
 	}
 	if err := db.Session.Repository().Remove(bson.M{"_id": r.Name}); err != nil {
-		return fmt.Errorf("Could not remove repository: %s", err.Error())
+		return fmt.Errorf("Could not remove repository: %s", err)
 	}
 	return nil
 }
