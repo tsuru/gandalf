@@ -127,6 +127,28 @@ func (s *S) TestAddKeysShouldWriteToAuthorizedKeysFile(c *C) {
 	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
 }
 
+func (s *S) TestWriteKeysShouldWriteToAuthorizedKeysFile(c *C) {
+	u, err := New("pippin", []string{})
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	err = u.writeKeys([]string{"ssh-rsa mykey pippin@nowhere"})
+	c.Assert(err, IsNil)
+	keys := s.authKeysContent(c)
+	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
+}
+
+func (s *S) TestWriteKeysShouldNotSaveInTheDatabase(c *C) {
+	u, err := New("pippin", []string{})
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	key := "ssh-rsa mykey pippin@nowhere"
+	err = u.writeKeys([]string{key})
+	c.Assert(err, IsNil)
+	err = db.Session.User().Find(bson.M{"_id": u.Name}).One(&u)
+	c.Assert(err, IsNil)
+	c.Assert(u.Keys, Not(DeepEquals), []string{key})
+}
+
 func (s *S) TestRemove(c *C) {
 	u, err := New("someuser", []string{})
 	c.Assert(err, IsNil)

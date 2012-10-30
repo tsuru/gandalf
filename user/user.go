@@ -45,6 +45,10 @@ func (u *User) AddKeys(keys []string) error {
 	if err != nil {
 		return err
 	}
+	return u.writeKeys(keys)
+}
+
+func (u *User) writeKeys(keys []string) error {
 	for _, k := range keys {
 		err := key.Add(k, filesystem())
 		if err != nil {
