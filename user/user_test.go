@@ -2,6 +2,7 @@ package user
 
 import (
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/tsuru/fs"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
 	"testing"
@@ -74,4 +75,11 @@ func (s *S) TestRemove(c *C) {
 	lenght, err := db.Session.User().Find(bson.M{"_id": u.Name}).Count()
 	c.Assert(err, IsNil)
 	c.Assert(lenght, Equals, 0)
+}
+
+func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
+	fsystem = nil
+	fsys := filesystem()
+	_, ok := fsys.(fs.Fs)
+	c.Assert(ok, Equals, true)
 }

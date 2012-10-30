@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/tsuru/fs"
 	"regexp"
 )
 
@@ -32,4 +33,13 @@ func (u *User) isValid() (isValid bool, err error) {
 
 func Remove(u *User) error {
 	return db.Session.User().RemoveId(u.Name)
+}
+
+var fsystem fs.Fs
+
+func filesystem() fs.Fs {
+	if fsystem == nil {
+		return fs.OsFs{}
+	}
+	return fsystem
 }
