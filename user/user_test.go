@@ -1,18 +1,48 @@
 package user
 
 import (
+	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/tsuru/fs"
+	fstesting "github.com/globocom/tsuru/fs/testing"
+	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
+	"os"
+	"path"
 	"testing"
 )
 
 func Test(t *testing.T) { TestingT(t) }
 
-type S struct{}
+type S struct {
+	rfs *fstesting.RecordingFs
+}
 
 var _ = Suite(&S{})
+
+func (s *S) authKeysContent(c *C) string {
+	authFile := path.Join(os.Getenv("HOME"), "authorized_keys")
+	f, err := filesystem().OpenFile(authFile, os.O_RDWR, 0755)
+	c.Assert(err, IsNil)
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	return string(b)
+}
+
+func (s *S) SetUpSuite(c *C) {
+	err := config.ReadConfigFile("../etc/gandalf.conf")
+	c.Check(err, IsNil)
+}
+
+func (s *S) SetUpTest(c *C) {
+	s.rfs = &fstesting.RecordingFs{}
+	fsystem = s.rfs
+}
+
+func (s *S) TearDownSuite(c *C) {
+	fsystem = nil
+}
 
 func (s *S) TestNewUserReturnsAStructFilled(c *C) {
 	u, err := New("someuser", []string{"id_rsa someKeyChars"})
@@ -38,6 +68,18 @@ func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *C) {
 	got := err.Error()
 	expected := "Validation Error: user name is not valid"
 	c.Assert(got, Equals, expected)
+}
+
+func (s *S) TestNewWritesKeyInAuthorizedKeys(c *C) {
+	u, err := New("piccolo", []string{"idrsakey piccolo@myhost"})
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	authFile := path.Join(os.Getenv("HOME"), "authorized_keys")
+	f, err := filesystem().OpenFile(authFile, os.O_RDWR, 0755)
+	c.Assert(err, IsNil)
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	c.Assert(string(b), Matches, ".*idrsakey piccolo@myhost")
 }
 
 func (s *S) TestIsValidReturnsErrorWhenUserDoesNotHaveAName(c *C) {
@@ -75,6 +117,15 @@ func (s *S) TestRemove(c *C) {
 	lenght, err := db.Session.User().Find(bson.M{"_id": u.Name}).Count()
 	c.Assert(err, IsNil)
 	c.Assert(lenght, Equals, 0)
+}
+
+func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *C) {
+	u, err := New("gandalf", []string{"gandalfkey gandalf@mordor"})
+	c.Assert(err, IsNil)
+	err = Remove(u)
+	c.Assert(err, IsNil)
+	got := s.authKeysContent(c)
+	c.Assert(got, Not(Matches), ".*gandalfkey gandalf@mordor")
 }
 
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {

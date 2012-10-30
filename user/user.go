@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/key"
 	"github.com/globocom/tsuru/fs"
 	"regexp"
 )
@@ -16,6 +17,11 @@ func New(name string, keys []string) (*User, error) {
 	u := &User{Name: name, Keys: keys}
 	if v, err := u.isValid(); !v {
 		return u, err
+	}
+	// extract to method
+	fSystem := filesystem()
+	for _, k := range keys {
+		key.Add(k, fSystem)
 	}
 	return u, db.Session.User().Insert(&u)
 }
@@ -32,6 +38,14 @@ func (u *User) isValid() (isValid bool, err error) {
 }
 
 func Remove(u *User) error {
+	//extract
+	fSystem := filesystem()
+	for _, k := range u.Keys {
+		err := key.Remove(k, fSystem)
+		if err != nil {
+			return err
+		}
+	}
 	return db.Session.User().RemoveId(u.Name)
 }
 
