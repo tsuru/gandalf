@@ -22,7 +22,9 @@ For an example conf check gandalf/etc/gandalf.conf file.`
 	}
 	router := pat.New()
 	router.Post("/user", http.HandlerFunc(api.NewUser))
+	router.Del("/user", http.HandlerFunc(api.RemoveUser))
 	router.Post("/repository", http.HandlerFunc(api.NewRepository))
+	router.Del("/repository", http.HandlerFunc(api.RemoveRepository))
 
 	if !*dry {
 		log.Fatal(http.ListenAndServe(":8080", router))
