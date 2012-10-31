@@ -67,27 +67,27 @@ func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C)
 
 func (s *S) TestShouldAddKeyWithoutError(c *C) {
 	key := "somekey blaaaaaaa r2d2@host"
-	err := Add(key, s.rfs)
+	err := Add(key, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 }
 
 func (s *S) TestShouldWriteKeyInFile(c *C) {
 	key := "somekey blaaaaaaa r2d2@host"
-	err := Add(key, s.rfs)
+	err := Add(key, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
 	got := string(b)
-	c.Assert(got, Equals, formatKey(key))
+	c.Assert(got, Equals, formatKey(key, "someuser"))
 }
 
 func (s *S) TestShouldAppendKeyInFile(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Add(key1, s.rfs)
+	err := Add(key1, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	key2 := "someotherkey fooo r2d2@host"
-	err = Add(key2, s.rfs)
+	err = Add(key2, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
@@ -101,7 +101,7 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
 	key := "somekey bleeeerh r2d2@host"
 	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
-	err := Add(key, s.rfs)
+	err := Add(key, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
@@ -115,7 +115,7 @@ func (s *S) TestBulkActionAddKeys(c *C) {
 	key1 := "ssh-rsa mykey pippin@nowhere"
 	key2 := "ssh-rsa myotherkey pippin@somewhere"
 	keys := []string{key1, key2}
-	err := bulkAction(Add, keys, s.rfs)
+	err := bulkAction(Add, keys, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	got := strings.Replace(s.authKeysContent(c), "\n", " ", -1)
 	c.Assert(got, Matches, ".*"+key1+".*")
@@ -126,11 +126,11 @@ func (s *S) TestBulkActionRemoveKeys(c *C) {
 	key1 := "ssh-rsa mykey pippin@nowhere"
 	key2 := "ssh-rsa myotherkey pippin@somewhere"
 	keys := []string{key1, key2}
-	err := bulkAction(Add, keys, s.rfs)
+	err := bulkAction(Add, keys, "someuser", s.rfs)
 	got := strings.Replace(s.authKeysContent(c), "\n", " ", -1)
 	c.Assert(got, Matches, ".*"+key1+".*")
 	c.Assert(got, Matches, ".*"+key2+".*")
-	err = bulkAction(Remove, keys, s.rfs)
+	err = bulkAction(Remove, keys, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	got = strings.Replace(s.authKeysContent(c), "\n", " ", -1)
 	c.Assert(got, Not(Matches), ".*"+key1+".*")
@@ -138,7 +138,7 @@ func (s *S) TestBulkActionRemoveKeys(c *C) {
 }
 
 func (s *S) TestBulkAddShouldWriteToAuthorizedKeysFile(c *C) {
-	err := BulkAdd([]string{"ssh-rsa mykey pippin@nowhere"}, s.rfs)
+	err := BulkAdd([]string{"ssh-rsa mykey pippin@nowhere"}, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	keys := s.authKeysContent(c)
 	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
@@ -146,7 +146,7 @@ func (s *S) TestBulkAddShouldWriteToAuthorizedKeysFile(c *C) {
 
 func (s *S) TestBulkRemoveShouldRemoveKeysFromAuthorizedKeys(c *C) {
 	key := "ssh-rsa mykey pippin@nowhere"
-	err := BulkRemove([]string{key}, s.rfs)
+	err := BulkRemove([]string{key}, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	keys := s.authKeysContent(c)
 	c.Assert(keys, Equals, "")
@@ -154,12 +154,12 @@ func (s *S) TestBulkRemoveShouldRemoveKeysFromAuthorizedKeys(c *C) {
 
 func (s *S) TestRemoveKey(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Add(key1, s.rfs)
+	err := Add(key1, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	key2 := "someotherkey fooo r2d2@host"
-	err = Add(key2, s.rfs)
+	err = Add(key2, "someuser", s.rfs)
 	c.Assert(err, IsNil)
-	err = Remove(key1, s.rfs)
+	err = Remove(key1, "someuser", s.rfs)
 	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
@@ -171,7 +171,7 @@ func (s *S) TestRemoveKey(c *C) {
 
 func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Remove(key1, s.rfs)
+	err := Remove(key1, "anotheruser", s.rfs)
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
@@ -183,9 +183,9 @@ func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
 
 func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := Add(key1, s.rfs)
+	err := Add(key1, "someuser", s.rfs)
 	c.Assert(err, IsNil)
-	err = Remove(key1, s.rfs)
+	err = Remove(key1, "someuser", s.rfs)
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
@@ -197,22 +197,32 @@ func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 
 func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {
 	key := "somekeeey fooo bar@bar.com"
-	got := formatKey(key)
+	got := formatKey(key, "brain")
 	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
 	c.Assert(got, Matches, expected)
 }
 
 func (s *S) TestFormatKeyShouldAddCommandAfterSshRestrictions(c *C) {
 	key := "somekeyyyy fooow bar@bar.com"
-	got := formatKey(key)
-	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/usr/local/bin/gandalf.go" %s`, key)
+	got := formatKey(key, "brain")
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/usr/local/bin/gandalf.go brain" %s`, key)
 	c.Assert(got, Equals, expected)
 }
 
 func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *C) {
+	oldConf, err := config.GetString("bin-path")
+	c.Assert(err, IsNil)
 	config.Set("bin-path", "/foo/bar/hi.go")
+	defer config.Set("bin-path", oldConf)
 	key := "lol loool bar@bar.com"
-	got := formatKey(key)
-	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/foo/bar/hi.go" %s`, key)
+	got := formatKey(key, "dash")
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/foo/bar/hi.go dash" %s`, key)
+	c.Assert(got, Equals, expected)
+}
+
+func (s *S) TestFormatKeyShouldAppendUserNameAsCommandParameter(c *C) {
+	key := "ssh-rsa fueeel bar@bar.com"
+	got := formatKey(key, "someuser")
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/usr/local/bin/gandalf.go someuser" %s`, key)
 	c.Assert(got, Equals, expected)
 }

@@ -19,7 +19,7 @@ var fsystem fs.Fs
 // object is embedded on the user's document
 // should the fsystem abstraction be passed here as an argument?
 // maybe it's not a good idea for api direct usage
-func Add(key string, fsystem fs.Fs) error {
+func Add(key string, username string, fsystem fs.Fs) error {
 	file, err := fsystem.OpenFile(authKey, os.O_RDWR, 0755)
 	defer file.Close()
 	if err != nil {
@@ -29,9 +29,9 @@ func Add(key string, fsystem fs.Fs) error {
 	if err != nil {
 		return err
 	}
-	content := formatKey(key)
+	content := formatKey(key, username)
 	if len(keys) != 0 {
-		content = fmt.Sprintf("%s\n%s", keys, formatKey(key))
+		content = fmt.Sprintf("%s\n%s", keys, formatKey(key, username))
 	}
 	if _, err := file.Seek(0, 0); err != nil {
 		return err
@@ -42,20 +42,20 @@ func Add(key string, fsystem fs.Fs) error {
 	return nil
 }
 
-func BulkAdd(keys []string, fsystem fs.Fs) error {
-	return bulkAction(Add, keys, fsystem)
+func BulkAdd(keys []string, username string, fsystem fs.Fs) error {
+	return bulkAction(Add, keys, username, fsystem)
 }
 
-func BulkRemove(keys []string, fsystem fs.Fs) error {
-	return bulkAction(Remove, keys, fsystem)
+func BulkRemove(keys []string, username string, fsystem fs.Fs) error {
+	return bulkAction(Remove, keys, username, fsystem)
 }
 
 // applies `action` into a bulk of keys
 // this method does len(keys) io actions but we do not expect the user to have
 // a LOT of keys, thus for now it is not a problem to do this extra io ops
-func bulkAction(action func(string, fs.Fs) error, keys []string, fsystem fs.Fs) error {
+func bulkAction(action func(string, string, fs.Fs) error, keys []string, username string, fsystem fs.Fs) error {
 	for _, k := range keys {
-		err := action(k, fsystem)
+		err := action(k, username, fsystem)
 		if err != nil {
 			return err
 		}
@@ -64,14 +64,14 @@ func bulkAction(action func(string, fs.Fs) error, keys []string, fsystem fs.Fs) 
 }
 
 // Remove a key from auhtKey file
-func Remove(key string, fsystem fs.Fs) error {
+func Remove(key, username string, fsystem fs.Fs) error {
 	file, err := fsystem.OpenFile(authKey, os.O_RDWR, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
 	}
 	keys, err := ioutil.ReadAll(file)
-	key = formatKey(key)
+	key = formatKey(key, username)
 	content := strings.Replace(string(keys), key+"\n", "", -1)
 	content = strings.Replace(content, key, "", -1)
 	err = file.Truncate(0)
@@ -83,11 +83,11 @@ func Remove(key string, fsystem fs.Fs) error {
 	return nil
 }
 
-func formatKey(key string) string {
+func formatKey(key, username string) string {
 	binPath, err := config.GetString("bin-path")
 	if err != nil {
 		panic(err)
 	}
-	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s" %s`
-	return fmt.Sprintf(keyTmpl, binPath, key)
+	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s %s" %s`
+	return fmt.Sprintf(keyTmpl, binPath, username, key)
 }

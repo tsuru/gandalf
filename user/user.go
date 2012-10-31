@@ -22,7 +22,7 @@ func New(name string, keys []string) (*User, error) {
 	if err := db.Session.User().Insert(&u); err != nil {
 		return u, err
 	}
-	return u, key.BulkAdd(keys, filesystem())
+	return u, key.BulkAdd(keys, name, filesystem())
 }
 
 func (u *User) isValid() (isValid bool, err error) {
@@ -41,7 +41,7 @@ func Remove(u *User) error {
 	if err != nil {
 		return fmt.Errorf("Could not remove user: %s", err)
 	}
-	return key.BulkRemove(u.Keys, filesystem())
+	return key.BulkRemove(u.Keys, u.Name, filesystem())
 }
 
 var fsystem fs.Fs
