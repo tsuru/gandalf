@@ -86,7 +86,7 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "User %s successfuly created", u.Name)
+	fmt.Fprintf(w, "User \"%s\" successfuly created\n", u.Name)
 }
 
 func RemoveUser(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +96,7 @@ func RemoveUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "User %s successfuly removed", u)
+	fmt.Fprintf(w, "User \"%s\" successfuly removed\n", u.Name)
 }
 
 func NewRepository(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +111,7 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "Repository %s successfuly created", rep.Name)
+	fmt.Fprintf(w, "Repository \"%s\" successfuly created\n", rep.Name)
 }
 
 func RemoveRepository(w http.ResponseWriter, r *http.Request) {
@@ -119,9 +119,9 @@ func RemoveRepository(w http.ResponseWriter, r *http.Request) {
 	err := repository.Remove(repo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-        return
+		return
 	}
-	fmt.Fprintf(w, "Repository %s successfuly removed", repo.Name)
+	fmt.Fprintf(w, "Repository \"%s\" successfuly removed\n", repo.Name)
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {

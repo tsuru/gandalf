@@ -41,6 +41,9 @@ func (s *S) TestNewUser(c *C) {
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
 	c.Assert(recorder.Code, Equals, 200)
+	body, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(body), Equals, "User \"brain\" successfuly created\n")
 }
 
 func (s *S) TestNewUserShouldSaveInDB(c *C) {
@@ -88,7 +91,7 @@ func (s *S) TestNewRepository(c *C) {
 	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
 	got := readBody(recorder.Body, c)
-	expected := "Repository some_repository successfuly created"
+	expected := "Repository \"some_repository\" successfuly created\n"
 	c.Assert(got, Equals, expected)
 }
 
@@ -284,6 +287,9 @@ func (s *S) TestRemoveUser(c *C) {
 	recorder := httptest.NewRecorder()
 	RemoveUser(recorder, request)
 	c.Assert(recorder.Code, Equals, 200)
+	b, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(b), Equals, "User \"username\" successfuly removed\n")
 }
 
 func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
@@ -298,6 +304,20 @@ func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
 	lenght, err := collection.Find(bson.M{"_id": u.Name}).Count()
 	c.Assert(err, IsNil)
 	c.Assert(lenght, Equals, 0)
+}
+
+func (s *S) TestRemoveRepository(c *C) {
+	r, err := repository.New("myRepo", []string{"pippin"}, true)
+	c.Assert(err, IsNil)
+	url := fmt.Sprintf("repository/%s/?:name=%s", r.Name, r.Name)
+	request, err := http.NewRequest("DELETE", url, nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	RemoveRepository(recorder, request)
+	c.Assert(recorder.Code, Equals, 200)
+	b, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(b), Equals, "Repository \"myRepo\" successfuly removed\n")
 }
 
 func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *C) {
@@ -327,7 +347,7 @@ func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExists(c *C) 
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	RemoveRepository(recorder, request)
-    b, err := ioutil.ReadAll(recorder.Body)
-    c.Assert(err, IsNil)
-    c.Assert(string(b), Equals, "Could not remove repository: not found\n")
+	b, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(b), Equals, "Could not remove repository: not found\n")
 }
