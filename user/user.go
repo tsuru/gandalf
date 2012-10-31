@@ -22,7 +22,7 @@ func New(name string, keys []string) (*User, error) {
 	if err := db.Session.User().Insert(&u); err != nil {
 		return u, err
 	}
-	return u, u.writeKeys(keys)
+	return u, authKeys.addKeys(keys)
 }
 
 func (u *User) isValid() (isValid bool, err error) {
@@ -43,12 +43,25 @@ func (u *User) AddKeys(keys []string) error {
 	if err != nil {
 		return err
 	}
-	return u.writeKeys(keys)
+	return authKeys.addKeys(keys)
 }
 
-func (u *User) writeKeys(keys []string) error {
+type authorizedKeys struct{}
+
+var authKeys = &authorizedKeys{}
+
+func (a *authorizedKeys) addKeys(keys []string) error {
+	return a.bulkAction(key.Add, keys)
+}
+
+func (a *authorizedKeys) removeKeys(keys []string) error {
+	return a.bulkAction(key.Remove, keys)
+}
+
+func (a *authorizedKeys) bulkAction(action func(string, fs.Fs) error, keys []string) error {
+	fSystem := filesystem()
 	for _, k := range keys {
-		err := key.Add(k, filesystem())
+		err := action(k, fSystem)
 		if err != nil {
 			return err
 		}
@@ -57,15 +70,11 @@ func (u *User) writeKeys(keys []string) error {
 }
 
 func Remove(u *User) error {
-	//extract
-	fSystem := filesystem()
-	for _, k := range u.Keys {
-		err := key.Remove(k, fSystem)
-		if err != nil {
-			return err
-		}
+	err := db.Session.User().RemoveId(u.Name)
+	if err != nil {
+		return err
 	}
-	return db.Session.User().RemoveId(u.Name)
+	return authKeys.removeKeys(u.Keys)
 }
 
 var fsystem fs.Fs
