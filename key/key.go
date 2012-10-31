@@ -11,7 +11,7 @@ import (
 )
 
 // file to write user's keys
-var authKey string = path.Join(os.Getenv("HOME"), "authorized_keys")
+var authKey string = path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
 var fsystem fs.Fs
 
 // Writes `key` in authorized_keys file (from current user)
