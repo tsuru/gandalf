@@ -22,7 +22,7 @@ type S struct {
 var _ = Suite(&S{})
 
 func (s *S) authKeysContent(c *C) string {
-	authFile := path.Join(os.Getenv("HOME"), "authorized_keys")
+	authFile := path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
 	f, err := filesystem().OpenFile(authFile, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)

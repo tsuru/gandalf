@@ -22,8 +22,7 @@ type S struct {
 var _ = Suite(&S{})
 
 func (s *S) authKeysContent(c *C) string {
-	authFile := path.Join(os.Getenv("HOME"), "authorized_keys")
-	f, err := s.rfs.OpenFile(authFile, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -62,7 +61,7 @@ func (s *S) clearAuthKeyFile() bool {
 
 func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
 	home := os.Getenv("HOME")
-	expected := path.Join(home, "authorized_keys")
+	expected := path.Join(home, ".ssh", "authorized_keys")
 	c.Assert(authKey, Equals, expected)
 }
 
