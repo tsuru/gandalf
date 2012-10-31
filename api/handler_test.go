@@ -320,3 +320,14 @@ func (s *S) TestRemoveRepositoryShouldReturn400OnFailure(c *C) {
 	RemoveRepository(recorder, request)
 	c.Assert(recorder.Code, Equals, 400)
 }
+
+func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExists(c *C) {
+	url := fmt.Sprintf("repository/%s/?:name=%s", "foo", "foo")
+	request, err := http.NewRequest("DELETE", url, nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	RemoveRepository(recorder, request)
+    b, err := ioutil.ReadAll(recorder.Body)
+    c.Assert(err, IsNil)
+    c.Assert(string(b), Equals, "Could not remove repository: not found\n")
+}

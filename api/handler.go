@@ -119,6 +119,7 @@ func RemoveRepository(w http.ResponseWriter, r *http.Request) {
 	err := repository.Remove(repo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+        return
 	}
 	fmt.Fprintf(w, "Repository %s successfuly removed", repo.Name)
 }
