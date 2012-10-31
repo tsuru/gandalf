@@ -41,7 +41,7 @@ def send():
 def start():
     with cd(env.gandalf_path):
         run("tar -xzf dist.tar.gz")
-    run("nohup %s/dist/gandalf-webserver >& ./gandalf-webserver.out < ./webserver.out &" % env.gandalf_path, pty=False)
+    run("nohup %s/dist/gandalf-webserver >& ./gandalf-webserver.out &" % env.gandalf_path, pty=False)
 
 
 def deploy():
