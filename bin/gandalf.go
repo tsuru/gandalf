@@ -100,7 +100,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 	}
 	if f(&u, &repo) {
 		cmdStr := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
-        fmt.Println(os.Getenv("SSH_ORIGINAL_COMMAND"))
+		fmt.Println(os.Getenv("SSH_ORIGINAL_COMMAND"))
 		cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
 		cmd.Stdout = stdout
 		err = cmd.Run()
