@@ -8,7 +8,7 @@ import os
 from fabric.api import abort, cd, env, local, put, run, settings
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
-env.user = 'ubuntu'
+env.user = 'git'
 env.gandalf_path = '/home/%s/gandalf' % env.user
 
 
@@ -41,7 +41,7 @@ def send():
 def start():
     with cd(env.gandalf_path):
         run("tar -xzf dist.tar.gz")
-    run("nohup %s/dist/gandalf-webserver >& /tmp/gandalf-webserver.out < /tmp/webserver.out &" % env.gandalf_path, pty=False)
+    run("nohup %s/dist/gandalf-webserver >& ./gandalf-webserver.out < ./webserver.out &" % env.gandalf_path, pty=False)
 
 
 def deploy():
