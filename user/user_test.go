@@ -105,28 +105,6 @@ func (s *S) TestIsValidShouldAcceptEmailsAsUserName(c *C) {
 	c.Assert(v, Equals, true)
 }
 
-func (s *S) TestAddKeysShouldWriteToUsersDocument(c *C) {
-	u, err := New("pippin", []string{})
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	key := "ssh-rsa mykey pippin@nowhere"
-	err = u.AddKeys([]string{key})
-	c.Assert(err, IsNil)
-	err = db.Session.User().Find(bson.M{"_id": u.Name}).One(&u)
-	c.Assert(err, IsNil)
-	c.Assert(u.Keys, DeepEquals, []string{key})
-}
-
-func (s *S) TestAddKeysShouldWriteToAuthorizedKeysFile(c *C) {
-	u, err := New("pippin", []string{})
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	err = u.AddKeys([]string{"ssh-rsa mykey pippin@nowhere"})
-	c.Assert(err, IsNil)
-	keys := s.authKeysContent(c)
-	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
-}
-
 func (s *S) TestRemove(c *C) {
 	u, err := New("someuser", []string{})
 	c.Assert(err, IsNil)
