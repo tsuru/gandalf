@@ -9,4 +9,4 @@ sudo cp etc/gandalf.conf /etc/
 
 # starts gandalf api web server
 go build -o gandalf-webserver webserver/main.go
-./apiwebserver > /dev/null 2>&1 &
+./gandalf-webserver > $HOME/gandalf-webserver.out 2>&1 &
