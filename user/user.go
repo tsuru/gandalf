@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"fmt"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/key"
 	"github.com/globocom/tsuru/fs"
@@ -38,7 +39,7 @@ func (u *User) isValid() (isValid bool, err error) {
 func Remove(u *User) error {
 	err := db.Session.User().RemoveId(u.Name)
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not remove user: %s", err)
 	}
 	return key.BulkRemove(u.Keys, filesystem())
 }

@@ -124,6 +124,12 @@ func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *C) {
 	c.Assert(got, Not(Matches), ".*gandalfkey gandalf@mordor")
 }
 
+func (s *S) TestRemoveInexistentUserReturnsDescriptiveMessage(c *C) {
+	u := &User{Name: "otheruser"}
+	err := Remove(u)
+	c.Assert(err, ErrorMatches, "Could not remove user: not found")
+}
+
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
 	fsystem = nil
 	fsys := filesystem()
