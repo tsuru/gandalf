@@ -58,6 +58,9 @@ func (a *authorizedKeys) removeKeys(keys []string) error {
 	return a.bulkAction(key.Remove, keys)
 }
 
+// applies `action` into a bulk of keys
+// this method does len(keys) io actions but we do not expect the user to have
+// a LOT of keys, thus for now it is not a problem to do this extra io ops
 func (a *authorizedKeys) bulkAction(action func(string, fs.Fs) error, keys []string) error {
 	fSystem := filesystem()
 	for _, k := range keys {
