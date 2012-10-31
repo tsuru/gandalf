@@ -22,7 +22,7 @@ func New(name string, keys []string) (*User, error) {
 	if err := db.Session.User().Insert(&u); err != nil {
 		return u, err
 	}
-	return u, authKeys.addKeys(keys)
+	return u, key.BulkAdd(keys, filesystem())
 }
 
 func (u *User) isValid() (isValid bool, err error) {
@@ -43,33 +43,7 @@ func (u *User) AddKeys(keys []string) error {
 	if err != nil {
 		return err
 	}
-	return authKeys.addKeys(keys)
-}
-
-type authorizedKeys struct{}
-
-var authKeys = &authorizedKeys{}
-
-func (a *authorizedKeys) addKeys(keys []string) error {
-	return a.bulkAction(key.Add, keys)
-}
-
-func (a *authorizedKeys) removeKeys(keys []string) error {
-	return a.bulkAction(key.Remove, keys)
-}
-
-// applies `action` into a bulk of keys
-// this method does len(keys) io actions but we do not expect the user to have
-// a LOT of keys, thus for now it is not a problem to do this extra io ops
-func (a *authorizedKeys) bulkAction(action func(string, fs.Fs) error, keys []string) error {
-	fSystem := filesystem()
-	for _, k := range keys {
-		err := action(k, fSystem)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return key.BulkAdd(keys, filesystem())
 }
 
 func Remove(u *User) error {
@@ -77,7 +51,7 @@ func Remove(u *User) error {
 	if err != nil {
 		return err
 	}
-	return authKeys.removeKeys(u.Keys)
+	return key.BulkRemove(u.Keys, filesystem())
 }
 
 var fsystem fs.Fs

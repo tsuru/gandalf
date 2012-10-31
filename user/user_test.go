@@ -3,7 +3,6 @@ package user
 import (
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
-	"github.com/globocom/gandalf/key"
 	"github.com/globocom/tsuru/fs"
 	fstesting "github.com/globocom/tsuru/fs/testing"
 	"io/ioutil"
@@ -11,7 +10,6 @@ import (
 	. "launchpad.net/gocheck"
 	"os"
 	"path"
-	"strings"
 	"testing"
 )
 
@@ -127,70 +125,6 @@ func (s *S) TestAddKeysShouldWriteToAuthorizedKeysFile(c *C) {
 	c.Assert(err, IsNil)
 	keys := s.authKeysContent(c)
 	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
-}
-
-func (s *S) TestAuthKeysAddKeysShouldWriteToAuthorizedKeysFile(c *C) {
-	u, err := New("pippin", []string{})
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	err = authKeys.addKeys([]string{"ssh-rsa mykey pippin@nowhere"})
-	c.Assert(err, IsNil)
-	keys := s.authKeysContent(c)
-	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
-}
-
-func (s *S) TestAuthKeyAddKeysShouldNotSaveInTheDatabase(c *C) {
-	u, err := New("pippin", []string{})
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	key := "ssh-rsa mykey pippin@nowhere"
-	err = authKeys.addKeys([]string{key})
-	c.Assert(err, IsNil)
-	err = db.Session.User().Find(bson.M{"_id": u.Name}).One(&u)
-	c.Assert(err, IsNil)
-	c.Assert(u.Keys, Not(DeepEquals), []string{key})
-}
-
-func (s *S) TestAuthKeysRemoveKeysShouldRemoveKeysFromAuthorizedKeys(c *C) {
-	key := "ssh-rsa mykey pippin@nowhere"
-	u, err := New("pippin", []string{key})
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	err = authKeys.removeKeys([]string{key})
-	c.Assert(err, IsNil)
-	keys := s.authKeysContent(c)
-	c.Assert(keys, Equals, "")
-}
-
-func (s *S) TestBulkActionAddKeys(c *C) {
-	key1 := "ssh-rsa mykey pippin@nowhere"
-	key2 := "ssh-rsa myotherkey pippin@somewhere"
-	keys := []string{key1, key2}
-	u, err := New("pippin", []string{})
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	err = authKeys.bulkAction(key.Add, keys)
-	c.Assert(err, IsNil)
-	got := strings.Replace(s.authKeysContent(c), "\n", " ", -1)
-	c.Assert(got, Matches, ".*"+key1+".*")
-	c.Assert(got, Matches, ".*"+key2+".*")
-}
-
-func (s *S) TestBulkActionRemoveKeys(c *C) {
-	key1 := "ssh-rsa mykey pippin@nowhere"
-	key2 := "ssh-rsa myotherkey pippin@somewhere"
-	keys := []string{key1, key2}
-	u, err := New("pippin", keys)
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	got := strings.Replace(s.authKeysContent(c), "\n", " ", -1)
-	c.Assert(got, Matches, ".*"+key1+".*")
-	c.Assert(got, Matches, ".*"+key2+".*")
-	err = authKeys.bulkAction(key.Remove, keys)
-	c.Assert(err, IsNil)
-	got = strings.Replace(s.authKeysContent(c), "\n", " ", -1)
-	c.Assert(got, Not(Matches), ".*"+key1+".*")
-	c.Assert(got, Not(Matches), ".*"+key2+".*")
 }
 
 func (s *S) TestRemove(c *C) {

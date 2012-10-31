@@ -17,6 +17,8 @@ var fsystem fs.Fs
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
+// should the fsystem abstraction be passed here as an argument?
+// maybe it's not a good idea for api direct usage
 func Add(key string, fsystem fs.Fs) error {
 	file, err := fsystem.OpenFile(authKey, os.O_RDWR, 0755)
 	defer file.Close()
@@ -36,6 +38,27 @@ func Add(key string, fsystem fs.Fs) error {
 	}
 	if _, err := file.WriteString(content); err != nil {
 		return err
+	}
+	return nil
+}
+
+func BulkAdd(keys []string, fsystem fs.Fs) error {
+	return bulkAction(Add, keys, fsystem)
+}
+
+func BulkRemove(keys []string, fsystem fs.Fs) error {
+	return bulkAction(Remove, keys, fsystem)
+}
+
+// applies `action` into a bulk of keys
+// this method does len(keys) io actions but we do not expect the user to have
+// a LOT of keys, thus for now it is not a problem to do this extra io ops
+func bulkAction(action func(string, fs.Fs) error, keys []string, fsystem fs.Fs) error {
+	for _, k := range keys {
+		err := action(k, fsystem)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

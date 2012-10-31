@@ -8,6 +8,7 @@ import (
 	. "launchpad.net/gocheck"
 	"os"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -20,9 +21,21 @@ type S struct {
 
 var _ = Suite(&S{})
 
+func (s *S) authKeysContent(c *C) string {
+	authFile := path.Join(os.Getenv("HOME"), "authorized_keys")
+	f, err := s.rfs.OpenFile(authFile, os.O_RDWR, 0755)
+	c.Assert(err, IsNil)
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	return string(b)
+}
+
 func (s *S) SetUpSuite(c *C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Check(err, IsNil)
+}
+
+func (s *S) SetUpTest(c *C) {
 	s.rfs = &fstesting.RecordingFs{}
 	fsystem = s.rfs
 }
@@ -97,6 +110,47 @@ func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
 	c.Assert(err, IsNil)
 	got := string(b)
 	c.Assert(got, Matches, expected)
+}
+
+func (s *S) TestBulkActionAddKeys(c *C) {
+	key1 := "ssh-rsa mykey pippin@nowhere"
+	key2 := "ssh-rsa myotherkey pippin@somewhere"
+	keys := []string{key1, key2}
+	err := bulkAction(Add, keys, s.rfs)
+	c.Assert(err, IsNil)
+	got := strings.Replace(s.authKeysContent(c), "\n", " ", -1)
+	c.Assert(got, Matches, ".*"+key1+".*")
+	c.Assert(got, Matches, ".*"+key2+".*")
+}
+
+func (s *S) TestBulkActionRemoveKeys(c *C) {
+	key1 := "ssh-rsa mykey pippin@nowhere"
+	key2 := "ssh-rsa myotherkey pippin@somewhere"
+	keys := []string{key1, key2}
+	err := bulkAction(Add, keys, s.rfs)
+	got := strings.Replace(s.authKeysContent(c), "\n", " ", -1)
+	c.Assert(got, Matches, ".*"+key1+".*")
+	c.Assert(got, Matches, ".*"+key2+".*")
+	err = bulkAction(Remove, keys, s.rfs)
+	c.Assert(err, IsNil)
+	got = strings.Replace(s.authKeysContent(c), "\n", " ", -1)
+	c.Assert(got, Not(Matches), ".*"+key1+".*")
+	c.Assert(got, Not(Matches), ".*"+key2+".*")
+}
+
+func (s *S) TestBulkAddShouldWriteToAuthorizedKeysFile(c *C) {
+	err := BulkAdd([]string{"ssh-rsa mykey pippin@nowhere"}, s.rfs)
+	c.Assert(err, IsNil)
+	keys := s.authKeysContent(c)
+	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
+}
+
+func (s *S) TestBulkRemoveShouldRemoveKeysFromAuthorizedKeys(c *C) {
+	key := "ssh-rsa mykey pippin@nowhere"
+	err := BulkRemove([]string{key}, s.rfs)
+	c.Assert(err, IsNil)
+	keys := s.authKeysContent(c)
+	c.Assert(keys, Equals, "")
 }
 
 func (s *S) TestRemoveKey(c *C) {
