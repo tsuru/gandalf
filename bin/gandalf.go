@@ -7,7 +7,7 @@ import (
 	"github.com/globocom/gandalf/user"
 	"io"
 	"labix.org/v2/mgo/bson"
-    "log/syslog"
+	"log/syslog"
 	"os"
 	"os/exec"
 	"regexp"
@@ -92,36 +92,36 @@ func validateCmd() error {
 func executeAction(f func(*user.User, *repository.Repository) bool, errMsg string, stdout io.Writer) {
 	var u user.User
 	if err := db.Session.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
-        log.Err("Error obtaining user. Gandalf database is probably in an inconsistent state.")
+		log.Err("Error obtaining user. Gandalf database is probably in an inconsistent state.")
 		return
 	}
 	repo, err := requestedRepository()
 	if err != nil {
-        log.Err(err.Error())
+		log.Err(err.Error())
 		return
 	}
 	if f(&u, &repo) {
-        sshOrigCmd := os.Getenv("SSH_ORIGINAL_COMMAND")
-        log.Info("Executing " + sshOrigCmd)
+		sshOrigCmd := os.Getenv("SSH_ORIGINAL_COMMAND")
+		log.Info("Executing " + sshOrigCmd)
 		cmdStr := strings.Split(sshOrigCmd, " ")
 		cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
 		cmd.Stdout = stdout
 		err = cmd.Run()
 		if err != nil {
-            log.Err("Got error while executing original command: " + err.Error())
+			log.Err("Got error while executing original command: " + err.Error())
 		}
 		return
 	}
-    log.Err("Permission denied.")
-    log.Err(errMsg)
+	log.Err("Permission denied.")
+	log.Err(errMsg)
 }
 
 func main() {
-    var err error
-    log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
-    if err != nil {
-        panic(err.Error())
-    }
+	var err error
+	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
+	if err != nil {
+		panic(err.Error())
+	}
 	err = validateCmd()
 	if err != nil {
 		log.Err(err.Error())
