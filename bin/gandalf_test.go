@@ -8,6 +8,7 @@ import (
 	"github.com/globocom/gandalf/user"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
+    "log/syslog"
 	"os"
 	"testing"
 )
@@ -23,6 +24,8 @@ var _ = Suite(&S{})
 
 func (s *S) SetUpSuite(c *C) {
 	var err error
+    log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
+    c.Check(err, IsNil)
 	s.user, err = user.New("testuser", []string{})
 	c.Check(err, IsNil)
 	// does not uses repository.New to avoid creation of bare git repo

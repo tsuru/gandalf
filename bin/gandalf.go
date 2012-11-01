@@ -2,17 +2,19 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"io"
 	"labix.org/v2/mgo/bson"
+    "log/syslog"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 )
+
+var log *syslog.Writer
 
 func hasWritePermission(u *user.User, r *repository.Repository) (allowed bool) {
 	for _, userName := range r.Users {
@@ -90,35 +92,39 @@ func validateCmd() error {
 func executeAction(f func(*user.User, *repository.Repository) bool, errMsg string, stdout io.Writer) {
 	var u user.User
 	if err := db.Session.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
-		fmt.Println("Error obtaining user. Gandalf database is probably in an inconsistent state.")
+        log.Err("Error obtaining user. Gandalf database is probably in an inconsistent state.")
 		return
 	}
 	repo, err := requestedRepository()
 	if err != nil {
-		fmt.Println(err)
+        log.Err(err.Error())
 		return
 	}
 	if f(&u, &repo) {
-		cmdStr := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
-		fmt.Println(os.Getenv("SSH_ORIGINAL_COMMAND"))
+        sshOrigCmd := os.Getenv("SSH_ORIGINAL_COMMAND")
+        log.Info("Executing " + sshOrigCmd)
+		cmdStr := strings.Split(sshOrigCmd, " ")
 		cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
 		cmd.Stdout = stdout
 		err = cmd.Run()
 		if err != nil {
-			panic("Got error while executing command: " + err.Error())
-			//fmt.Println("Got error while executing command:")
-			//fmt.Println(err)
+            log.Err("Got error while executing original command: " + err.Error())
 		}
 		return
 	}
-	fmt.Println("Permission denied.")
-	fmt.Println(errMsg)
+    log.Err("Permission denied.")
+    log.Err(errMsg)
 }
 
 func main() {
-	err := validateCmd()
+    var err error
+    log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
+    if err != nil {
+        panic(err.Error())
+    }
+	err = validateCmd()
 	if err != nil {
-		fmt.Println(err)
+		log.Err(err.Error())
 		return
 	}
 	a := action()
