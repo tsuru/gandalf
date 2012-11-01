@@ -25,6 +25,7 @@ def build():
     local("mkdir -p dist")
     local("go clean ./...")
     local("go build -a -o dist/gandalf-webserver ./webserver")
+    local("go build -a -o /usr/local/bin/gandalf ./bin")
 
 
 def clean():
