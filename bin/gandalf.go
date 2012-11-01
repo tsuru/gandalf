@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
@@ -106,9 +107,12 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		cmdStr := strings.Split(sshOrigCmd, " ")
 		cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
 		cmd.Stdout = stdout
+		stderr := bytes.Buffer{}
+		cmd.Stderr = stderr
 		err = cmd.Run()
 		if err != nil {
 			log.Err("Got error while executing original command: " + err.Error())
+			log.Err(stderr)
 		}
 		return
 	}
