@@ -205,7 +205,9 @@ func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {
 func (s *S) TestFormatKeyShouldAddCommandAfterSshRestrictions(c *C) {
 	key := "somekeyyyy fooow bar@bar.com"
 	got := formatKey(key, "brain")
-	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/usr/local/bin/gandalf.go brain" %s`, key)
+	p, err := config.GetString("bin-path")
+	c.Assert(err, IsNil)
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s brain" %s`, p, key)
 	c.Assert(got, Equals, expected)
 }
 
@@ -222,7 +224,9 @@ func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *C) {
 
 func (s *S) TestFormatKeyShouldAppendUserNameAsCommandParameter(c *C) {
 	key := "ssh-rsa fueeel bar@bar.com"
+	p, err := config.GetString("bin-path")
+	c.Assert(err, IsNil)
 	got := formatKey(key, "someuser")
-	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/usr/local/bin/gandalf.go someuser" %s`, key)
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s someuser" %s`, p, key)
 	c.Assert(got, Equals, expected)
 }
