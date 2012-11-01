@@ -105,8 +105,9 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		cmd.Stdout = stdout
 		err = cmd.Run()
 		if err != nil {
-			fmt.Println("Got error while executing command:")
-			fmt.Println(err)
+			panic("Got error while executing command: " + err.Error())
+			//fmt.Println("Got error while executing command:")
+			//fmt.Println(err)
 		}
 		return
 	}
