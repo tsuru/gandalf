@@ -22,7 +22,7 @@ func bareLocation() string {
 }
 
 func newBare(name string) error {
-	cmd := exec.Command("git", "init", "--bare", path.Join(bareLocation(), name))
+	cmd := exec.Command("git", "init", "--bare", path.Join(bareLocation(), formatName(name)))
 	_, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Could not create git bare repository: %s", err)
@@ -31,9 +31,13 @@ func newBare(name string) error {
 }
 
 func removeBare(name string) error {
-	err := filesystem().RemoveAll(path.Join(bareLocation(), name))
+	err := filesystem().RemoveAll(path.Join(bareLocation(), formatName(name)))
 	if err != nil {
 		return fmt.Errorf("Could not remove git bare repository: %s", err)
 	}
 	return nil
+}
+
+func formatName(name string) string {
+	return fmt.Sprintf("%s.git", name)
 }

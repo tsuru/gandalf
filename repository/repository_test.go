@@ -119,10 +119,9 @@ func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *C) {
 	defer func() { fsystem = nil }()
 	r, err := New("myRepo", []string{"pumpkin"}, false)
 	c.Assert(err, IsNil)
-	defer db.Session.Repository().Remove(bson.M{"_id": r.Name}) //remove me!
 	err = Remove(r)
 	c.Assert(err, IsNil)
-	action := "removeall " + path.Join(bareLocation(), "myRepo")
+	action := "removeall " + path.Join(bareLocation(), "myRepo.git")
 	c.Assert(rfs.HasAction(action), Equals, true)
 }
 

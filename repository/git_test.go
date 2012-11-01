@@ -47,7 +47,7 @@ func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *C) {
 	defer func() { fsystem = nil }()
 	err := removeBare("myBare")
 	c.Assert(err, IsNil)
-	action := "removeall " + path.Join(bareLocation(), "myBare")
+	action := "removeall " + path.Join(bareLocation(), "myBare.git")
 	c.Assert(rfs.HasAction(action), Equals, true)
 }
 
@@ -57,4 +57,9 @@ func (s *S) TestRemoveBareShouldReturnDescriptiveErrorWhenRemovalFails(c *C) {
 	defer func() { fsystem = nil }()
 	err := removeBare("fooo")
 	c.Assert(err, ErrorMatches, "^Could not remove git bare repository: .*")
+}
+
+func (s *S) TestFormatNameShouldAppendDotGitInTheEndOfTheRepoName(c *C) {
+	rName := formatName("myrepo")
+	c.Assert(rName, Equals, "myrepo.git")
 }
