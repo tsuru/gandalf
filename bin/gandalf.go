@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
@@ -118,11 +117,11 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 	}
 	if f(&u, &repo) {
 		// split into a function (maybe executeCmd)
-		log.Info("Executing " + os.Getenv("SSH_ORIGINAL_COMMAND"))
 		c, err := formatCommand()
 		if err != nil {
 			log.Err(err.Error())
 		}
+		log.Info("Executing " + strings.Join(c, " "))
 		cmd := exec.Command(c[0], c[1:]...)
 		cmd.Stdout = stdout
 		stderr := &bytes.Buffer{}
@@ -157,7 +156,6 @@ func formatCommand() ([]string, error) {
 			break
 		}
 	}
-	fmt.Println(cmdList)
 	return cmdList, nil
 }
 
