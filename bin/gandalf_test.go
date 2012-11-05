@@ -162,7 +162,7 @@ func (s *S) TestValidateCmdReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(
 }
 
 func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *C) {
-	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack my-repo.git")
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'my-repo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	err := validateCmd()
 	c.Assert(err, IsNil)
