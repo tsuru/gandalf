@@ -123,6 +123,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		}
 		log.Info("Executing " + strings.Join(c, " "))
 		cmd := exec.Command(c[0], c[1:]...)
+		cmd.Stdin = os.Stdin
 		cmd.Stdout = stdout
 		stderr := &bytes.Buffer{}
 		cmd.Stderr = stderr
