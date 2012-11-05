@@ -167,6 +167,11 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+	err = config.ReadConfigFile("/etc/gandalf.conf")
+	if err != nil {
+		log.Err(err.Error())
+		return
+	}
 	err = validateCmd()
 	if err != nil {
 		log.Err(err.Error())
