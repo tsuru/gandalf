@@ -183,7 +183,7 @@ func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermissi
 	c.Assert(commandmocker.Ran(dir), Equals, true)
 	p, err := config.GetString("bare-location")
 	c.Assert(err, IsNil)
-	expected := "'" + path.Join(p, "myapp.git") + "'"
+	expected := path.Join(p, "myapp.git")
 	c.Assert(stdout.String(), Equals, expected)
 }
 
@@ -243,6 +243,6 @@ func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositor
 	c.Assert(err, IsNil)
 	p, err := config.GetString("bare-location")
 	c.Assert(err, IsNil)
-	expected := "'" + path.Join(p, "myproject.git") + "'"
+	expected := path.Join(p, "myproject.git")
 	c.Assert(cmd, DeepEquals, []string{"git-receive-pack", expected})
 }

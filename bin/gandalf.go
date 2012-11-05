@@ -153,7 +153,7 @@ func formatCommand() ([]string, error) {
 	cmdList := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
 	for i, c := range cmdList {
 		if c == "'"+repoName+"'" {
-			cmdList[i] = "'" + path.Join(p, repoName) + "'"
+			cmdList[i] = path.Join(p, repoName)
 			break
 		}
 	}
