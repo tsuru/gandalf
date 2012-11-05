@@ -147,7 +147,7 @@ func (s *S) TestRequestedRepositoryName(c *C) {
 }
 
 func (s *S) TestrequestedRepositoryNameShouldReturnErrorWhenTheresNoMatch(c *C) {
-	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foobar'")
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack foobar")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	name, err := requestedRepositoryName()
 	c.Assert(err, ErrorMatches, "Cannot deduce repository name from command. You are probably trying to do something nasty")
@@ -162,7 +162,7 @@ func (s *S) TestValidateCmdReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(
 }
 
 func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *C) {
-	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'my-repo.git'")
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack my-repo.git")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	err := validateCmd()
 	c.Assert(err, IsNil)
