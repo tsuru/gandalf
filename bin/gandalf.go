@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
@@ -11,6 +13,7 @@ import (
 	"log/syslog"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -72,6 +75,18 @@ func requestedRepository() (repository.Repository, error) {
 	return repo, nil
 }
 
+func requestedRepositoryName() (string, error) {
+	r, err := regexp.Compile(`[\w-]+ '([\w-]+)\.git'`)
+	if err != nil {
+		panic(err)
+	}
+	m := r.FindStringSubmatch(os.Getenv("SSH_ORIGINAL_COMMAND"))
+	if len(m) < 2 {
+		return "", errors.New("Cannot deduce repository name from command. You are probably trying to do something nasty")
+	}
+	return m[1], nil
+}
+
 // Checks whether a command is a valid git command
 // The following format is allowed:
 //  git-([\w-]+) '([\w-]+)\.git'
@@ -102,10 +117,13 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		return
 	}
 	if f(&u, &repo) {
-		sshOrigCmd := os.Getenv("SSH_ORIGINAL_COMMAND")
-		log.Info("Executing " + sshOrigCmd)
-		cmdStr := strings.Split(sshOrigCmd, " ")
-		cmd := exec.Command(cmdStr[0], cmdStr[1:]...)
+		// split into a function (maybe executeCmd)
+		log.Info("Executing " + os.Getenv("SSH_ORIGINAL_COMMAND"))
+		c, err := formatCommand()
+		if err != nil {
+			log.Err(err.Error())
+		}
+		cmd := exec.Command(c[0], c[1:]...)
 		cmd.Stdout = stdout
 		stderr := &bytes.Buffer{}
 		cmd.Stderr = stderr
@@ -118,6 +136,29 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 	}
 	log.Err("Permission denied.")
 	log.Err(errMsg)
+}
+
+func formatCommand() ([]string, error) {
+	p, err := config.GetString("bare-location")
+	if err != nil {
+		log.Err(err.Error())
+		return []string{}, err
+	}
+	repoName, err := requestedRepositoryName()
+	if err != nil {
+		log.Err(err.Error())
+		return []string{}, err
+	}
+	repoName += ".git"
+	cmdList := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
+	for i, c := range cmdList {
+		if c == "'"+repoName+"'" {
+			cmdList[i] = "'" + path.Join(p, repoName) + "'"
+			break
+		}
+	}
+	fmt.Println(cmdList)
+	return cmdList, nil
 }
 
 func main() {

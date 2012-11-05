@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/globocom/commandmocker"
+	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
@@ -10,6 +11,7 @@ import (
 	. "launchpad.net/gocheck"
 	"log/syslog"
 	"os"
+	"path"
 	"testing"
 )
 
@@ -31,6 +33,8 @@ func (s *S) SetUpSuite(c *C) {
 	// does not uses repository.New to avoid creation of bare git repo
 	s.repo = &repository.Repository{Name: "myapp", Users: []string{s.user.Name}}
 	err = db.Session.Repository().Insert(s.repo)
+	c.Check(err, IsNil)
+	err = config.ReadConfigFile("../etc/gandalf.conf")
 	c.Check(err, IsNil)
 }
 
@@ -134,6 +138,22 @@ func (s *S) TestRequestedRepositoryShouldReturnEmptyRepositoryStructOnError(c *C
 	c.Assert(repo.Name, Equals, "")
 }
 
+func (s *S) TestRequestedRepositoryName(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foobar.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	name, err := requestedRepositoryName()
+	c.Assert(err, IsNil)
+	c.Assert(name, Equals, "foobar")
+}
+
+func (s *S) TestrequestedRepositoryNameShouldReturnErrorWhenTheresNoMatch(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foobar'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	name, err := requestedRepositoryName()
+	c.Assert(err, ErrorMatches, "Cannot deduce repository name from command. You are probably trying to do something nasty")
+	c.Assert(name, Equals, "")
+}
+
 func (s *S) TestValidateCmdReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(c *C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
@@ -158,14 +178,17 @@ func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermissi
 		os.Args = []string{}
 		os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	}()
-	stdout := new(bytes.Buffer)
-	errorMsg := "You don't have access to write in this repository."
-	executeAction(hasWritePermission, errorMsg, stdout)
+	stdout := &bytes.Buffer{}
+	executeAction(hasWritePermission, "You don't have access to write in this repository.", stdout)
 	c.Assert(commandmocker.Ran(dir), Equals, true)
-	c.Assert(stdout.String(), Matches, "'myapp.git'")
+	p, err := config.GetString("bare-location")
+	c.Assert(err, IsNil)
+	expected := "'" + path.Join(p, "myapp.git") + "'"
+	c.Assert(stdout.String(), Equals, expected)
 }
 
 func (s *S) ExampleExecuteActionOutputsErrorWhenUserDoesNotExists(c *C) {
+	// TODO: remove me
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
 	c.Check(err, IsNil)
 	defer commandmocker.Remove(dir)
@@ -175,9 +198,8 @@ func (s *S) ExampleExecuteActionOutputsErrorWhenUserDoesNotExists(c *C) {
 		os.Args = []string{}
 		os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	}()
-	stdout := new(bytes.Buffer)
-	errorMsg := "You don't have access to write in this repository."
-	executeAction(hasWritePermission, errorMsg, stdout)
+	stdout := &bytes.Buffer{}
+	executeAction(hasWritePermission, "You don't have access to write in this repository.", stdout)
 	// //Output: FIXME should test that the output is correct
 	// Error obtaining user. Gandalf database is probably in an inconsistent state.
 }
@@ -208,8 +230,19 @@ func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenRepositoryDoes
 		os.Args = []string{}
 		os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	}()
-	stdout := new(bytes.Buffer)
+	stdout := &bytes.Buffer{}
 	errorMsg := "You don't have access to write in this repository."
 	executeAction(hasWritePermission, errorMsg, stdout)
 	c.Assert(commandmocker.Ran(dir), Equals, false)
+}
+
+func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositoryPath(c *C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myproject.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	cmd, err := formatCommand()
+	c.Assert(err, IsNil)
+	p, err := config.GetString("bare-location")
+	c.Assert(err, IsNil)
+	expected := "'" + path.Join(p, "myproject.git") + "'"
+	c.Assert(cmd, DeepEquals, []string{"git-receive-pack", expected})
 }
