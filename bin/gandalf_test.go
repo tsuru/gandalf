@@ -187,23 +187,6 @@ func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermissi
 	c.Assert(stdout.String(), Equals, expected)
 }
 
-func (s *S) ExampleExecuteActionOutputsErrorWhenUserDoesNotExists(c *C) {
-	// TODO: remove me
-	dir, err := commandmocker.Add("git-receive-pack", "$*")
-	c.Check(err, IsNil)
-	defer commandmocker.Remove(dir)
-	os.Args = []string{"gandalf", "god"}
-	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myapp.git'")
-	defer func() {
-		os.Args = []string{}
-		os.Setenv("SSH_ORIGINAL_COMMAND", "")
-	}()
-	stdout := &bytes.Buffer{}
-	executeAction(hasWritePermission, "You don't have access to write in this repository.", stdout)
-	// //Output: FIXME should test that the output is correct
-	// Error obtaining user. Gandalf database is probably in an inconsistent state.
-}
-
 func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExists(c *C) {
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
 	c.Check(err, IsNil)
