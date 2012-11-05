@@ -36,7 +36,7 @@ Api usage
 
 Create a user:
 
-    $> curl -d '{"name": "username", "keys": "ssh-rsa userpubkey user@host"}' gandalf-host.com/user
+    $> curl -d '{"name": "username", "keys": ["ssh-rsa userpubkey user@host"]}' gandalf-host.com/user
 
 You should see the following:
 
@@ -73,13 +73,13 @@ Pushing into myproject
 
 Now we already have access to myproject, let's create a git repository locally to test our setup:
 
-    $> mkdir myproject
-    $> cd myproject
-    $> git init
-    $> git remote add gandalf git@gandalf-host.com:myproject.git
-    $> touch README
-    $> git add .
-    $> git commit -m "first commit"
-    $> git push gandalf master
+    | $> mkdir myproject
+    | $> cd myproject
+    | $> git init
+    | $> git remote add gandalf git@gandalf-host.com:myproject.git
+    | $> touch README
+    | $> git add .
+    | $> git commit -m "first commit"
+    | $> git push gandalf master
 
 You should see the usual git output.
