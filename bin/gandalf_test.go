@@ -117,12 +117,12 @@ func (s *S) TestRequestedRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhat
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, err := requestedRepository()
-	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something you shouldn't$")
+	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something nasty$")
 }
 
 func (s *S) TestRequestedRepositoryShouldReturnErrorWhenThereIsNoCommandPassedToSSH_ORIGINAL_COMMAND(c *C) {
 	_, err := requestedRepository()
-	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something you shouldn't$")
+	c.Assert(err, ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something nasty$")
 }
 
 func (s *S) TestRequestedRepositoryShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *C) {

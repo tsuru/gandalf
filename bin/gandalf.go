@@ -58,17 +58,12 @@ func action() string {
 // matches the expected format and gets the repository from the database based on the info
 // obtained by the SSH_ORIGINAL_COMMAND parse.
 func requestedRepository() (repository.Repository, error) {
-	r, err := regexp.Compile(`[\w-]+ '([\w-]+)\.git'`)
+	repoName, err := requestedRepositoryName()
 	if err != nil {
-		panic(err)
+		return repository.Repository{}, err
 	}
-	m := r.FindStringSubmatch(os.Getenv("SSH_ORIGINAL_COMMAND"))
-	if len(m) < 2 {
-		return repository.Repository{}, errors.New("Cannot deduce repository name from command. You are probably trying to do something you shouldn't")
-	}
-	repoName := m[1]
 	var repo repository.Repository
-	if err = db.Session.Repository().Find(bson.M{"_id": repoName}).One(&repo); err != nil {
+	if err := db.Session.Repository().Find(bson.M{"_id": repoName}).One(&repo); err != nil {
 		return repository.Repository{}, errors.New("Repository not found")
 	}
 	return repo, nil
@@ -88,7 +83,7 @@ func requestedRepositoryName() (string, error) {
 
 // Checks whether a command is a valid git command
 // The following format is allowed:
-//  git-([\w-]+) ([\w-]+)\.git
+//  git-([\w-]+) '([\w-]+)\.git'
 func validateCmd() error {
 	r, err := regexp.Compile(`git-([\w-]+) '([\w-]+)\.git'`)
 	if err != nil {
