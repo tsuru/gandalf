@@ -103,11 +103,13 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 	var u user.User
 	if err := db.Session.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
 		log.Err("Error obtaining user. Gandalf database is probably in an inconsistent state.")
+		fmt.Fprintln(os.Stderr, "Error obtaining user. Gandalf database is probably in an inconsistent state.")
 		return
 	}
 	repo, err := requestedRepository()
 	if err != nil {
 		log.Err(err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
 	if f(&u, &repo) {
@@ -115,6 +117,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		c, err := formatCommand()
 		if err != nil {
 			log.Err(err.Error())
+			fmt.Fprintln(os.Stderr, err.Error())
 		}
 		log.Info("Executing " + strings.Join(c, " "))
 		cmd := exec.Command(c[0], c[1:]...)
@@ -126,11 +129,15 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		if err != nil {
 			log.Err("Got error while executing original command: " + err.Error())
 			log.Err(stderr.String())
+			fmt.Fprintln(os.Stderr, "Got error while executing original command: "+err.Error())
+			fmt.Fprintln(os.Stderr, stderr.Error())
 		}
 		return
 	}
 	log.Err("Permission denied.")
 	log.Err(errMsg)
+	fmt.Fprintln(os.Stderr, "Permission denied.")
+	fmt.Fprintln(os.Stderr, errMsg)
 }
 
 func formatCommand() ([]string, error) {
