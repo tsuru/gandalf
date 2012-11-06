@@ -165,8 +165,10 @@ func (s *S) TestRemoveKey(c *C) {
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
 	got := string(b)
-	expected := fmt.Sprintf(".*%s", key2)
+	expected := formatKey(key2, "someuser")
 	c.Assert(got, Matches, expected)
+	expected = formatKey(key1, "someuser")
+	c.Assert(got, Not(Matches), expected)
 }
 
 func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
