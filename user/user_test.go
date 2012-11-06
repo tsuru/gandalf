@@ -108,7 +108,7 @@ func (s *S) TestIsValidShouldAcceptEmailsAsUserName(c *C) {
 func (s *S) TestRemove(c *C) {
 	u, err := New("someuser", []string{})
 	c.Assert(err, IsNil)
-	err = Remove(u)
+	err = Remove(u.Name)
 	c.Assert(err, IsNil)
 	lenght, err := db.Session.User().Find(bson.M{"_id": u.Name}).Count()
 	c.Assert(err, IsNil)
@@ -118,15 +118,14 @@ func (s *S) TestRemove(c *C) {
 func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *C) {
 	u, err := New("gandalf", []string{"gandalfkey gandalf@mordor"})
 	c.Assert(err, IsNil)
-	err = Remove(u)
+	err = Remove(u.Name)
 	c.Assert(err, IsNil)
 	got := s.authKeysContent(c)
 	c.Assert(got, Not(Matches), ".*gandalfkey gandalf@mordor")
 }
 
 func (s *S) TestRemoveInexistentUserReturnsDescriptiveMessage(c *C) {
-	u := &User{Name: "otheruser"}
-	err := Remove(u)
+	err := Remove("otheruser")
 	c.Assert(err, ErrorMatches, "Could not remove user: not found")
 }
 

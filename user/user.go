@@ -6,6 +6,7 @@ import (
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/key"
 	"github.com/globocom/tsuru/fs"
+	"labix.org/v2/mgo/bson"
 	"regexp"
 )
 
@@ -36,8 +37,16 @@ func (u *User) isValid() (isValid bool, err error) {
 	return true, nil
 }
 
-func Remove(u *User) error {
-	err := db.Session.User().RemoveId(u.Name)
+// Remove a user
+// Also removes it's associated keys from authorized_keys
+// Does not checks for relations with repositories (maybe it should)
+func Remove(name string) error {
+	var u *User
+	err := db.Session.User().Find(bson.M{"_id": name}).One(&u)
+	if err != nil {
+		return fmt.Errorf("Could not remove user: %s", err)
+	}
+	err = db.Session.User().RemoveId(u.Name)
 	if err != nil {
 		return fmt.Errorf("Could not remove user: %s", err)
 	}
