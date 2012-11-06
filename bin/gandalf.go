@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
@@ -130,7 +131,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 			log.Err("Got error while executing original command: " + err.Error())
 			log.Err(stderr.String())
 			fmt.Fprintln(os.Stderr, "Got error while executing original command: "+err.Error())
-			fmt.Fprintln(os.Stderr, stderr.Error())
+			fmt.Fprintln(os.Stderr, stderr.String())
 		}
 		return
 	}
