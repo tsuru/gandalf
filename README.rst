@@ -12,7 +12,7 @@ Installation
 
 Clone gandalf
 
-    $> git clone github.com/globocom/gandalf
+    $> git clone git://github.com/globocom/gandalf
 
 Now run the install script (from gandalf root)
 
