@@ -90,13 +90,13 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveUser(w http.ResponseWriter, r *http.Request) {
-	u := &user.User{Name: r.URL.Query().Get(":name")}
-	err := user.Remove(u)
+	name := r.URL.Query().Get(":name")
+	err := user.Remove(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "User \"%s\" successfuly removed\n", u.Name)
+	fmt.Fprintf(w, "User \"%s\" successfuly removed\n", name)
 }
 
 func NewRepository(w http.ResponseWriter, r *http.Request) {
