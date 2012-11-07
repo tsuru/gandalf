@@ -22,7 +22,11 @@ func bareLocation() string {
 }
 
 func newBare(name string) error {
-	cmd := exec.Command("git", "init", "--bare", path.Join(bareLocation(), formatName(name)))
+	args := []string{"init", path.Join(bareLocation(), formatName(name)), "--bare"}
+	if bareTempl, err := config.GetString("bare-template"); err == nil {
+		args = append(args, "--template="+bareTempl)
+	}
+	cmd := exec.Command("git", args...)
 	_, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Could not create git bare repository: %s", err)

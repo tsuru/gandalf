@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
 	"github.com/globocom/tsuru/fs/testing"
@@ -39,6 +40,40 @@ func (s *S) TestNewBareShouldReturnMeaningfullErrorWhenBareCreationFails(c *C) {
 	got := err.Error()
 	expected := "Could not create git bare repository: exit status 1"
 	c.Assert(got, Equals, expected)
+}
+
+func (s *S) TestNewBareShouldPassTemplateOptionWhenItExistsOnConfig(c *C) {
+	bareTempl, err := config.GetString("bare-template")
+	c.Assert(err, IsNil)
+	bareLocation, err := config.GetString("bare-location")
+	c.Assert(err, IsNil)
+	barePath := path.Join(bareLocation, "foo.git")
+	dir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(dir)
+	err = newBare("foo")
+	c.Assert(err, IsNil)
+	c.Assert(commandmocker.Ran(dir), Equals, true)
+	expected := fmt.Sprintf("init %s --bare --template=%s", barePath, bareTempl)
+	c.Assert(commandmocker.Output(dir), Equals, expected)
+}
+
+func (s *S) TestNewBareShouldNotPassTemplateOptionWhenItsNotSetInConfig(c *C) {
+	oldBareTempl, err := config.GetString("bare-template")
+	c.Assert(err, IsNil)
+	config.Unset("bare-template")
+	defer config.Set("bare-template", oldBareTempl)
+	bareLocation, err := config.GetString("bare-location")
+	c.Assert(err, IsNil)
+	barePath := path.Join(bareLocation, "foo.git")
+	dir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(dir)
+	err = newBare("foo")
+	c.Assert(err, IsNil)
+	c.Assert(commandmocker.Ran(dir), Equals, true)
+	expected := fmt.Sprintf("init %s --bare", barePath)
+	c.Assert(commandmocker.Output(dir), Equals, expected)
 }
 
 func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *C) {
