@@ -20,7 +20,7 @@ var fsystem fs.Fs
 // should the fsystem abstraction be passed here as an argument?
 // maybe it's not a good idea for api direct usage
 func Add(key string, username string, fsystem fs.Fs) error {
-	file, err := fsystem.OpenFile(authKey, os.O_RDWR, 0755)
+	file, err := fsystem.OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func bulkAction(action func(string, string, fs.Fs) error, keys []string, usernam
 
 // Remove a key from auhtKey file
 func Remove(key, username string, fsystem fs.Fs) error {
-	file, err := fsystem.OpenFile(authKey, os.O_RDWR, 0755)
+	file, err := fsystem.OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
