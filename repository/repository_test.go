@@ -23,15 +23,13 @@ var _ = Suite(&S{})
 func (s *S) SetUpSuite(c *C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Assert(err, IsNil)
-	s.tmpdir, err = commandmocker.Add("git", "$*")
 	c.Check(err, IsNil)
 }
 
-func (s *S) TearDownSuite(c *C) {
-	commandmocker.Remove(s.tmpdir)
-}
-
 func (s *S) TestNewShouldCreateANewRepository(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
 	users := []string{"smeagol", "saruman"}
 	r, err := New("myRepo", users, true)
 	c.Assert(err, IsNil)
@@ -42,6 +40,9 @@ func (s *S) TestNewShouldCreateANewRepository(c *C) {
 }
 
 func (s *S) TestNewShouldRecordItOnDatabase(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
 	r, err := New("someRepo", []string{"smeagol"}, true)
 	defer db.Session.Repository().Remove(bson.M{"_id": "someRepo"})
 	c.Assert(err, IsNil)
@@ -97,10 +98,13 @@ func (s *S) TestRepositoryShouldBeValidWithoutIsPublic(c *C) {
 }
 
 func (s *S) TestNewShouldCreateNewGitBareRepository(c *C) {
-	_, err := New("myRepo", []string{"pumpkin"}, true)
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	_, err = New("myRepo", []string{"pumpkin"}, true)
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().Remove(bson.M{"_id": "myRepo"})
-	c.Assert(commandmocker.Ran(s.tmpdir), Equals, true)
+	c.Assert(commandmocker.Ran(tmpdir), Equals, true)
 }
 
 func (s *S) TestNewShouldNotStoreRepoInDbWhenBareCreationFails(c *C) {
@@ -114,6 +118,9 @@ func (s *S) TestNewShouldNotStoreRepoInDbWhenBareCreationFails(c *C) {
 }
 
 func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
 	fsystem = rfs
 	defer func() { fsystem = nil }()
@@ -126,6 +133,9 @@ func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *C) {
 }
 
 func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
 	fsystem = rfs
 	defer func() { fsystem = nil }()
