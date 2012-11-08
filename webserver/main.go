@@ -2,12 +2,23 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/bmizerany/pat"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/api"
 	"log"
 	"net/http"
+	"os/exec"
 )
+
+func startGitDaemon() error {
+	bLocation, err := config.GetString("bare-location")
+	if err != nil {
+		return err
+	}
+	basePath := fmt.Sprintf("--base-path=%s", bLocation)
+	return exec.Command("git", "daemon", basePath, "--syslog").Run()
+}
 
 func main() {
 	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
