@@ -21,7 +21,7 @@ func startGitDaemon() error {
 }
 
 func main() {
-	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
+	dry := flag.Bool("dry", false, "dry-run: does not start the server and git daemon (for testing purpose)")
 	configFile := flag.String("config", "/etc/gandalf.conf", "Gandalf configuration file")
 	flag.Parse()
 
@@ -38,6 +38,7 @@ For an example conf check gandalf/etc/gandalf.conf file.`
 	router.Del("/repository/:name", http.HandlerFunc(api.RemoveRepository))
 
 	if !*dry {
+		startGitDaemon()
 		log.Fatal(http.ListenAndServe(":8080", router))
 	}
 }
