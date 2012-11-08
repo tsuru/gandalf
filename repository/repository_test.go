@@ -146,6 +146,12 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 	c.Assert(err, ErrorMatches, "^Could not remove repository: not found$")
 }
 
+func (s *S) TestRemoteShouldFormatAndReturnTheGitRemote(c *C) {
+	r := Repository{Name: "lol"}
+	remote := r.Remote()
+	c.Assert(remote, Equals, "git@gandalfhost.com:lol.git")
+}
+
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
 	fsystem = nil
 	fsys := filesystem()

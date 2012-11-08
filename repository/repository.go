@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/tsuru/fs"
 	"labix.org/v2/mgo/bson"
@@ -32,6 +33,7 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 // Deletes the repository from the database and
 // removes it's bare git repository
 func Remove(r *Repository) error {
+	// maybe it should receive only a name, to standardize the api (user.Remove already does that)
 	if err := removeBare(r.Name); err != nil {
 		return err
 	}
@@ -39,6 +41,14 @@ func Remove(r *Repository) error {
 		return fmt.Errorf("Could not remove repository: %s", err)
 	}
 	return nil
+}
+
+func (r *Repository) Remote() string {
+	host, err := config.GetString("host")
+	if err != nil {
+		panic(err.Error())
+	}
+	return fmt.Sprintf("git@%s:%s", host, formatName(r.Name))
 }
 
 // Validates a repository
