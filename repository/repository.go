@@ -43,6 +43,8 @@ func Remove(r *Repository) error {
 	return nil
 }
 
+// Format the git remote url and return it
+// If no remote is configured in gandalf.conf Remote will panic
 func (r *Repository) Remote() string {
 	host, err := config.GetString("host")
 	if err != nil {
