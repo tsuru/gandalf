@@ -37,8 +37,12 @@ For an example conf check gandalf/etc/gandalf.conf file.`
 	router.Post("/repository", http.HandlerFunc(api.NewRepository))
 	router.Del("/repository/:name", http.HandlerFunc(api.RemoveRepository))
 
+	port, err := config.GetString("webserver:port")
+	if err != nil {
+		panic(err)
+	}
 	if !*dry {
 		startGitDaemon()
-		log.Fatal(http.ListenAndServe(":8080", router))
+		log.Fatal(http.ListenAndServe(port, router))
 	}
 }
