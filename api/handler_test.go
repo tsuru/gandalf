@@ -36,7 +36,7 @@ func readBody(b io.Reader, c *C) string {
 }
 
 func (s *S) TestNewUser(c *C) {
-	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
+	b := strings.NewReader(`{"name": "brain", "keys": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
@@ -47,7 +47,7 @@ func (s *S) TestNewUser(c *C) {
 }
 
 func (s *S) TestNewUserShouldSaveInDB(c *C) {
-	b := strings.NewReader(`{"name": "brain", "key": ["some id_rsa.pub key.. use your imagination!"]}`)
+	b := strings.NewReader(`{"name": "brain", "keys": ["some id_rsa.pub key.. use your imagination!"]}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	collection := db.Session.User()
