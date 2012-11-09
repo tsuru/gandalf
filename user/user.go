@@ -47,17 +47,23 @@ func (u *User) isValid() (isValid bool, err error) {
 // - if a user has no repositories, gandalf will simply remove the user
 func Remove(name string) error {
 	var u *User
-	err := db.Session.User().Find(bson.M{"_id": name}).One(&u)
-	if err != nil {
+	if err := db.Session.User().Find(bson.M{"_id": name}).One(&u); err != nil {
 		return fmt.Errorf("Could not remove user: %s", err)
 	}
-	// find associated repos
-	var repos []repository.Repository
-	err = db.Session.Repository().Find(bson.M{"users": u.Name}).All(&repos)
-	if err != nil {
+	if err := u.handleAssociatedRepositories(); err != nil {
 		return err
 	}
-	// check repositories association
+	if err := db.Session.User().RemoveId(u.Name); err != nil {
+		return fmt.Errorf("Could not remove user: %s", err.Error())
+	}
+	return key.BulkRemove(u.Keys, u.Name, filesystem())
+}
+
+func (u *User) handleAssociatedRepositories() error {
+	var repos []repository.Repository
+	if err := db.Session.Repository().Find(bson.M{"users": u.Name}).All(&repos); err != nil {
+		return err
+	}
 	for _, r := range repos {
 		if len(r.Users) == 1 {
 			return errors.New("Could not remove user: user is the only one with access to at least one of it's repositories")
@@ -67,19 +73,14 @@ func Remove(name string) error {
 		for i, v := range r.Users {
 			if v == u.Name {
 				r.Users[i], r.Users = r.Users[len(r.Users)-1], r.Users[:len(r.Users)-1]
-				err = db.Session.Repository().Update(bson.M{"_id": r.Name}, r)
-				if err != nil {
+				if err := db.Session.Repository().Update(bson.M{"_id": r.Name}, r); err != nil {
 					return err
 				}
 				break
 			}
 		}
 	}
-	err = db.Session.User().RemoveId(u.Name)
-	if err != nil {
-		return fmt.Errorf("Could not remove user: %s", err.Error())
-	}
-	return key.BulkRemove(u.Keys, u.Name, filesystem())
+	return nil
 }
 
 var fsystem fs.Fs

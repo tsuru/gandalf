@@ -141,21 +141,30 @@ func (s *S) TestRemoveDoesNotRemovesUserWhenUserIsTheOnlyOneAssciatedWithOneRepo
 }
 
 func (s *S) TestRemoveRevokesAccessToReposWithMoreThanOneUserAssociated(c *C) {
+	u, r, r2 := s.userPlusRepos(c)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	err := Remove(u.Name)
+	c.Assert(err, IsNil)
+	s.retrieveRepos(r, r2, c)
+	c.Assert(r.Users, DeepEquals, []string{"slot"})
+	c.Assert(r2.Users, DeepEquals, []string{"cnot"})
+}
+
+func (s *S) retrieveRepos(r, r2 *repository.Repository, c *C) {
+	err := db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().Find(bson.M{"_id": r2.Name}).One(&r2)
+	c.Assert(err, IsNil)
+}
+
+func (s *S) userPlusRepos(c *C) (*User, *repository.Repository, *repository.Repository) {
 	u, err := New("silver", []string{})
 	c.Assert(err, IsNil)
 	r := s.createRepo("run", []string{u.Name, "slot"}, c)
 	r2 := s.createRepo("stay", []string{u.Name, "cnot"}, c)
-	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
-	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	err = Remove(u.Name)
-	c.Assert(err, IsNil)
-	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
-	c.Assert(err, IsNil)
-	err = db.Session.Repository().Find(bson.M{"_id": r2.Name}).One(&r2)
-	c.Assert(err, IsNil)
-	c.Assert(r.Users, DeepEquals, []string{"slot"})
-	c.Assert(r2.Users, DeepEquals, []string{"cnot"})
+	return u, &r, &r2
 }
 
 func (s *S) createRepo(name string, users []string, c *C) repository.Repository {
@@ -163,6 +172,29 @@ func (s *S) createRepo(name string, users []string, c *C) repository.Repository 
 	err := db.Session.Repository().Insert(&r)
 	c.Assert(err, IsNil)
 	return r
+}
+
+func (s *S) TestHandleAssociatedRepositoriesShouldRevokeAccessToRepoWithMoreThanOneUserAssociated(c *C) {
+	u, r, r2 := s.userPlusRepos(c)
+	defer db.Session.Repository().RemoveId(r.Name)
+	defer db.Session.Repository().RemoveId(r2.Name)
+	defer db.Session.User().RemoveId(u.Name)
+	err := u.handleAssociatedRepositories()
+	c.Assert(err, IsNil)
+	s.retrieveRepos(r, r2, c)
+	c.Assert(r.Users, DeepEquals, []string{"slot"})
+	c.Assert(r2.Users, DeepEquals, []string{"cnot"})
+}
+
+func (s *S) TestHandleAssociateRepositoriesReturnsErrorWhenUserIsOnlyOneWithAccessToAtLeastOneRepo(c *C) {
+	u, err := New("umi", []string{})
+	c.Assert(err, IsNil)
+	r := s.createRepo("proj1", []string{"umi"}, c)
+	defer db.Session.User().RemoveId(u.Name)
+	defer db.Session.Repository().RemoveId(r.Name)
+	err = u.handleAssociatedRepositories()
+	expected := "^Could not remove user: user is the only one with access to at least one of it's repositories$"
+	c.Assert(err, ErrorMatches, expected)
 }
 
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
