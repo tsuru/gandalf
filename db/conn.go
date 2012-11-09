@@ -9,13 +9,11 @@ type session struct {
 var Session = session{}
 
 func init() {
-	var err error
-	var s *mgo.Session
-	s, err = mgo.Dial("localhost:27017")
-	Session.DB = s.DB("gandalf")
+	s, err := mgo.Dial("localhost:27017")
 	if err != nil {
 		panic(err)
 	}
+	Session.DB = s.DB("gandalf")
 }
 
 func (s *session) Repository() *mgo.Collection {
