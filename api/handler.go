@@ -48,16 +48,8 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddKey(w http.ResponseWriter, r *http.Request) {
-	u := user.User{Name: r.URL.Query().Get(":name")}
-	c := db.Session.User()
-	err := c.Find(bson.M{"_id": u.Name}).One(&u)
-	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
-		return
-	}
 	params := map[string]string{}
-	err = parseBody(r.Body, &params)
-	if err != nil {
+	if err := parseBody(r.Body, &params); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -65,16 +57,16 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "A key is needed", http.StatusBadRequest)
 		return
 	}
-	u.Keys = append(u.Keys, params["key"])
-	err = c.Update(bson.M{"_id": u.Name}, u)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	uName := r.URL.Query().Get(":name")
+	if err := user.AddKey(uName, params["key"]); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	fmt.Fprintf(w, "Key \"%s\" successfuly created", params["key"])
 }
 
 func NewUser(w http.ResponseWriter, r *http.Request) {
+	// I need some attention, somebody give me some love!
 	var usr user.User
 	err := parseBody(r.Body, &usr)
 	if err != nil {

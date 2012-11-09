@@ -255,6 +255,7 @@ func (s *S) TestAddKey(c *C) {
 	got := readBody(recorder.Body, c)
 	expected := "Key \"a public key\" successfuly created"
 	c.Assert(got, Equals, expected)
+	c.Assert(recorder.Code, Equals, 200)
 }
 
 func (s *S) TestAddKeyShouldReturnErorWhenUserDoesNotExists(c *C) {
@@ -262,6 +263,9 @@ func (s *S) TestAddKeyShouldReturnErorWhenUserDoesNotExists(c *C) {
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
 	c.Assert(recorder.Code, Equals, 404)
+	body, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(body), Equals, "User \"Frodo\" not found\n")
 }
 
 func (s *S) TestAddKeyShouldRequireKey(c *C) {

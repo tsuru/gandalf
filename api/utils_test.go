@@ -4,7 +4,9 @@ import (
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/fs"
 	"github.com/globocom/gandalf/user"
+	testingfs "github.com/globocom/tsuru/fs/testing"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
 	"testing"
@@ -14,6 +16,7 @@ func Test(t *testing.T) { TestingT(t) }
 
 type S struct {
 	tmpdir string
+	rfs    *testingfs.RecordingFs
 }
 
 var _ = Suite(&S{})
@@ -23,10 +26,13 @@ func (s *S) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 	s.tmpdir, err = commandmocker.Add("git", "")
 	c.Assert(err, IsNil)
+	s.rfs = &testingfs.RecordingFs{}
+	fs.Fsystem = s.rfs
 }
 
 func (s *S) TearDownSuite(c *C) {
 	commandmocker.Remove(s.tmpdir)
+	fs.Fsystem = nil
 }
 
 func (s *S) TestGetUserOr404(c *C) {
