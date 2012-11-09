@@ -217,6 +217,11 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *C) {
 	c.Assert(content, Matches, ".* "+key)
 }
 
+func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExists(c *C) {
+	err := AddKey("umi", "ssh-rsa mykey umi@host")
+	c.Assert(err, ErrorMatches, `^User "umi" not found$`)
+}
+
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
 	fsystem = nil
 	fsys := filesystem()

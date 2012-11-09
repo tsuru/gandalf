@@ -83,10 +83,10 @@ func (u *User) handleAssociatedRepositories() error {
 	return nil
 }
 
-func AddKey(username, k string) error {
+func AddKey(uName, k string) error {
 	var u User
-	if err := db.Session.User().FindId(username).One(&u); err != nil {
-		return err
+	if err := db.Session.User().FindId(uName).One(&u); err != nil {
+		return fmt.Errorf(`User "%s" not found`, uName)
 	}
 	u.Keys = append(u.Keys, k)
 	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
