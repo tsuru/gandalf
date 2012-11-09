@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
+	"github.com/globocom/gandalf/fs"
 	"github.com/globocom/tsuru/fs/testing"
 	. "launchpad.net/gocheck"
 	"path"
@@ -78,8 +79,8 @@ func (s *S) TestNewBareShouldNotPassTemplateOptionWhenItsNotSetInConfig(c *C) {
 
 func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *C) {
 	rfs := &testing.RecordingFs{FileContent: "foo"}
-	fsystem = rfs
-	defer func() { fsystem = nil }()
+	fs.Fsystem = rfs
+	defer func() { fs.Fsystem = nil }()
 	err := removeBare("myBare")
 	c.Assert(err, IsNil)
 	action := "removeall " + path.Join(bareLocation(), "myBare.git")
@@ -88,8 +89,8 @@ func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *C) {
 
 func (s *S) TestRemoveBareShouldReturnDescriptiveErrorWhenRemovalFails(c *C) {
 	rfs := &testing.RecordingFs{FileContent: "foo"}
-	fsystem = &testing.FailureFs{RecordingFs: *rfs}
-	defer func() { fsystem = nil }()
+	fs.Fsystem = &testing.FailureFs{RecordingFs: *rfs}
+	defer func() { fs.Fsystem = nil }()
 	err := removeBare("fooo")
 	c.Assert(err, ErrorMatches, "^Could not remove git bare repository: .*")
 }

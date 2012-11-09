@@ -4,7 +4,7 @@ import (
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
-	"github.com/globocom/tsuru/fs"
+	"github.com/globocom/gandalf/fs"
 	fstesting "github.com/globocom/tsuru/fs/testing"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
@@ -122,8 +122,8 @@ func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *C) {
 	c.Assert(err, IsNil)
 	defer commandmocker.Remove(tmpdir)
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
-	fsystem = rfs
-	defer func() { fsystem = nil }()
+	fs.Fsystem = rfs
+	defer func() { fs.Fsystem = nil }()
 	r, err := New("myRepo", []string{"pumpkin"}, false)
 	c.Assert(err, IsNil)
 	err = Remove(r)
@@ -137,8 +137,8 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *C) {
 	c.Assert(err, IsNil)
 	defer commandmocker.Remove(tmpdir)
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
-	fsystem = rfs
-	defer func() { fsystem = nil }()
+	fs.Fsystem = rfs
+	defer func() { fs.Fsystem = nil }()
 	r, err := New("myRepo", []string{"pumpkin"}, false)
 	c.Assert(err, IsNil)
 	err = Remove(r)
@@ -149,8 +149,8 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *C) {
 
 func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDatabase(c *C) {
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
-	fsystem = rfs
-	defer func() { fsystem = nil }()
+	fs.Fsystem = rfs
+	defer func() { fs.Fsystem = nil }()
 	r := &Repository{Name: "fooBar"}
 	err := Remove(r)
 	c.Assert(err, ErrorMatches, "^Could not remove repository: not found$")
@@ -160,11 +160,4 @@ func (s *S) TestRemoteShouldFormatAndReturnTheGitRemote(c *C) {
 	r := Repository{Name: "lol"}
 	remote := r.Remote()
 	c.Assert(remote, Equals, "git@gandalfhost.com:lol.git")
-}
-
-func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
-	fsystem = nil
-	fsys := filesystem()
-	_, ok := fsys.(fs.Fs)
-	c.Assert(ok, Equals, true)
 }

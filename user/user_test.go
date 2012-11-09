@@ -3,8 +3,8 @@ package user
 import (
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/fs"
 	"github.com/globocom/gandalf/repository"
-	"github.com/globocom/tsuru/fs"
 	fstesting "github.com/globocom/tsuru/fs/testing"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
@@ -24,7 +24,7 @@ var _ = Suite(&S{})
 
 func (s *S) authKeysContent(c *C) string {
 	authFile := path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
-	f, err := filesystem().OpenFile(authFile, os.O_RDWR, 0755)
+	f, err := fs.Filesystem().OpenFile(authFile, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -38,11 +38,11 @@ func (s *S) SetUpSuite(c *C) {
 
 func (s *S) SetUpTest(c *C) {
 	s.rfs = &fstesting.RecordingFs{}
-	fsystem = s.rfs
+	fs.Fsystem = s.rfs
 }
 
 func (s *S) TearDownSuite(c *C) {
-	fsystem = nil
+	fs.Fsystem = nil
 }
 
 func (s *S) TestNewUserReturnsAStructFilled(c *C) {
@@ -220,11 +220,4 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *C) {
 func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExists(c *C) {
 	err := AddKey("umi", "ssh-rsa mykey umi@host")
 	c.Assert(err, ErrorMatches, `^User "umi" not found$`)
-}
-
-func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
-	fsystem = nil
-	fsys := filesystem()
-	_, ok := fsys.(fs.Fs)
-	c.Assert(ok, Equals, true)
 }

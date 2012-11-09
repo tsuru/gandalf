@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
-	"github.com/globocom/tsuru/fs"
 	"labix.org/v2/mgo/bson"
 	"regexp"
 )
@@ -69,13 +68,4 @@ func (r *Repository) isValid() (bool, error) {
 		return false, errors.New("Validation Error: repository should have at least one user")
 	}
 	return true, nil
-}
-
-var fsystem fs.Fs
-
-func filesystem() fs.Fs {
-	if fsystem == nil {
-		return fs.OsFs{}
-	}
-	return fsystem
 }

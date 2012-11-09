@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"github.com/globocom/config"
+	"github.com/globocom/gandalf/fs"
 	"os/exec"
 	"path"
 )
@@ -35,7 +36,7 @@ func newBare(name string) error {
 }
 
 func removeBare(name string) error {
-	err := filesystem().RemoveAll(path.Join(bareLocation(), formatName(name)))
+	err := fs.Filesystem().RemoveAll(path.Join(bareLocation(), formatName(name)))
 	if err != nil {
 		return fmt.Errorf("Could not remove git bare repository: %s", err)
 	}

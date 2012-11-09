@@ -3,7 +3,7 @@ package key
 import (
 	"fmt"
 	"github.com/globocom/config"
-	"github.com/globocom/tsuru/fs"
+	"github.com/globocom/gandalf/fs"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,15 +12,12 @@ import (
 
 // file to write user's keys
 var authKey string = path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
-var fsystem fs.Fs
 
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
-// should the fsystem abstraction be passed here as an argument?
-// maybe it's not a good idea for api direct usage
-func Add(key string, username string, fsystem fs.Fs) error {
-	file, err := fsystem.OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
+func Add(key string, username string) error {
+	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -42,20 +39,20 @@ func Add(key string, username string, fsystem fs.Fs) error {
 	return nil
 }
 
-func BulkAdd(keys []string, username string, fsystem fs.Fs) error {
-	return bulkAction(Add, keys, username, fsystem)
+func BulkAdd(keys []string, username string) error {
+	return bulkAction(Add, keys, username)
 }
 
-func BulkRemove(keys []string, username string, fsystem fs.Fs) error {
-	return bulkAction(Remove, keys, username, fsystem)
+func BulkRemove(keys []string, username string) error {
+	return bulkAction(Remove, keys, username)
 }
 
 // applies `action` into a bulk of keys
 // this method does len(keys) io actions but we do not expect the user to have
 // a LOT of keys, thus for now it is not a problem to do this extra io ops
-func bulkAction(action func(string, string, fs.Fs) error, keys []string, username string, fsystem fs.Fs) error {
+func bulkAction(action func(string, string) error, keys []string, username string) error {
 	for _, k := range keys {
-		err := action(k, username, fsystem)
+		err := action(k, username)
 		if err != nil {
 			return err
 		}
@@ -64,8 +61,8 @@ func bulkAction(action func(string, string, fs.Fs) error, keys []string, usernam
 }
 
 // Remove a key from auhtKey file
-func Remove(key, username string, fsystem fs.Fs) error {
-	file, err := fsystem.OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
+func Remove(key, username string) error {
+	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
 		return err

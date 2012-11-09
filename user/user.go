@@ -6,7 +6,6 @@ import (
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/key"
 	"github.com/globocom/gandalf/repository"
-	"github.com/globocom/tsuru/fs"
 	"labix.org/v2/mgo/bson"
 	"regexp"
 )
@@ -24,7 +23,7 @@ func New(name string, keys []string) (*User, error) {
 	if err := db.Session.User().Insert(&u); err != nil {
 		return u, err
 	}
-	return u, key.BulkAdd(keys, name, filesystem())
+	return u, key.BulkAdd(keys, name)
 }
 
 func (u *User) isValid() (isValid bool, err error) {
@@ -56,7 +55,7 @@ func Remove(name string) error {
 	if err := db.Session.User().RemoveId(u.Name); err != nil {
 		return fmt.Errorf("Could not remove user: %s", err.Error())
 	}
-	return key.BulkRemove(u.Keys, u.Name, filesystem())
+	return key.BulkRemove(u.Keys, u.Name)
 }
 
 func (u *User) handleAssociatedRepositories() error {
@@ -92,14 +91,5 @@ func AddKey(uName, k string) error {
 	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
 		return err
 	}
-	return key.Add(k, u.Name, filesystem())
-}
-
-var fsystem fs.Fs
-
-func filesystem() fs.Fs {
-	if fsystem == nil {
-		return fs.OsFs{}
-	}
-	return fsystem
+	return key.Add(k, u.Name)
 }
