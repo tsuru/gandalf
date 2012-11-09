@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/fs"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"io"
@@ -12,6 +13,8 @@ import (
 	. "launchpad.net/gocheck"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path"
 	"strings"
 )
 
@@ -33,6 +36,14 @@ func readBody(b io.Reader, c *C) string {
 	body, err := ioutil.ReadAll(b)
 	c.Assert(err, IsNil)
 	return string(body)
+}
+
+func (s *S) authKeysContent(c *C) string {
+	authKeysPath := path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
+	f, err := fs.Filesystem().OpenFile(authKeysPath, os.O_RDWR|os.O_EXCL, 0755)
+	c.Assert(err, IsNil)
+	content, err := ioutil.ReadAll(f)
+	return string(content)
 }
 
 func (s *S) TestNewUser(c *C) {
@@ -248,7 +259,7 @@ func (s *S) TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(c *C) {
 func (s *S) TestAddKey(c *C) {
 	user, err := user.New("Frodo", []string{})
 	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
+	defer db.Session.User().RemoveId("Frodo")
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, c)
 	AddKey(recorder, request)
@@ -270,9 +281,9 @@ func (s *S) TestAddKeyShouldReturnErorWhenUserDoesNotExists(c *C) {
 
 func (s *S) TestAddKeyShouldRequireKey(c *C) {
 	u := user.User{Name: "Frodo"}
-	collection := db.Session.User()
-	collection.Insert(&u)
-	defer collection.Remove(bson.M{"_id": "Frodo"})
+	err := db.Session.User().Insert(&u)
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"key": ""}`)
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
@@ -280,6 +291,20 @@ func (s *S) TestAddKeyShouldRequireKey(c *C) {
 	expected := "A key is needed"
 	got := strings.Replace(body, "\n", "", -1)
 	c.Assert(got, Equals, expected)
+}
+
+func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeysFile(c *C) {
+	u := user.User{Name: "Frodo"}
+	err := db.Session.User().Insert(&u)
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId("Frodo")
+	k := "ssh-key frodoskey frodo@host"
+	b := strings.NewReader(fmt.Sprintf(`{"key": "%s"}`, k))
+	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
+	AddKey(recorder, request)
+	c.Assert(recorder.Code, Equals, 200)
+	content := s.authKeysContent(c)
+	c.Assert(content, Matches, ".*"+k)
 }
 
 func (s *S) TestRemoveUser(c *C) {

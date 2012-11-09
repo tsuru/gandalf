@@ -26,13 +26,19 @@ func (s *S) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 	s.tmpdir, err = commandmocker.Add("git", "")
 	c.Assert(err, IsNil)
+}
+
+func (s *S) SetUpTest(c *C) {
 	s.rfs = &testingfs.RecordingFs{}
 	fs.Fsystem = s.rfs
 }
 
+func (s *S) TearDownTest(c *C) {
+	fs.Fsystem = nil
+}
+
 func (s *S) TearDownSuite(c *C) {
 	commandmocker.Remove(s.tmpdir)
-	fs.Fsystem = nil
 }
 
 func (s *S) TestGetUserOr404(c *C) {
