@@ -3,6 +3,7 @@ package user
 import (
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/tsuru/fs"
 	fstesting "github.com/globocom/tsuru/fs/testing"
 	"io/ioutil"
@@ -127,6 +128,41 @@ func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *C) {
 func (s *S) TestRemoveInexistentUserReturnsDescriptiveMessage(c *C) {
 	err := Remove("otheruser")
 	c.Assert(err, ErrorMatches, "Could not remove user: not found")
+}
+
+func (s *S) TestRemoveDoesNotRemovesUserWhenUserIsTheOnlyOneAssciatedWithOneRepository(c *C) {
+	u, err := New("silver", []string{})
+	c.Assert(err, IsNil)
+	r := s.createRepo("run", []string{u.Name}, c)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	err = Remove(u.Name)
+	c.Assert(err, ErrorMatches, "^Could not remove user: user is the only one with access to at least one of it's repositories$")
+}
+
+func (s *S) TestRemoveRevokesAccessToReposWithMoreThanOneUserAssociated(c *C) {
+	u, err := New("silver", []string{})
+	c.Assert(err, IsNil)
+	r := s.createRepo("run", []string{u.Name, "slot"}, c)
+	r2 := s.createRepo("stay", []string{u.Name, "cnot"}, c)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
+	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	err = Remove(u.Name)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().Find(bson.M{"_id": r2.Name}).One(&r2)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"slot"})
+	c.Assert(r2.Users, DeepEquals, []string{"cnot"})
+}
+
+func (s *S) createRepo(name string, users []string, c *C) repository.Repository {
+	r := repository.Repository{Name: name, Users: users}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	return r
 }
 
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
