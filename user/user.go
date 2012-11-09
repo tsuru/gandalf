@@ -83,6 +83,18 @@ func (u *User) handleAssociatedRepositories() error {
 	return nil
 }
 
+func AddKey(username, k string) error {
+	var u User
+	if err := db.Session.User().FindId(username).One(&u); err != nil {
+		return err
+	}
+	u.Keys = append(u.Keys, k)
+	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
+		return err
+	}
+	return key.Add(k, u.Name, filesystem())
+}
+
 var fsystem fs.Fs
 
 func filesystem() fs.Fs {

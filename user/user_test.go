@@ -57,7 +57,7 @@ func (s *S) TestNewUserShouldStoreUserInDatabase(c *C) {
 	u, err := New("someuser", []string{"id_rsa someKeyChars"})
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	err = db.Session.User().Find(bson.M{"_id": u.Name}).One(&u)
+	err = db.Session.User().FindId(u.Name).One(&u)
 	c.Assert(err, IsNil)
 	c.Assert(u.Name, Equals, "someuser")
 	c.Assert(len(u.Keys), Not(Equals), 0)
@@ -111,7 +111,7 @@ func (s *S) TestRemove(c *C) {
 	c.Assert(err, IsNil)
 	err = Remove(u.Name)
 	c.Assert(err, IsNil)
-	lenght, err := db.Session.User().Find(bson.M{"_id": u.Name}).Count()
+	lenght, err := db.Session.User().FindId(u.Name).Count()
 	c.Assert(err, IsNil)
 	c.Assert(lenght, Equals, 0)
 }
@@ -153,9 +153,9 @@ func (s *S) TestRemoveRevokesAccessToReposWithMoreThanOneUserAssociated(c *C) {
 }
 
 func (s *S) retrieveRepos(r, r2 *repository.Repository, c *C) {
-	err := db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	err := db.Session.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, IsNil)
-	err = db.Session.Repository().Find(bson.M{"_id": r2.Name}).One(&r2)
+	err = db.Session.Repository().FindId(r2.Name).One(&r2)
 	c.Assert(err, IsNil)
 }
 
@@ -195,6 +195,26 @@ func (s *S) TestHandleAssociateRepositoriesReturnsErrorWhenUserIsOnlyOneWithAcce
 	err = u.handleAssociatedRepositories()
 	expected := "^Could not remove user: user is the only one with access to at least one of it's repositories$"
 	c.Assert(err, ErrorMatches, expected)
+}
+
+func (s *S) TestAddKeyShouldAppendKeyIntoUsersDocument(c *C) {
+	u, err := New("umi", []string{})
+	defer db.Session.User().RemoveId(u.Name)
+	key := "ssh-rsa mykey umi@lolcats"
+	err = AddKey("umi", key)
+	c.Assert(err, IsNil)
+	err = db.Session.User().FindId(u.Name).One(&u)
+	c.Assert(u.Keys, DeepEquals, []string{key})
+}
+
+func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *C) {
+	u, err := New("umi", []string{})
+	defer db.Session.User().RemoveId(u.Name)
+	key := "ssh-rsa mykey umi@lolcats"
+	err = AddKey("umi", key)
+	c.Assert(err, IsNil)
+	content := s.authKeysContent(c)
+	c.Assert(content, Matches, ".* "+key)
 }
 
 func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
