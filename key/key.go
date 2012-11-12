@@ -13,10 +13,16 @@ import (
 // file to write user's keys
 var authKey string = path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
 
+type Key struct {
+	Name    string
+	Content string
+	User    string
+}
+
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
-func Add(key string, username string) error {
+func Add(k *Key) error {
 	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
@@ -26,9 +32,9 @@ func Add(key string, username string) error {
 	if err != nil {
 		return err
 	}
-	content := formatKey(key, username)
+	content := formatKey(k)
 	if len(keys) != 0 {
-		content = fmt.Sprintf("%s\n%s", keys, formatKey(key, username))
+		content = fmt.Sprintf("%s\n%s", keys, content)
 	}
 	if _, err := file.Seek(0, 0); err != nil {
 		return err
@@ -39,20 +45,19 @@ func Add(key string, username string) error {
 	return nil
 }
 
-func BulkAdd(keys []string, username string) error {
-	return bulkAction(Add, keys, username)
-}
-
-func BulkRemove(keys []string, username string) error {
-	return bulkAction(Remove, keys, username)
-}
-
-// applies `action` into a bulk of keys
-// this method does len(keys) io actions but we do not expect the user to have
-// a LOT of keys, thus for now it is not a problem to do this extra io ops
-func bulkAction(action func(string, string) error, keys []string, username string) error {
+func BulkAdd(keys []*Key) error {
 	for _, k := range keys {
-		err := action(k, username)
+		err := Add(k)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func BulkRemove(keys []*Key) error {
+	for _, k := range keys {
+		err := Remove(k.Content, k.User)
 		if err != nil {
 			return err
 		}
@@ -68,7 +73,7 @@ func Remove(key, username string) error {
 		return err
 	}
 	keys, err := ioutil.ReadAll(file)
-	key = formatKey(key, username)
+	key = formatKey(&Key{Content: key, User: username})
 	content := strings.Replace(string(keys), key+"\n", "", -1)
 	content = strings.Replace(content, key, "", -1)
 	err = file.Truncate(0)
@@ -80,11 +85,11 @@ func Remove(key, username string) error {
 	return nil
 }
 
-func formatKey(key, username string) string {
+func formatKey(key *Key) string {
 	binPath, err := config.GetString("bin-path")
 	if err != nil {
 		panic(err)
 	}
 	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s %s" %s`
-	return fmt.Sprintf(keyTmpl, binPath, username, key)
+	return fmt.Sprintf(keyTmpl, binPath, key.User, key.Content)
 }
