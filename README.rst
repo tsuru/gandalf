@@ -36,7 +36,7 @@ Api usage
 
 Create a user:
 
-    $> curl -d '{"name": "username", "keys": ["ssh-rsa userpubkey user@host"]}' gandalf-host.com/user
+    $> curl -d '{"name": "username", "keys": [{"content": "ssh-rsa userpubkey user@host", "name": "keyname"}]}' gandalf-host.com/user
 
 You should see the following:
 
