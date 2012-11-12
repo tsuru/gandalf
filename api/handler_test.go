@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/fs"
+	"github.com/globocom/gandalf/key"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"io"
@@ -47,7 +48,7 @@ func (s *S) authKeysContent(c *C) string {
 }
 
 func (s *S) TestNewUser(c *C) {
-	b := strings.NewReader(`{"name": "brain", "keys": ["some id_rsa.pub key.. use your imagination!"]}`)
+	b := strings.NewReader(`{"name": "brain", "keys": [{"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}]}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
@@ -58,7 +59,7 @@ func (s *S) TestNewUser(c *C) {
 }
 
 func (s *S) TestNewUserShouldSaveInDB(c *C) {
-	b := strings.NewReader(`{"name": "brain", "keys": ["some id_rsa.pub key.. use your imagination!"]}`)
+	b := strings.NewReader(`{"name": "brain", "keys": [{"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}]}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	collection := db.Session.User()
@@ -195,7 +196,7 @@ func (s *S) TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(c *C) {
 }
 
 func (s *S) TestGrantAccess(c *C) {
-	u, err := user.New("pippin", []string{})
+	u, err := user.New("pippin", []key.Key{})
 	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
 	c.Assert(err, IsNil)
 	r := repository.Repository{Name: "repo"}
@@ -244,7 +245,7 @@ func (s *S) TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(c *C) {
 	err := db.Session.Repository().Insert(&r)
 	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
 	c.Assert(err, IsNil)
-	u, err := user.New("gandalf", []string{})
+	u, err := user.New("gandalf", []key.Key{})
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
@@ -257,7 +258,7 @@ func (s *S) TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(c *C) {
 }
 
 func (s *S) TestAddKey(c *C) {
-	user, err := user.New("Frodo", []string{})
+	user, err := user.New("Frodo", []key.Key{})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId("Frodo")
 	b := strings.NewReader(`{"key": "a public key"}`)
@@ -308,7 +309,7 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeysFile(c *C) {
 }
 
 func (s *S) TestRemoveUser(c *C) {
-	u, err := user.New("username", []string{})
+	u, err := user.New("username", []key.Key{})
 	c.Assert(err, IsNil)
 	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
@@ -322,7 +323,7 @@ func (s *S) TestRemoveUser(c *C) {
 }
 
 func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
-	u, err := user.New("anuser", []string{})
+	u, err := user.New("anuser", []key.Key{})
 	c.Assert(err, IsNil)
 	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)

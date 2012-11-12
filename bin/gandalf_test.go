@@ -5,6 +5,7 @@ import (
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/key"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"labix.org/v2/mgo/bson"
@@ -28,7 +29,7 @@ func (s *S) SetUpSuite(c *C) {
 	var err error
 	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
 	c.Check(err, IsNil)
-	s.user, err = user.New("testuser", []string{})
+	s.user, err = user.New("testuser", []key.Key{})
 	c.Check(err, IsNil)
 	// does not uses repository.New to avoid creation of bare git repo
 	s.repo = &repository.Repository{Name: "myapp", Users: []string{s.user.Name}}

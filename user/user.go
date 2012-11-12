@@ -12,10 +12,10 @@ import (
 
 type User struct {
 	Name string `bson:"_id"`
-	Keys []string
+	Keys []key.Key
 }
 
-func New(name string, keys []string) (*User, error) {
+func New(name string, keys []key.Key) (*User, error) {
 	u := &User{Name: name, Keys: keys}
 	if v, err := u.isValid(); !v {
 		return u, err
@@ -82,12 +82,12 @@ func (u *User) handleAssociatedRepositories() error {
 	return nil
 }
 
-func AddKey(uName, k string) error {
+func AddKey(uName string, k *key.Key) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
 		return fmt.Errorf(`User "%s" not found`, uName)
 	}
-	u.Keys = append(u.Keys, k)
+	u.Keys = append(u.Keys, *k)
 	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
 		return err
 	}
