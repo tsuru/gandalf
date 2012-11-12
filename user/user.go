@@ -93,3 +93,22 @@ func AddKey(uName string, k *key.Key) error {
 	}
 	return key.Add(k, u.Name)
 }
+
+func RemoveKey(uName, kName string) error {
+	var u User
+	if err := db.Session.User().FindId(uName).One(&u); err != nil {
+		return err
+	}
+	var k string
+	for i, v := range u.Keys {
+		if v.Name == kName {
+			u.Keys[i], u.Keys = u.Keys[len(u.Keys)-1], u.Keys[:len(u.Keys)-1]
+			k = v.Content
+			break
+		}
+	}
+	if err := db.Session.User().UpdateId(uName, u); err != nil {
+		return err
+	}
+	return key.Remove(k, uName)
+}

@@ -222,3 +222,25 @@ func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExists(c *C) {
 	err := AddKey("umi", &key.Key{Content: "ssh-rsa mykey umi@host", Name: "somekey"})
 	c.Assert(err, ErrorMatches, `^User "umi" not found$`)
 }
+
+func (s *S) TestRemoveKeyShouldRemoveKeyFromUserDocument(c *C) {
+	u, err := New("luke", []key.Key{{Content: "ssh-rsa lukeskey@home", Name: "homekey"}})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	err = RemoveKey("luke", "homekey")
+	c.Assert(err, IsNil)
+	err = db.Session.User().FindId(u.Name).One(&u)
+	c.Assert(err, IsNil)
+	c.Assert(u.Keys, DeepEquals, []key.Key{})
+}
+
+func (s *S) TestRemoveKeyShouldRemoveFromAuthorizedKeysFile(c *C) {
+	k := "ssh-rsa lukeskey@home"
+	u, err := New("luke", []key.Key{{Content: k, Name: "homekey"}})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	err = RemoveKey("luke", "homekey")
+	c.Assert(err, IsNil)
+	content := s.authKeysContent(c)
+	c.Assert(content, Not(Matches), ".* "+k)
+}
