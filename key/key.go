@@ -16,13 +16,12 @@ var authKey string = path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
 type Key struct {
 	Name    string
 	Content string
-	User    string
 }
 
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
-func Add(k *Key) error {
+func Add(k *Key, username string) error {
 	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
@@ -32,7 +31,7 @@ func Add(k *Key) error {
 	if err != nil {
 		return err
 	}
-	content := formatKey(k)
+	content := formatKey(k.Content, username)
 	if len(keys) != 0 {
 		content = fmt.Sprintf("%s\n%s", keys, content)
 	}
@@ -45,9 +44,9 @@ func Add(k *Key) error {
 	return nil
 }
 
-func BulkAdd(keys []*Key) error {
+func BulkAdd(keys []Key, username string) error {
 	for _, k := range keys {
-		err := Add(k)
+		err := Add(&k, username)
 		if err != nil {
 			return err
 		}
@@ -55,9 +54,9 @@ func BulkAdd(keys []*Key) error {
 	return nil
 }
 
-func BulkRemove(keys []*Key) error {
+func BulkRemove(keys []Key, username string) error {
 	for _, k := range keys {
-		err := Remove(k.Content, k.User)
+		err := Remove(k.Content, username)
 		if err != nil {
 			return err
 		}
@@ -73,7 +72,7 @@ func Remove(key, username string) error {
 		return err
 	}
 	keys, err := ioutil.ReadAll(file)
-	key = formatKey(&Key{Content: key, User: username})
+	key = formatKey(key, username)
 	content := strings.Replace(string(keys), key+"\n", "", -1)
 	content = strings.Replace(content, key, "", -1)
 	err = file.Truncate(0)
@@ -85,11 +84,11 @@ func Remove(key, username string) error {
 	return nil
 }
 
-func formatKey(key *Key) string {
+func formatKey(key, username string) string {
 	binPath, err := config.GetString("bin-path")
 	if err != nil {
 		panic(err)
 	}
 	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s %s" %s`
-	return fmt.Sprintf(keyTmpl, binPath, key.User, key.Content)
+	return fmt.Sprintf(keyTmpl, binPath, username, key)
 }
