@@ -33,6 +33,18 @@ func post(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Requ
 	return recorder, request
 }
 
+func delete(url string, c *C) (*httptest.ResponseRecorder, *http.Request) {
+	return request("DELETE", url, nil, c)
+}
+
+func request(method, url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
+	request, err := http.NewRequest(method, url, b)
+	c.Assert(err, IsNil)
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+	return recorder, request
+}
+
 func readBody(b io.Reader, c *C) string {
 	body, err := ioutil.ReadAll(b)
 	c.Assert(err, IsNil)
@@ -306,6 +318,47 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeysFile(c *C) {
 	c.Assert(recorder.Code, Equals, 200)
 	content := s.authKeysContent(c)
 	c.Assert(content, Matches, ".*"+k)
+}
+
+func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
+	u, err := user.New("Gandalf", []key.Key{{Content: "ssh-key somekey gandalf@host", Name: "keyname"}})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	RemoveKey(recorder, request)
+	c.Assert(recorder.Code, Equals, 200)
+	b := readBody(recorder.Body, c)
+	c.Assert(b, Equals, `Key "keyname" successfuly removed`)
+}
+
+func (s *S) TestRemoveKeyRemovesKeyFromUserDocument(c *C) {
+	k := "ssh-key somekey gandalf@host"
+	u, err := user.New("Gandalf", []key.Key{{Content: k, Name: "keyname"}})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	RemoveKey(recorder, request)
+	err = db.Session.User().FindId(u.Name).One(&u)
+	c.Assert(err, IsNil)
+	c.Assert(u.Keys, DeepEquals, []key.Key{})
+}
+
+func (s *S) TestRemoveKeyShouldRemoveKeyFromAuthorizedKeysFile(c *C) {
+	k := "ssh-key somekey gandalf@host"
+	u, err := user.New("Gandalf", []key.Key{{Content: k, Name: "keyname"}})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	RemoveKey(recorder, request)
+	content := s.authKeysContent(c)
+	c.Assert(content, Not(Matches), ".* "+k)
+}
+
+func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *C) {
+	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	RemoveKey(recorder, request)
+	b := readBody(recorder.Body, c)
+	c.Assert(b, Equals, "User \"Gandalf\" does not exists\n")
 }
 
 func (s *S) TestRemoveUser(c *C) {

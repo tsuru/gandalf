@@ -64,6 +64,16 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Key \"%s\" successfuly created", params["key"])
 }
 
+func RemoveKey(w http.ResponseWriter, r *http.Request) {
+	uName := r.URL.Query().Get(":username")
+	kName := r.URL.Query().Get(":keyname")
+	if err := user.RemoveKey(uName, kName); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	fmt.Fprintf(w, "Key \"%s\" successfuly removed", kName)
+}
+
 func NewUser(w http.ResponseWriter, r *http.Request) {
 	var usr user.User
 	if err := parseBody(r.Body, &usr); err != nil {
