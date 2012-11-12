@@ -94,21 +94,27 @@ func AddKey(uName string, k *key.Key) error {
 	return key.Add(k, u.Name)
 }
 
+// RemoveKey removes the key from the user's document and from authorized_keys file
+// If the user or the key is not found, returns an error
 func RemoveKey(uName, kName string) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
-		return err
+		return fmt.Errorf(`User "%s" does not exists`, uName)
 	}
-	var k string
+	var kContent string
+	kNums := len(u.Keys)
 	for i, v := range u.Keys {
 		if v.Name == kName {
 			u.Keys[i], u.Keys = u.Keys[len(u.Keys)-1], u.Keys[:len(u.Keys)-1]
-			k = v.Content
+			kContent = v.Content
 			break
 		}
+	}
+	if kNums == len(u.Keys) {
+		return fmt.Errorf(`Key "%s" for user "%s" does not exists`, kName, uName)
 	}
 	if err := db.Session.User().UpdateId(uName, u); err != nil {
 		return err
 	}
-	return key.Remove(k, uName)
+	return key.Remove(kContent, uName)
 }

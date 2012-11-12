@@ -244,3 +244,16 @@ func (s *S) TestRemoveKeyShouldRemoveFromAuthorizedKeysFile(c *C) {
 	content := s.authKeysContent(c)
 	c.Assert(content, Not(Matches), ".* "+k)
 }
+
+func (s *S) TestRemoveKeyShouldReturnFormatedErrorMsgWhenKeyDoesNotExists(c *C) {
+	u, err := New("luke", []key.Key{})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	err = RemoveKey("luke", "homekey")
+	c.Assert(err, ErrorMatches, `^Key "homekey" for user "luke" does not exists$`)
+}
+
+func (s *S) TestRemoveKeyShouldReturnFormatedErrorMsgWhenUserDoesNotExists(c *C) {
+	err := RemoveKey("luke", "homekey")
+	c.Assert(err, ErrorMatches, `^User "luke" does not exists$`)
+}
