@@ -89,6 +89,9 @@ func RevokeAccess(rName, uName string) error {
 		return fmt.Errorf("Repository \"%s\" does not exists", rName)
 	}
 	numUsers := len(r.Users)
+	if numUsers == 1 {
+		return fmt.Errorf("Cannot revoke access to only user that has access into repository \"%s\"", rName)
+	}
 	for i, v := range r.Users {
 		if v == uName {
 			r.Users[i], r.Users = r.Users[len(r.Users)-1], r.Users[:len(r.Users)-1]

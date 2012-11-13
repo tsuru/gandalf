@@ -214,21 +214,21 @@ func (s *S) TestRevokeAccessShouldRemoveUserFromRepositoryDocument(c *C) {
 	err = db.Session.User().Insert(&u)
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	r, err := New("myproj", []string{u.Name}, true)
+	r, err := New("myproj", []string{u.Name, "zezinho"}, true)
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().RemoveId(r.Name)
 	err = RevokeAccess(r.Name, u.Name)
 	c.Assert(err, IsNil)
 	err = db.Session.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, IsNil)
-	c.Assert(r.Users, DeepEquals, []string{})
+	c.Assert(r.Users, DeepEquals, []string{"zezinho"})
 }
 
 func (s *S) TestRevokeAccessShouldReturnFormatedErrorWhenUserHasNotAccessToRepository(c *C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)
 	defer commandmocker.Remove(tmpdir)
-	r, err := New("myproj", []string{"luizinho"}, true)
+	r, err := New("myproj", []string{"zezinho", "luizinho"}, true)
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().RemoveId(r.Name)
 	err = RevokeAccess(r.Name, "gandalf")
@@ -239,4 +239,15 @@ func (s *S) TestRevokeAccessShouldReturnFormatedErrorWhenUserHasNotAccessToRepos
 func (s *S) TestRevokeAccessShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *C) {
 	err := RevokeAccess("absentrepo", "gandalf")
 	c.Assert(err, ErrorMatches, "^Repository \"absentrepo\" does not exists$")
+}
+
+func (s *S) TestRevokeAccessShouldReturnErrorIfUserBeingRevokedIsTheOnlyOneWithAccessIntoRepository(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("myproj", []string{"luizinho"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	err = RevokeAccess(r.Name, "luizinho")
+	c.Assert(err, ErrorMatches, "^Cannot revoke access to only user that has access into repository \"myproj\"$")
 }
