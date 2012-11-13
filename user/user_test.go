@@ -4,7 +4,6 @@ import (
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/fs"
-	"github.com/globocom/gandalf/key"
 	"github.com/globocom/gandalf/repository"
 	fstesting "github.com/globocom/tsuru/fs/testing"
 	"io/ioutil"
@@ -32,6 +31,17 @@ func (s *S) authKeysContent(c *C) string {
 	return string(b)
 }
 
+func (s *S) clearAuthKeyFile() bool {
+	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	if err != nil {
+		return false
+	}
+	if err := f.Truncate(0); err != nil {
+		return false
+	}
+	return true
+}
+
 func (s *S) SetUpSuite(c *C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Check(err, IsNil)
@@ -42,12 +52,17 @@ func (s *S) SetUpTest(c *C) {
 	fs.Fsystem = s.rfs
 }
 
+func (s *S) TearDownTest(c *C) {
+	ok := s.clearAuthKeyFile()
+	c.Assert(ok, Equals, true)
+}
+
 func (s *S) TearDownSuite(c *C) {
 	fs.Fsystem = nil
 }
 
 func (s *S) TestNewUserReturnsAStructFilled(c *C) {
-	u, err := New("someuser", []key.Key{{Content: "id_rsa someKeyChars", Name: "somekey"}})
+	u, err := New("someuser", []Key{{Content: "id_rsa someKeyChars", Name: "somekey"}})
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	c.Assert(u.Name, Equals, "someuser")
@@ -55,7 +70,7 @@ func (s *S) TestNewUserReturnsAStructFilled(c *C) {
 }
 
 func (s *S) TestNewUserShouldStoreUserInDatabase(c *C) {
-	u, err := New("someuser", []key.Key{{Content: "id_rsa someKeyChars", Name: "somekey"}})
+	u, err := New("someuser", []Key{{Content: "id_rsa someKeyChars", Name: "somekey"}})
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	err = db.Session.User().FindId(u.Name).One(&u)
@@ -65,7 +80,7 @@ func (s *S) TestNewUserShouldStoreUserInDatabase(c *C) {
 }
 
 func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *C) {
-	_, err := New("", []key.Key{})
+	_, err := New("", []Key{})
 	c.Assert(err, NotNil)
 	got := err.Error()
 	expected := "Validation Error: user name is not valid"
@@ -73,7 +88,7 @@ func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *C) {
 }
 
 func (s *S) TestNewWritesKeyInAuthorizedKeys(c *C) {
-	u, err := New("piccolo", []key.Key{{Content: "idrsakey piccolo@myhost", Name: "somekey"}})
+	u, err := New("piccolo", []Key{{Content: "idrsakey piccolo@myhost", Name: "somekey"}})
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": u.Name})
 	keys := s.authKeysContent(c)
@@ -81,7 +96,7 @@ func (s *S) TestNewWritesKeyInAuthorizedKeys(c *C) {
 }
 
 func (s *S) TestIsValidReturnsErrorWhenUserDoesNotHaveAName(c *C) {
-	u := User{Keys: []key.Key{{Content: "id_rsa foooBar", Name: "somekey"}}}
+	u := User{Keys: []Key{{Content: "id_rsa foooBar", Name: "somekey"}}}
 	v, err := u.isValid()
 	c.Assert(v, Equals, false)
 	c.Assert(err, NotNil)
@@ -91,7 +106,7 @@ func (s *S) TestIsValidReturnsErrorWhenUserDoesNotHaveAName(c *C) {
 }
 
 func (s *S) TestIsValidShouldNotAcceptEmptyUserName(c *C) {
-	u := User{Keys: []key.Key{{Content: "id_rsa foooBar", Name: "somekey"}}}
+	u := User{Keys: []Key{{Content: "id_rsa foooBar", Name: "somekey"}}}
 	v, err := u.isValid()
 	c.Assert(v, Equals, false)
 	c.Assert(err, NotNil)
@@ -101,14 +116,14 @@ func (s *S) TestIsValidShouldNotAcceptEmptyUserName(c *C) {
 }
 
 func (s *S) TestIsValidShouldAcceptEmailsAsUserName(c *C) {
-	u := User{Name: "r2d2@gmail.com", Keys: []key.Key{{Content: "id_rsa foooBar", Name: "somekey"}}}
+	u := User{Name: "r2d2@gmail.com", Keys: []Key{{Content: "id_rsa foooBar", Name: "somekey"}}}
 	v, err := u.isValid()
 	c.Assert(err, IsNil)
 	c.Assert(v, Equals, true)
 }
 
 func (s *S) TestRemove(c *C) {
-	u, err := New("someuser", []key.Key{})
+	u, err := New("someuser", []Key{})
 	c.Assert(err, IsNil)
 	err = Remove(u.Name)
 	c.Assert(err, IsNil)
@@ -118,7 +133,7 @@ func (s *S) TestRemove(c *C) {
 }
 
 func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *C) {
-	u, err := New("gandalf", []key.Key{{Content: "gandalfkey gandalf@mordor", Name: "somekey"}})
+	u, err := New("gandalf", []Key{{Content: "gandalfkey gandalf@mordor", Name: "somekey"}})
 	c.Assert(err, IsNil)
 	err = Remove(u.Name)
 	c.Assert(err, IsNil)
@@ -132,7 +147,7 @@ func (s *S) TestRemoveInexistentUserReturnsDescriptiveMessage(c *C) {
 }
 
 func (s *S) TestRemoveDoesNotRemovesUserWhenUserIsTheOnlyOneAssciatedWithOneRepository(c *C) {
-	u, err := New("silver", []key.Key{})
+	u, err := New("silver", []Key{})
 	c.Assert(err, IsNil)
 	r := s.createRepo("run", []string{u.Name}, c)
 	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
@@ -161,7 +176,7 @@ func (s *S) retrieveRepos(r, r2 *repository.Repository, c *C) {
 }
 
 func (s *S) userPlusRepos(c *C) (*User, *repository.Repository, *repository.Repository) {
-	u, err := New("silver", []key.Key{})
+	u, err := New("silver", []Key{})
 	c.Assert(err, IsNil)
 	r := s.createRepo("run", []string{u.Name, "slot"}, c)
 	r2 := s.createRepo("stay", []string{u.Name, "cnot"}, c)
@@ -188,7 +203,7 @@ func (s *S) TestHandleAssociatedRepositoriesShouldRevokeAccessToRepoWithMoreThan
 }
 
 func (s *S) TestHandleAssociateRepositoriesReturnsErrorWhenUserIsOnlyOneWithAccessToAtLeastOneRepo(c *C) {
-	u, err := New("umi", []key.Key{})
+	u, err := New("umi", []Key{})
 	c.Assert(err, IsNil)
 	r := s.createRepo("proj1", []string{"umi"}, c)
 	defer db.Session.User().RemoveId(u.Name)
@@ -199,19 +214,19 @@ func (s *S) TestHandleAssociateRepositoriesReturnsErrorWhenUserIsOnlyOneWithAcce
 }
 
 func (s *S) TestAddKeyShouldAppendKeyIntoUsersDocument(c *C) {
-	u, err := New("umi", []key.Key{})
+	u, err := New("umi", []Key{})
 	defer db.Session.User().RemoveId(u.Name)
-	k := key.Key{Content: "ssh-rsa mykey umi@lolcats", Name: "somekey"}
+	k := Key{Content: "ssh-rsa mykey umi@lolcats", Name: "somekey"}
 	err = AddKey("umi", &k)
 	c.Assert(err, IsNil)
 	err = db.Session.User().FindId(u.Name).One(&u)
-	c.Assert(u.Keys, DeepEquals, []key.Key{k})
+	c.Assert(u.Keys, DeepEquals, []Key{k})
 }
 
 func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *C) {
-	u, err := New("umi", []key.Key{})
+	u, err := New("umi", []Key{})
 	defer db.Session.User().RemoveId(u.Name)
-	k := key.Key{Content: "ssh-rsa mykey umi@lolcats", Name: "somekey"}
+	k := Key{Content: "ssh-rsa mykey umi@lolcats", Name: "somekey"}
 	err = AddKey("umi", &k)
 	c.Assert(err, IsNil)
 	content := s.authKeysContent(c)
@@ -219,24 +234,24 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *C) {
 }
 
 func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExists(c *C) {
-	err := AddKey("umi", &key.Key{Content: "ssh-rsa mykey umi@host", Name: "somekey"})
+	err := AddKey("umi", &Key{Content: "ssh-rsa mykey umi@host", Name: "somekey"})
 	c.Assert(err, ErrorMatches, `^User "umi" not found$`)
 }
 
 func (s *S) TestRemoveKeyShouldRemoveKeyFromUserDocument(c *C) {
-	u, err := New("luke", []key.Key{{Content: "ssh-rsa lukeskey@home", Name: "homekey"}})
+	u, err := New("luke", []Key{{Content: "ssh-rsa lukeskey@home", Name: "homekey"}})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
 	err = RemoveKey("luke", "homekey")
 	c.Assert(err, IsNil)
 	err = db.Session.User().FindId(u.Name).One(&u)
 	c.Assert(err, IsNil)
-	c.Assert(u.Keys, DeepEquals, []key.Key{})
+	c.Assert(u.Keys, DeepEquals, []Key{})
 }
 
 func (s *S) TestRemoveKeyShouldRemoveFromAuthorizedKeysFile(c *C) {
 	k := "ssh-rsa lukeskey@home"
-	u, err := New("luke", []key.Key{{Content: k, Name: "homekey"}})
+	u, err := New("luke", []Key{{Content: k, Name: "homekey"}})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
 	err = RemoveKey("luke", "homekey")
@@ -246,7 +261,7 @@ func (s *S) TestRemoveKeyShouldRemoveFromAuthorizedKeysFile(c *C) {
 }
 
 func (s *S) TestRemoveKeyShouldReturnFormatedErrorMsgWhenKeyDoesNotExists(c *C) {
-	u, err := New("luke", []key.Key{})
+	u, err := New("luke", []Key{})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
 	err = RemoveKey("luke", "homekey")

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/globocom/gandalf/db"
-	"github.com/globocom/gandalf/key"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"io"
@@ -56,7 +55,7 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uName := r.URL.Query().Get(":name")
-	k := key.Key{Name: params["name"], Content: params["key"]}
+	k := user.Key{Name: params["name"], Content: params["key"]}
 	if err := user.AddKey(uName, &k); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

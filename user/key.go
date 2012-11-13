@@ -1,4 +1,4 @@
-package key
+package user
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ type Key struct {
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
-func Add(k *Key, username string) error {
+func addKey(k *Key, username string) error {
 	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
@@ -44,9 +44,9 @@ func Add(k *Key, username string) error {
 	return nil
 }
 
-func BulkAdd(keys []Key, username string) error {
+func addKeys(keys []Key, username string) error {
 	for _, k := range keys {
-		err := Add(&k, username)
+		err := addKey(&k, username)
 		if err != nil {
 			return err
 		}
@@ -54,9 +54,9 @@ func BulkAdd(keys []Key, username string) error {
 	return nil
 }
 
-func BulkRemove(keys []Key, username string) error {
+func removeKeys(keys []Key, username string) error {
 	for _, k := range keys {
-		err := Remove(k.Content, username)
+		err := removeKey(k.Content, username)
 		if err != nil {
 			return err
 		}
@@ -64,8 +64,8 @@ func BulkRemove(keys []Key, username string) error {
 	return nil
 }
 
-// Remove a key from auhtKey file
-func Remove(key, username string) error {
+// removes a key from auhtKey file
+func removeKey(key, username string) error {
 	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/globocom/gandalf/db"
-	"github.com/globocom/gandalf/key"
 	"github.com/globocom/gandalf/repository"
 	"labix.org/v2/mgo/bson"
 	"regexp"
@@ -12,10 +11,10 @@ import (
 
 type User struct {
 	Name string `bson:"_id"`
-	Keys []key.Key
+	Keys []Key
 }
 
-func New(name string, keys []key.Key) (*User, error) {
+func New(name string, keys []Key) (*User, error) {
 	u := &User{Name: name, Keys: keys}
 	if v, err := u.isValid(); !v {
 		return u, err
@@ -23,7 +22,7 @@ func New(name string, keys []key.Key) (*User, error) {
 	if err := db.Session.User().Insert(&u); err != nil {
 		return u, err
 	}
-	return u, key.BulkAdd(keys, name)
+	return u, addKeys(keys, name)
 }
 
 func (u *User) isValid() (isValid bool, err error) {
@@ -55,7 +54,7 @@ func Remove(name string) error {
 	if err := db.Session.User().RemoveId(u.Name); err != nil {
 		return fmt.Errorf("Could not remove user: %s", err.Error())
 	}
-	return key.BulkRemove(u.Keys, u.Name)
+	return removeKeys(u.Keys, u.Name)
 }
 
 func (u *User) handleAssociatedRepositories() error {
@@ -82,7 +81,7 @@ func (u *User) handleAssociatedRepositories() error {
 	return nil
 }
 
-func AddKey(uName string, k *key.Key) error {
+func AddKey(uName string, k *Key) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
 		return fmt.Errorf(`User "%s" not found`, uName)
@@ -91,7 +90,7 @@ func AddKey(uName string, k *key.Key) error {
 	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
 		return err
 	}
-	return key.Add(k, u.Name)
+	return addKey(k, u.Name)
 }
 
 // RemoveKey removes the key from the user's document and from authorized_keys file
@@ -116,5 +115,5 @@ func RemoveKey(uName, kName string) error {
 	if err := db.Session.User().UpdateId(uName, u); err != nil {
 		return err
 	}
-	return key.Remove(kContent, uName)
+	return removeKey(kContent, uName)
 }
