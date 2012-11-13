@@ -4,44 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"io"
 	"io/ioutil"
-	"labix.org/v2/mgo/bson"
 	"net/http"
 	"reflect"
 )
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
-	// it's need a intermediary method to grant access to a user into a repository
-	// something equivalent to what we have in NewUser handler
-	repo := repository.Repository{Name: r.URL.Query().Get(":name")}
-	c := db.Session.Repository()
-	c.Find(bson.M{"_id": repo.Name}).One(&repo)
-	req := map[string][]string{}
-	if err := parseBody(r.Body, &req); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	rName := r.URL.Query().Get(":name")
+	uName := r.URL.Query().Get(":username")
+	if err := repository.GrantAccess(rName, uName); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	for _, u := range req["users"] {
-		// TODO (flaviamissi): query all only once, then iterate over them?
-		if _, err := getUserOr404(u); err != nil {
-			if len(req["users"]) == 1 {
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			} else {
-				// #TODO (flaviamissi): log a warning saying the user "u" was not found and skip it
-				continue
-			}
-		}
-		repo.Users = append(repo.Users, u)
-	}
-	if err := c.Update(bson.M{"_id": repo.Name}, &repo); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	fmt.Fprintf(w, "Successfuly granted access to user \"%s\" into repository \"%s\"", uName, rName)
 }
 
 func AddKey(w http.ResponseWriter, r *http.Request) {

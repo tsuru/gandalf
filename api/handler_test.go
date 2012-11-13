@@ -211,61 +211,30 @@ func (s *S) TestGrantAccess(c *C) {
 	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
 	c.Assert(err, IsNil)
 	r := repository.Repository{Name: "repo"}
-	collection := db.Session.Repository()
-	err = collection.Insert(&r)
+	err = db.Session.Repository().Insert(&r)
 	c.Assert(err, IsNil)
-	defer collection.Remove(bson.M{"_id": "repo"})
-	b := strings.NewReader(`{"users": ["pippin"]}`)
-	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
-	rec, req := post(url, b, c)
+	defer db.Session.Repository().Remove(bson.M{"_id": "repo"})
+	url := fmt.Sprintf("/repository/%s/grant/%s?:name=%s&:username=%s", r.Name, u.Name, r.Name, u.Name)
+	rec, req := post(url, nil, c)
 	GrantAccess(rec, req)
-	collection.Find(bson.M{"_id": "repo"}).One(&r)
+	db.Session.Repository().Find(bson.M{"_id": "repo"}).One(&r)
 	c.Assert(len(r.Users), Not(Equals), 0)
 	c.Assert(r.Users[0], Equals, u.Name)
+	c.Assert(rec.Code, Equals, 200)
+	b := readBody(rec.Body, c)
+	expected := fmt.Sprintf("Successfuly granted access to user \"%s\" into repository \"%s\"", u.Name, r.Name)
+	c.Assert(b, Equals, expected)
 }
 
-func (s *S) TestGrantAccessShouldReturn404WhenSingleUserDoesntExists(c *C) {
+func (s *S) TestGrantAccessShouldReturn404WhenUserDoesntExists(c *C) {
 	r := repository.Repository{Name: "repo"}
 	collection := db.Session.Repository()
 	collection.Insert(&r)
 	defer collection.Remove(bson.M{"_id": "repo"})
-	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
-	b := strings.NewReader(`{"users": ["gandalf"]}`)
-	rec, req := post(url, b, c)
+	url := fmt.Sprintf("/repository/%s/grant/absentuser?:name=%s&:username=absentuser", r.Name, r.Name)
+	rec, req := post(url, nil, c)
 	GrantAccess(rec, req)
 	c.Assert(rec.Code, Equals, 404)
-}
-
-func (s *S) TestGrantAccessShouldNotInsertInexistentSingleUser(c *C) {
-	r := repository.Repository{Name: "repo"}
-	collection := db.Session.Repository()
-	err := collection.Insert(&r)
-	c.Assert(err, IsNil)
-	defer collection.Remove(bson.M{"_id": "repo"})
-	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
-	b := strings.NewReader(`{"users": ["gandalf"]}`)
-	rec, req := post(url, b, c)
-	GrantAccess(rec, req)
-	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
-	c.Assert(err, IsNil)
-	c.Assert(len(r.Users), Equals, 0)
-}
-
-func (s *S) TestGrantAccessShouldSkipUserGrantWhenMultipleUsersArePassed(c *C) {
-	r := repository.Repository{Name: "somerepo"}
-	err := db.Session.Repository().Insert(&r)
-	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
-	c.Assert(err, IsNil)
-	u, err := user.New("gandalf", []user.Key{})
-	c.Assert(err, IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
-	url := fmt.Sprintf("/repository/%s/grant?:name=%s", r.Name, r.Name)
-	b := strings.NewReader(`{"users": ["gandalf", "frodo"]}`)
-	rec, req := post(url, b, c)
-	GrantAccess(rec, req)
-	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
-	c.Assert(err, IsNil)
-	c.Assert(len(r.Users), Equals, 1)
 }
 
 func (s *S) TestAddKey(c *C) {
