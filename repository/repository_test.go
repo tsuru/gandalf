@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
@@ -201,4 +202,41 @@ func (s *S) TestGrantAccessShouldReturnFormatedErrorWhenUserDoesNotExists(c *C) 
 	defer db.Session.Repository().RemoveId(r.Name)
 	err = GrantAccess(r.Name, "absentuser")
 	c.Assert(err, ErrorMatches, "^User \"absentuser\" does not exists$")
+}
+
+func (s *S) TestRevokeAccessShouldRemoveUserFromRepositoryDocument(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	u := struct {
+		Name string `bson:"_id"`
+	}{Name: "lolcat"}
+	err = db.Session.User().Insert(&u)
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	r, err := New("myproj", []string{u.Name}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	err = RevokeAccess(r.Name, u.Name)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{})
+}
+
+func (s *S) TestRevokeAccessShouldReturnFormatedErrorWhenUserHasNotAccessToRepository(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("myproj", []string{"luizinho"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	err = RevokeAccess(r.Name, "gandalf")
+	expected := fmt.Sprintf("^User \"gandalf\" does not have access to repository \"%s\"$", r.Name)
+	c.Assert(err, ErrorMatches, expected)
+}
+
+func (s *S) TestRevokeAccessShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *C) {
+	err := RevokeAccess("absentrepo", "gandalf")
+	c.Assert(err, ErrorMatches, "^Repository \"absentrepo\" does not exists$")
 }

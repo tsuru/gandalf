@@ -82,3 +82,21 @@ func GrantAccess(rName, uName string) error {
 	r.Users = append(r.Users, uName)
 	return db.Session.Repository().UpdateId(rName, r)
 }
+
+func RevokeAccess(rName, uName string) error {
+	var r Repository
+	if err := db.Session.Repository().FindId(rName).One(&r); err != nil {
+		return fmt.Errorf("Repository \"%s\" does not exists", rName)
+	}
+	numUsers := len(r.Users)
+	for i, v := range r.Users {
+		if v == uName {
+			r.Users[i], r.Users = r.Users[len(r.Users)-1], r.Users[:len(r.Users)-1]
+			break
+		}
+	}
+	if len(r.Users) == numUsers {
+		return fmt.Errorf("User \"%s\" does not have access to repository \"%s\"", uName, rName)
+	}
+	return db.Session.Repository().UpdateId(rName, r)
+}
