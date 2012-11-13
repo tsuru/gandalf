@@ -69,3 +69,16 @@ func (r *Repository) isValid() (bool, error) {
 	}
 	return true, nil
 }
+
+func GrantAccess(rName, uName string) error {
+	var r Repository
+	if err := db.Session.Repository().FindId(rName).One(&r); err != nil {
+		return fmt.Errorf(`Repository "%s" does not exists`, rName)
+	}
+	var u interface{}
+	if err := db.Session.User().FindId(uName).One(&u); err != nil {
+		return fmt.Errorf(`User "%s" does not exists`, uName)
+	}
+	r.Users = append(r.Users, uName)
+	return db.Session.Repository().UpdateId(rName, r)
+}

@@ -157,7 +157,48 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 }
 
 func (s *S) TestRemoteShouldFormatAndReturnTheGitRemote(c *C) {
-	r := Repository{Name: "lol"}
-	remote := r.Remote()
+	remote := (&Repository{Name: "lol"}).Remote()
 	c.Assert(remote, Equals, "git@gandalfhost.com:lol.git")
+}
+
+func (s *S) TestGrantAccessShouldAddUserToRepositoryDocument(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("myproj", []string{"someuser"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	u := struct {
+		Name string `bson:"_id"`
+	}{Name: "lolcat"}
+	err = db.Session.User().Insert(&u)
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	err = GrantAccess(r.Name, u.Name)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"someuser", u.Name})
+}
+
+func (s *S) TestGrantAccessShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *C) {
+	u := struct {
+		Name string `bson:"_id"`
+	}{Name: "lolcat"}
+	err := db.Session.User().Insert(&u)
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	err = GrantAccess("absentrepo", "someuser")
+	c.Assert(err, ErrorMatches, "^Repository \"absentrepo\" does not exists$")
+}
+
+func (s *S) TestGrantAccessShouldReturnFormatedErrorWhenUserDoesNotExists(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("myproj", []string{"someuser"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	err = GrantAccess(r.Name, "absentuser")
+	c.Assert(err, ErrorMatches, "^User \"absentuser\" does not exists$")
 }
