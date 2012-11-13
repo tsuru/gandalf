@@ -228,13 +228,55 @@ func (s *S) TestGrantAccess(c *C) {
 
 func (s *S) TestGrantAccessShouldReturn404WhenUserDoesntExists(c *C) {
 	r := repository.Repository{Name: "repo"}
-	collection := db.Session.Repository()
-	collection.Insert(&r)
-	defer collection.Remove(bson.M{"_id": "repo"})
+	db.Session.Repository().Insert(&r)
+	defer db.Session.Repository().RemoveId("repo")
 	url := fmt.Sprintf("/repository/%s/grant/absentuser?:name=%s&:username=absentuser", r.Name, r.Name)
 	rec, req := post(url, nil, c)
 	GrantAccess(rec, req)
 	c.Assert(rec.Code, Equals, 404)
+}
+
+func (s *S) TestRevokeAccessShouldRemoveUserFromRepository(c *C) {
+	r := repository.Repository{Name: "myproj", Users: []string{"myuser", "myotheruser"}}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	url := fmt.Sprintf("/repository/%s/revoke/myuser?:name=%s&:username=myuser", r.Name, r.Name)
+	rec, req := delete(url, c)
+	RevokeAccess(rec, req)
+	c.Assert(rec.Code, Equals, 200)
+	b := readBody(rec.Body, c)
+	expected := fmt.Sprintf("Successfuly revoked access to user \"myuser\" into repository \"%s\"", r.Name)
+	c.Assert(b, Equals, expected)
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"myotheruser"})
+}
+
+func (s *S) TestRevokeAccessShouldReturnErrorWhenRepositoryDoesNotExists(c *C) {
+	url := "/repository/myproj/revoke/myuser?:name=myproj&:username=myuser"
+	rec, req := delete(url, c)
+	RevokeAccess(rec, req)
+	c.Assert(rec.Code, Equals, 400)
+	b := readBody(rec.Body, c)
+	c.Assert(b, Equals, "Repository \"myproj\" does not exists\n")
+}
+
+func (s *S) TestRevokeAccessShouldReturnErrorWhenUserBeingRemovedIsTheOnlyOneWithAccessIntoRepo(c *C) {
+	r := repository.Repository{Name: "myproj", Users: []string{"myuser"}}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	url := fmt.Sprintf("/repository/%s/revoke/myuser?:name=%s&:username=myuser", r.Name, r.Name)
+	rec, req := delete(url, c)
+	RevokeAccess(rec, req)
+	c.Assert(rec.Code, Equals, 400)
+	b := readBody(rec.Body, c)
+	expected := fmt.Sprintf("Cannot revoke access to only user that has access into repository \"%s\"\n", r.Name)
+	c.Assert(b, Equals, expected)
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"myuser"})
 }
 
 func (s *S) TestAddKey(c *C) {

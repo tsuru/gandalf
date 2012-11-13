@@ -22,6 +22,16 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Successfuly granted access to user \"%s\" into repository \"%s\"", uName, rName)
 }
 
+func RevokeAccess(w http.ResponseWriter, r *http.Request) {
+	rName := r.URL.Query().Get(":name")
+	uName := r.URL.Query().Get(":username")
+	if err := repository.RevokeAccess(rName, uName); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest) // should return 404 when not found and 412 when cannot remove
+		return
+	}
+	fmt.Fprintf(w, "Successfuly revoked access to user \"%s\" into repository \"%s\"", uName, rName)
+}
+
 func AddKey(w http.ResponseWriter, r *http.Request) {
 	params := map[string]string{}
 	if err := parseBody(r.Body, &params); err != nil {
