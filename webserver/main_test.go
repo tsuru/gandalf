@@ -33,6 +33,24 @@ func (s *S) TestStartGitDaemonShouldCallGitDaemonCmd(c *C) {
 	c.Assert(commandmocker.Ran(s.tmpdir), Equals, true)
 	barePath, err := config.GetString("bare-location")
 	c.Assert(err, IsNil)
-	expected := fmt.Sprintf("daemon --base-path=%s --syslog", barePath)
-	c.Assert(commandmocker.Output(s.tmpdir), Equals, expected)
+	expected := fmt.Sprintf("daemon --base-path=%s --syslog.*", barePath)
+	c.Assert(commandmocker.Output(s.tmpdir), Matches, expected)
+}
+
+func (s *S) TestStartGitDaemonShouldRepassExportAllConfig(c *C) {
+	err := startGitDaemon()
+	c.Assert(err, IsNil)
+	c.Assert(commandmocker.Ran(s.tmpdir), Equals, true)
+	expected := ".* --export-all.*"
+	c.Assert(commandmocker.Output(s.tmpdir), Matches, expected)
+}
+
+func (s *S) TestStartGitDaemonShouldNotRepassExportAllWhenItsSetToFalse(c *C) {
+	config.Set("git:daemon:export-all", false)
+	defer config.Set("git:daemon:export-all", true)
+	err := startGitDaemon()
+	c.Assert(err, IsNil)
+	c.Assert(commandmocker.Ran(s.tmpdir), Equals, true)
+	expected := ".* --export-all.*"
+	c.Assert(commandmocker.Output(s.tmpdir), Not(Matches), expected)
 }

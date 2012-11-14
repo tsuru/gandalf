@@ -16,8 +16,11 @@ func startGitDaemon() error {
 	if err != nil {
 		return err
 	}
-	basePath := fmt.Sprintf("--base-path=%s", bLocation)
-	return exec.Command("git", "daemon", basePath, "--syslog").Run()
+	args := []string{"daemon", fmt.Sprintf("--base-path=%s", bLocation), "--syslog"}
+	if exportAll, err := config.GetBool("git:daemon:export-all"); err == nil && exportAll {
+		args = append(args, "--export-all")
+	}
+	return exec.Command("git", args...).Run()
 }
 
 func main() {
