@@ -181,7 +181,7 @@ func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermissi
 	stdout := &bytes.Buffer{}
 	executeAction(hasWritePermission, "You don't have access to write in this repository.", stdout)
 	c.Assert(commandmocker.Ran(dir), Equals, true)
-	p, err := config.GetString("bare-location")
+	p, err := config.GetString("git:bare:location")
 	c.Assert(err, IsNil)
 	expected := path.Join(p, "myapp.git")
 	c.Assert(stdout.String(), Equals, expected)
@@ -224,7 +224,7 @@ func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositor
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	cmd, err := formatCommand()
 	c.Assert(err, IsNil)
-	p, err := config.GetString("bare-location")
+	p, err := config.GetString("git:bare:location")
 	c.Assert(err, IsNil)
 	expected := path.Join(p, "myproject.git")
 	c.Assert(cmd, DeepEquals, []string{"git-receive-pack", expected})

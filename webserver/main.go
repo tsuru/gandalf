@@ -12,7 +12,7 @@ import (
 )
 
 func startGitDaemon() error {
-	bLocation, err := config.GetString("bare-location")
+	bLocation, err := config.GetString("git:bare:location")
 	if err != nil {
 		return err
 	}

@@ -142,7 +142,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 }
 
 func formatCommand() ([]string, error) {
-	p, err := config.GetString("bare-location")
+	p, err := config.GetString("git:bare:location")
 	if err != nil {
 		log.Err(err.Error())
 		return []string{}, err

@@ -12,14 +12,14 @@ import (
 
 func (s *S) TestBareLocationValuShouldComeFromGandalfConf(c *C) {
 	bare = ""
-	config.Set("bare-location", "/home/gandalf")
+	config.Set("git:bare:location", "/home/gandalf")
 	l := bareLocation()
 	c.Assert(l, Equals, "/home/gandalf")
 }
 
 func (s *S) TestBareLocationShouldResetBareValue(c *C) {
 	l := bareLocation()
-	config.Set("bare-location", "fooo/baaar")
+	config.Set("git:bare:location", "fooo/baaar")
 	c.Assert(bareLocation(), Equals, l)
 }
 
@@ -44,9 +44,9 @@ func (s *S) TestNewBareShouldReturnMeaningfullErrorWhenBareCreationFails(c *C) {
 }
 
 func (s *S) TestNewBareShouldPassTemplateOptionWhenItExistsOnConfig(c *C) {
-	bareTempl, err := config.GetString("bare-template")
+	bareTempl, err := config.GetString("git:bare:template")
 	c.Assert(err, IsNil)
-	bareLocation, err := config.GetString("bare-location")
+	bareLocation, err := config.GetString("git:bare:location")
 	c.Assert(err, IsNil)
 	barePath := path.Join(bareLocation, "foo.git")
 	dir, err := commandmocker.Add("git", "$*")
@@ -60,11 +60,11 @@ func (s *S) TestNewBareShouldPassTemplateOptionWhenItExistsOnConfig(c *C) {
 }
 
 func (s *S) TestNewBareShouldNotPassTemplateOptionWhenItsNotSetInConfig(c *C) {
-	oldBareTempl, err := config.GetString("bare-template")
+	oldBareTempl, err := config.GetString("git:bare:template")
 	c.Assert(err, IsNil)
-	config.Unset("bare-template")
-	defer config.Set("bare-template", oldBareTempl)
-	bareLocation, err := config.GetString("bare-location")
+	config.Unset("git:bare:template")
+	defer config.Set("git:bare:template", oldBareTempl)
+	bareLocation, err := config.GetString("git:bare:location")
 	c.Assert(err, IsNil)
 	barePath := path.Join(bareLocation, "foo.git")
 	dir, err := commandmocker.Add("git", "$*")

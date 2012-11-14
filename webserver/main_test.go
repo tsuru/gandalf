@@ -31,7 +31,7 @@ func (s *S) TestStartGitDaemonShouldCallGitDaemonCmd(c *C) {
 	err := startGitDaemon()
 	c.Assert(err, IsNil)
 	c.Assert(commandmocker.Ran(s.tmpdir), Equals, true)
-	barePath, err := config.GetString("bare-location")
+	barePath, err := config.GetString("git:bare:location")
 	c.Assert(err, IsNil)
 	expected := fmt.Sprintf("daemon --base-path=%s --syslog.*", barePath)
 	c.Assert(commandmocker.Output(s.tmpdir), Matches, expected)

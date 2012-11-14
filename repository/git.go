@@ -15,16 +15,16 @@ func bareLocation() string {
 		return bare
 	}
 	var err error
-	bare, err = config.GetString("bare-location")
+	bare, err = config.GetString("git:bare:location")
 	if err != nil {
-		panic("You should configure a bare-location for gandalf.")
+		panic("You should configure a git:bare:location for gandalf.")
 	}
 	return bare
 }
 
 func newBare(name string) error {
 	args := []string{"init", path.Join(bareLocation(), formatName(name)), "--bare"}
-	if bareTempl, err := config.GetString("bare-template"); err == nil {
+	if bareTempl, err := config.GetString("git:bare:template"); err == nil {
 		args = append(args, "--template="+bareTempl)
 	}
 	cmd := exec.Command("git", args...)
