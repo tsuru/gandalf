@@ -2,11 +2,8 @@ package endtoend_test
 
 import (
 	"flag"
-	"launchpad.net/goamz/aws"
-	"launchpad.net/goamz/ec2"
 	. "launchpad.net/gocheck"
 	"testing"
-	"time"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -23,6 +20,7 @@ func (s *S) SetUpSuite(c *C) {
 		c.Skip("skipping end-to-end suite, use -endtoend to enable")
 	}
 }
-func (s *S) TestTrueIsTrue(c *C) {
+
+func (s *S) TestCreatesUser(c *C) {
 	c.Assert(true, Equals, true)
 }
