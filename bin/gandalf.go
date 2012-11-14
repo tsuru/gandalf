@@ -167,16 +167,19 @@ func main() {
 	var err error
 	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
 		panic(err.Error())
 	}
 	err = config.ReadConfigFile("/etc/gandalf.conf")
 	if err != nil {
 		log.Err(err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
 	err = validateCmd()
 	if err != nil {
 		log.Err(err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
 	a := action()
