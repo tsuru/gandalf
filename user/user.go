@@ -11,10 +11,10 @@ import (
 
 type User struct {
 	Name string `bson:"_id"`
-	Keys []Key
+	Keys map[string]string
 }
 
-func New(name string, keys []Key) (*User, error) {
+func New(name string, keys map[string]string) (*User, error) {
 	u := &User{Name: name, Keys: keys}
 	if v, err := u.isValid(); !v {
 		return u, err
@@ -81,16 +81,16 @@ func (u *User) handleAssociatedRepositories() error {
 	return nil
 }
 
-func AddKey(uName string, k *Key) error {
+func AddKey(uName string, k map[string]string) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
 		return fmt.Errorf(`User "%s" not found`, uName)
 	}
-	u.Keys = append(u.Keys, *k)
+	u.Keys = mergeMaps(u.Keys, k)
 	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
 		return err
 	}
-	return addKey(k, u.Name)
+	return addKeys(k, u.Name)
 }
 
 // RemoveKey removes the key from the user's document and from authorized_keys file
@@ -100,18 +100,11 @@ func RemoveKey(uName, kName string) error {
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
 		return fmt.Errorf(`User "%s" does not exists`, uName)
 	}
-	var kContent string
-	kNums := len(u.Keys)
-	for i, v := range u.Keys {
-		if v.Name == kName {
-			u.Keys[i], u.Keys = u.Keys[len(u.Keys)-1], u.Keys[:len(u.Keys)-1]
-			kContent = v.Content
-			break
-		}
-	}
-	if kNums == len(u.Keys) {
+	kContent, ok := u.Keys[kName]
+	if !ok {
 		return fmt.Errorf(`Key "%s" for user "%s" does not exists`, kName, uName)
 	}
+	delete(u.Keys, kName)
 	if err := db.Session.User().UpdateId(uName, u); err != nil {
 		return err
 	}

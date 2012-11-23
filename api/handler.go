@@ -43,8 +43,8 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uName := r.URL.Query().Get(":name")
-	k := user.Key{Name: params["name"], Content: params["key"]}
-	if err := user.AddKey(uName, &k); err != nil {
+	k := map[string]string{params["name"]: params["key"]}
+	if err := user.AddKey(uName, k); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}

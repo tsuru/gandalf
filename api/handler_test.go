@@ -59,7 +59,7 @@ func (s *S) authKeysContent(c *C) string {
 }
 
 func (s *S) TestNewUser(c *C) {
-	b := strings.NewReader(`{"name": "brain", "keys": [{"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}]}`)
+	b := strings.NewReader(`{"name": "brain", "keys": {"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
@@ -70,7 +70,7 @@ func (s *S) TestNewUser(c *C) {
 }
 
 func (s *S) TestNewUserShouldSaveInDB(c *C) {
-	b := strings.NewReader(`{"name": "brain", "keys": [{"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}]}`)
+	b := strings.NewReader(`{"name": "brain", "keys": {"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	collection := db.Session.User()
@@ -207,7 +207,7 @@ func (s *S) TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(c *C) {
 }
 
 func (s *S) TestGrantAccess(c *C) {
-	u, err := user.New("pippin", []user.Key{})
+	u, err := user.New("pippin", map[string]string{})
 	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
 	c.Assert(err, IsNil)
 	r := repository.Repository{Name: "repo"}
@@ -280,7 +280,7 @@ func (s *S) TestRevokeAccessShouldReturnErrorWhenUserBeingRemovedIsTheOnlyOneWit
 }
 
 func (s *S) TestAddKey(c *C) {
-	user, err := user.New("Frodo", []user.Key{})
+	user, err := user.New("Frodo", map[string]string{})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId("Frodo")
 	b := strings.NewReader(`{"key": "a public key"}`)
@@ -331,7 +331,7 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeysFile(c *C) {
 }
 
 func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
-	u, err := user.New("Gandalf", []user.Key{{Content: "ssh-key somekey gandalf@host", Name: "keyname"}})
+	u, err := user.New("Gandalf", map[string]string{"keyname": "ssh-key somekey gandalf@host"})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
 	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
@@ -343,19 +343,19 @@ func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
 
 func (s *S) TestRemoveKeyRemovesKeyFromUserDocument(c *C) {
 	k := "ssh-key somekey gandalf@host"
-	u, err := user.New("Gandalf", []user.Key{{Content: k, Name: "keyname"}})
+	u, err := user.New("Gandalf", map[string]string{"keyname": k})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
 	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
 	RemoveKey(recorder, request)
 	err = db.Session.User().FindId(u.Name).One(&u)
 	c.Assert(err, IsNil)
-	c.Assert(u.Keys, DeepEquals, []user.Key{})
+	c.Assert(u.Keys, DeepEquals, map[string]string{})
 }
 
 func (s *S) TestRemoveKeyShouldRemoveKeyFromAuthorizedKeysFile(c *C) {
 	k := "ssh-key somekey gandalf@host"
-	u, err := user.New("Gandalf", []user.Key{{Content: k, Name: "keyname"}})
+	u, err := user.New("Gandalf", map[string]string{"keyname": k})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
 	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
@@ -372,7 +372,7 @@ func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *C) {
 }
 
 func (s *S) TestRemoveUser(c *C) {
-	u, err := user.New("username", []user.Key{})
+	u, err := user.New("username", map[string]string{})
 	c.Assert(err, IsNil)
 	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
@@ -386,7 +386,7 @@ func (s *S) TestRemoveUser(c *C) {
 }
 
 func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
-	u, err := user.New("anuser", []user.Key{})
+	u, err := user.New("anuser", map[string]string{})
 	c.Assert(err, IsNil)
 	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)

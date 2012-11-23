@@ -28,7 +28,7 @@ func (s *S) SetUpSuite(c *C) {
 	var err error
 	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
 	c.Check(err, IsNil)
-	s.user, err = user.New("testuser", []user.Key{})
+	s.user, err = user.New("testuser", map[string]string{})
 	c.Check(err, IsNil)
 	// does not uses repository.New to avoid creation of bare git repo
 	s.repo = &repository.Repository{Name: "myapp", Users: []string{s.user.Name}}

@@ -13,15 +13,10 @@ import (
 // file to write user's keys
 var authKey string = path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
 
-type Key struct {
-	Name    string
-	Content string
-}
-
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
-func addKey(k *Key, username string) error {
+func addKey(k, username string) error {
 	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
@@ -31,7 +26,7 @@ func addKey(k *Key, username string) error {
 	if err != nil {
 		return err
 	}
-	content := formatKey(k.Content, username)
+	content := formatKey(k, username)
 	if len(keys) != 0 {
 		content = fmt.Sprintf("%s\n%s", keys, content)
 	}
@@ -44,9 +39,9 @@ func addKey(k *Key, username string) error {
 	return nil
 }
 
-func addKeys(keys []Key, username string) error {
+func addKeys(keys map[string]string, username string) error {
 	for _, k := range keys {
-		err := addKey(&k, username)
+		err := addKey(k, username)
 		if err != nil {
 			return err
 		}
@@ -54,9 +49,9 @@ func addKeys(keys []Key, username string) error {
 	return nil
 }
 
-func removeKeys(keys []Key, username string) error {
+func removeKeys(keys map[string]string, username string) error {
 	for _, k := range keys {
-		err := removeKey(k.Content, username)
+		err := removeKey(k, username)
 		if err != nil {
 			return err
 		}
@@ -91,4 +86,11 @@ func formatKey(key, username string) string {
 	}
 	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s %s" %s`
 	return fmt.Sprintf(keyTmpl, binPath, username, key)
+}
+
+func mergeMaps(x, y map[string]string) map[string]string {
+	for k, v := range y {
+		x[k] = v
+	}
+	return x
 }
