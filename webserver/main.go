@@ -35,9 +35,13 @@ For an example conf check gandalf/etc/gandalf.conf file.`
 		log.Panicf(msg, *configFile)
 	}
 	router := pat.New()
+	router.Post("/user/:name/key", http.HandlerFunc(api.AddKey))
+	router.Del("/user/:name/key/:keyname", http.HandlerFunc(api.RemoveKey))
 	router.Post("/user", http.HandlerFunc(api.NewUser))
 	router.Del("/user/:name", http.HandlerFunc(api.RemoveUser))
 	router.Post("/repository", http.HandlerFunc(api.NewRepository))
+	router.Get("/repository/:name/grant/:username", http.HandlerFunc(api.GrantAccess))
+	router.Del("/repository/:name/revoke/:username", http.HandlerFunc(api.RevokeAccess))
 	router.Del("/repository/:name", http.HandlerFunc(api.RemoveRepository))
 
 	port, err := config.GetString("webserver:port")
