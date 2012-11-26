@@ -40,7 +40,7 @@ For an example conf check gandalf/etc/gandalf.conf file.`
 	router.Post("/user", http.HandlerFunc(api.NewUser))
 	router.Del("/user/:name", http.HandlerFunc(api.RemoveUser))
 	router.Post("/repository", http.HandlerFunc(api.NewRepository))
-	router.Get("/repository/:name/grant/:username", http.HandlerFunc(api.GrantAccess))
+	router.Post("/repository/:name/grant/:username", http.HandlerFunc(api.GrantAccess))
 	router.Del("/repository/:name/revoke/:username", http.HandlerFunc(api.RevokeAccess))
 	router.Del("/repository/:name", http.HandlerFunc(api.RemoveRepository))
 
