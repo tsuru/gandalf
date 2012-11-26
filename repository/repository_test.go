@@ -204,6 +204,51 @@ func (s *S) TestGrantAccessShouldReturnFormatedErrorWhenUserDoesNotExists(c *C) 
 	c.Assert(err, ErrorMatches, "^User \"absentuser\" does not exists$")
 }
 
+func (s *S) TestBulkGrantAccessShouldAddUserToListOfRepositories(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("proj1", []string{"someuser"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	r2, err := New("proj2", []string{"otheruser"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r2.Name)
+	u := struct {
+		Name string `bson:"_id"`
+	}{Name: "lolcat"}
+	err = db.Session.User().Insert(&u)
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	BulkGrantAccess(u.Name, []string{r.Name, r2.Name})
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r2.Name).One(&r2)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"someuser", u.Name})
+	c.Assert(r2.Users, DeepEquals, []string{"otheruser", u.Name})
+}
+
+func (s *S) TestBulkRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("proj1", []string{"someuser", "umi"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	r2, err := New("proj2", []string{"otheruser", "umi"}, true)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r2.Name)
+	err = BulkRemoveAccess("umi", []string{r.Name, r2.Name})
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r2.Name).One(&r2)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"someuser"})
+	c.Assert(r2.Users, DeepEquals, []string{"otheruser"})
+}
+
 func (s *S) TestRevokeAccessShouldRemoveUserFromRepositoryDocument(c *C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)

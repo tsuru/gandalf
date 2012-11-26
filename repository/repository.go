@@ -83,6 +83,18 @@ func GrantAccess(rName, uName string) error {
 	return db.Session.Repository().UpdateId(rName, r)
 }
 
+// Gives write permission for user (uName) in all specified repositories (rNames)
+// If any of the repositories do not exists, just skip it.
+func BulkGrantAccess(uName string, rNames []string) error {
+	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$push": bson.M{"users": uName}})
+	return err
+}
+
+func BulkRemoveAccess(uName string, rNames []string) error {
+	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pull": bson.M{"users": uName}})
+	return err
+}
+
 func RevokeAccess(rName, uName string) error {
 	var r Repository
 	if err := db.Session.Repository().FindId(rName).One(&r); err != nil {
