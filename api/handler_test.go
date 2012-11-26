@@ -236,6 +236,52 @@ func (s *S) TestGrantAccessShouldReturn404WhenUserDoesntExists(c *C) {
 	c.Assert(rec.Code, Equals, 404)
 }
 
+func (s *S) TestBulkGrantAccessUpdatesReposDocument(c *C) {
+	u, err := user.New("pippin", map[string]string{})
+	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
+	c.Assert(err, IsNil)
+	r := repository.Repository{Name: "onerepo"}
+	err = db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	r2 := repository.Repository{Name: "otherepo"}
+	err = db.Session.Repository().Insert(&r2)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
+	url := fmt.Sprintf("/repository/grant/%s?:username=%s", u.Name, u.Name)
+	b := bytes.NewBufferString(fmt.Sprintf(`["%s", "%s"]`, r.Name, r2.Name))
+	rec, req := post(url, b, c)
+	BulkGrantAccess(rec, req)
+	var repos []repository.Repository
+	err = db.Session.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	c.Assert(err, IsNil)
+	c.Assert(rec.Code, Equals, 200)
+	for _, repo := range repos {
+		c.Assert(repo.Users, DeepEquals, []string{u.Name})
+	}
+}
+
+func (s *S) TestBulkRevokeAccessUpdatesReposDocument(c *C) {
+	r := repository.Repository{Name: "onerepo", Users: []string{"Umi", "Luke"}}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	r2 := repository.Repository{Name: "otherepo", Users: []string{"Umi", "Luke"}}
+	err = db.Session.Repository().Insert(&r2)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
+	url := "/repository/grant/Umi?:username=Umi"
+	b := bytes.NewBufferString(fmt.Sprintf(`["%s", "%s"]`, r.Name, r2.Name))
+	rec, req := post(url, b, c)
+	BulkRevokeAccess(rec, req)
+	var repos []repository.Repository
+	err = db.Session.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	c.Assert(err, IsNil)
+	for _, repo := range repos {
+		c.Assert(repo.Users, DeepEquals, []string{"Luke"})
+	}
+}
+
 func (s *S) TestRevokeAccessShouldRemoveUserFromRepository(c *C) {
 	r := repository.Repository{Name: "myproj", Users: []string{"myuser", "myotheruser"}}
 	err := db.Session.Repository().Insert(&r)

@@ -22,6 +22,34 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Successfuly granted access to user \"%s\" into repository \"%s\"", uName, rName)
 }
 
+func BulkGrantAccess(w http.ResponseWriter, r *http.Request) {
+	uName := r.URL.Query().Get(":username")
+	var rNames []string
+	if err := parseBody(r.Body, &rNames); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := repository.BulkGrantAccess(uName, rNames); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "Successfuly granted access to user \"%s\" into repositories \"%s\"", uName, rNames)
+}
+
+func BulkRevokeAccess(w http.ResponseWriter, r *http.Request) {
+	uName := r.URL.Query().Get(":username")
+	var rNames []string
+	if err := parseBody(r.Body, &rNames); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := repository.BulkRevokeAccess(uName, rNames); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "Successfuly revoked access to user \"%s\" into repositories \"%s\"", uName, rNames)
+}
+
 func RevokeAccess(w http.ResponseWriter, r *http.Request) {
 	rName := r.URL.Query().Get(":name")
 	uName := r.URL.Query().Get(":username")

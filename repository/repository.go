@@ -90,7 +90,7 @@ func BulkGrantAccess(uName string, rNames []string) error {
 	return err
 }
 
-func BulkRemoveAccess(uName string, rNames []string) error {
+func BulkRevokeAccess(uName string, rNames []string) error {
 	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pull": bson.M{"users": uName}})
 	return err
 }

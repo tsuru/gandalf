@@ -259,7 +259,7 @@ func (s *S) TestBulkRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
 	r2, err := New("proj2", []string{"otheruser", "umi"}, true)
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().RemoveId(r2.Name)
-	err = BulkRemoveAccess("umi", []string{r.Name, r2.Name})
+	err = BulkRevokeAccess("umi", []string{r.Name, r2.Name})
 	c.Assert(err, IsNil)
 	err = db.Session.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, IsNil)
