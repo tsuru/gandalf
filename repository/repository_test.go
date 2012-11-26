@@ -220,13 +220,33 @@ func (s *S) TestBulkGrantAccessShouldAddUserToListOfRepositories(c *C) {
 	err = db.Session.User().Insert(&u)
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	BulkGrantAccess(u.Name, []string{r.Name, r2.Name})
+	err = BulkGrantAccess(u.Name, []string{r.Name, r2.Name})
+	c.Assert(err, IsNil)
 	err = db.Session.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, IsNil)
 	err = db.Session.Repository().FindId(r2.Name).One(&r2)
 	c.Assert(err, IsNil)
 	c.Assert(r.Users, DeepEquals, []string{"someuser", u.Name})
 	c.Assert(r2.Users, DeepEquals, []string{"otheruser", u.Name})
+}
+
+func (s *S) TestBulkGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *C) {
+	r := Repository{Name: "proj1"}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	r2 := Repository{Name: "proj2"}
+	err = db.Session.Repository().Insert(&r2)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r2.Name)
+	err = BulkGrantAccess("Umi", []string{r.Name, r2.Name})
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r.Name).One(&r2)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"Umi"})
+	c.Assert(r2.Users, DeepEquals, []string{"Umi"})
 }
 
 func (s *S) TestBulkRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
