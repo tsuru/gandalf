@@ -270,7 +270,7 @@ func (s *S) TestBulkRevokeAccessUpdatesReposDocument(c *C) {
 	err = db.Session.Repository().Insert(&r2)
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
-	url := "/repository/grant/Umi?:username=Umi"
+	url := "/repository/revoke/Umi?:username=Umi"
 	b := bytes.NewBufferString(fmt.Sprintf(`["%s", "%s"]`, r.Name, r2.Name))
 	rec, req := post(url, b, c)
 	BulkRevokeAccess(rec, req)
