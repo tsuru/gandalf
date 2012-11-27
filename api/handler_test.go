@@ -25,11 +25,7 @@ type bufferCloser struct {
 func (b bufferCloser) Close() error { return nil }
 
 func post(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
-	request, err := http.NewRequest("POST", url, b)
-	c.Assert(err, IsNil)
-	request.Header.Set("Content-Type", "application/json")
-	recorder := httptest.NewRecorder()
-	return recorder, request
+	return request("POST", url, b, c)
 }
 
 func delete(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
