@@ -32,8 +32,8 @@ func post(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Requ
 	return recorder, request
 }
 
-func delete(url string, c *C) (*httptest.ResponseRecorder, *http.Request) {
-	return request("DELETE", url, nil, c)
+func delete(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
+	return request("DELETE", url, b, c)
 }
 
 func request(method, url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
@@ -250,7 +250,7 @@ func (s *S) TestBulkGrantAccessUpdatesReposDocument(c *C) {
 	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
 	url := fmt.Sprintf("/repository/grant/%s?:username=%s", u.Name, u.Name)
 	b := bytes.NewBufferString(fmt.Sprintf(`["%s", "%s"]`, r.Name, r2.Name))
-	rec, req := post(url, b, c)
+	rec, req := delete(url, b, c)
 	BulkGrantAccess(rec, req)
 	var repos []repository.Repository
 	err = db.Session.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
@@ -272,7 +272,7 @@ func (s *S) TestBulkRevokeAccessUpdatesReposDocument(c *C) {
 	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
 	url := "/repository/revoke/Umi?:username=Umi"
 	b := bytes.NewBufferString(fmt.Sprintf(`["%s", "%s"]`, r.Name, r2.Name))
-	rec, req := post(url, b, c)
+	rec, req := delete(url, b, c)
 	BulkRevokeAccess(rec, req)
 	var repos []repository.Repository
 	err = db.Session.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
@@ -288,7 +288,7 @@ func (s *S) TestRevokeAccessShouldRemoveUserFromRepository(c *C) {
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().RemoveId(r.Name)
 	url := fmt.Sprintf("/repository/%s/revoke/myuser?:name=%s&:username=myuser", r.Name, r.Name)
-	rec, req := delete(url, c)
+	rec, req := delete(url, nil, c)
 	RevokeAccess(rec, req)
 	c.Assert(rec.Code, Equals, 200)
 	b := readBody(rec.Body, c)
@@ -301,7 +301,7 @@ func (s *S) TestRevokeAccessShouldRemoveUserFromRepository(c *C) {
 
 func (s *S) TestRevokeAccessShouldReturnErrorWhenRepositoryDoesNotExists(c *C) {
 	url := "/repository/myproj/revoke/myuser?:name=myproj&:username=myuser"
-	rec, req := delete(url, c)
+	rec, req := delete(url, nil, c)
 	RevokeAccess(rec, req)
 	c.Assert(rec.Code, Equals, 400)
 	b := readBody(rec.Body, c)
@@ -314,7 +314,7 @@ func (s *S) TestRevokeAccessShouldReturnErrorWhenUserBeingRemovedIsTheOnlyOneWit
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().RemoveId(r.Name)
 	url := fmt.Sprintf("/repository/%s/revoke/myuser?:name=%s&:username=myuser", r.Name, r.Name)
-	rec, req := delete(url, c)
+	rec, req := delete(url, nil, c)
 	RevokeAccess(rec, req)
 	c.Assert(rec.Code, Equals, 400)
 	b := readBody(rec.Body, c)
@@ -380,7 +380,8 @@ func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": "ssh-key somekey gandalf@host"})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	recorder, request := delete(url, nil, c)
 	RemoveKey(recorder, request)
 	c.Assert(recorder.Code, Equals, 200)
 	b := readBody(recorder.Body, c)
@@ -392,7 +393,8 @@ func (s *S) TestRemoveKeyRemovesKeyFromUserDocument(c *C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": k})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	recorder, request := delete(url, nil, c)
 	RemoveKey(recorder, request)
 	err = db.Session.User().FindId(u.Name).One(&u)
 	c.Assert(err, IsNil)
@@ -404,14 +406,16 @@ func (s *S) TestRemoveKeyShouldRemoveKeyFromAuthorizedKeysFile(c *C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": k})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	recorder, request := delete(url, nil, c)
 	RemoveKey(recorder, request)
 	content := s.authKeysContent(c)
 	c.Assert(content, Not(Matches), ".* "+k)
 }
 
 func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *C) {
-	recorder, request := delete("/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf", c)
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	recorder, request := delete(url, nil, c)
 	RemoveKey(recorder, request)
 	b := readBody(recorder.Body, c)
 	c.Assert(b, Equals, "User \"Gandalf\" does not exists\n")

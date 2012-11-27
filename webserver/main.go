@@ -43,7 +43,7 @@ For an example conf check gandalf/etc/gandalf.conf file.`
 	router.Post("/repository/:name/grant/:username", http.HandlerFunc(api.GrantAccess))
 	router.Del("/repository/:name/revoke/:username", http.HandlerFunc(api.RevokeAccess))
 	router.Post("/repository/grant/:username", http.HandlerFunc(api.BulkGrantAccess))
-	router.Post("/repository/revoke/:username", http.HandlerFunc(api.BulkRevokeAccess))
+	router.Del("/repository/revoke/:username", http.HandlerFunc(api.BulkRevokeAccess))
 	router.Del("/repository/:name", http.HandlerFunc(api.RemoveRepository))
 
 	port, err := config.GetString("webserver:port")
