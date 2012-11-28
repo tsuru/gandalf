@@ -12,52 +12,47 @@ import (
 	"reflect"
 )
 
+func accessParameters(body io.ReadCloser) (repositories, users []string, err error) {
+	var params map[string][]string
+	if err := parseBody(body, &params); err != nil {
+		return []string{}, []string{}, err
+	}
+	users, ok := params["users"]
+	if !ok {
+		return []string{}, []string{}, errors.New("It is need a user list")
+	}
+	repositories, ok = params["repositories"]
+	if !ok {
+		return []string{}, []string{}, errors.New("It is need a repository list")
+	}
+	return repositories, users, nil
+}
+
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
-	rName := r.URL.Query().Get(":name")
-	uName := r.URL.Query().Get(":username")
-	if err := repository.GrantAccess(rName, uName); err != nil {
+	// TODO: update README
+	repositories, users, err := accessParameters(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := repository.GrantAccess(repositories, users); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	fmt.Fprintf(w, "Successfuly granted access to user \"%s\" into repository \"%s\"", uName, rName)
-}
-
-func BulkGrantAccess(w http.ResponseWriter, r *http.Request) {
-	uName := r.URL.Query().Get(":username")
-	var rNames []string
-	if err := parseBody(r.Body, &rNames); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := repository.BulkGrantAccess(uName, rNames); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	fmt.Fprintf(w, "Successfuly granted access to user \"%s\" into repositories \"%s\"", uName, rNames)
-}
-
-func BulkRevokeAccess(w http.ResponseWriter, r *http.Request) {
-	uName := r.URL.Query().Get(":username")
-	var rNames []string
-	if err := parseBody(r.Body, &rNames); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if err := repository.BulkRevokeAccess(uName, rNames); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	fmt.Fprintf(w, "Successfuly revoked access to user \"%s\" into repositories \"%s\"", uName, rNames)
+	fmt.Fprintf(w, "Successfuly granted access to users \"%s\" into repository \"%s\"", users, repositories)
 }
 
 func RevokeAccess(w http.ResponseWriter, r *http.Request) {
-	rName := r.URL.Query().Get(":name")
-	uName := r.URL.Query().Get(":username")
-	if err := repository.RevokeAccess(rName, uName); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest) // should return 404 when not found and 412 when cannot remove
+	repositories, users, err := accessParameters(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "Successfuly revoked access to user \"%s\" into repository \"%s\"", uName, rName)
+	if err := repository.RevokeAccess(repositories, users); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "Successfuly revoked access to users \"%s\" into repositories \"%s\"", users, repositories)
 }
 
 func AddKey(w http.ResponseWriter, r *http.Request) {

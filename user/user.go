@@ -41,7 +41,7 @@ func (u *User) isValid() (isValid bool, err error) {
 // It handles user with repositories specially:
 // - if a user has at least one repository:
 //     - if he/she is the only one with access to the repository, the removal will stop and return an error
-//     - if there are more than one user, gandalf will first revoke user's access to the user and then remove it permanently
+//     - if there are more than one user with access to the repository, gandalf will first revoke user's access and then remove the user permanently
 // - if a user has no repositories, gandalf will simply remove the user
 func Remove(name string) error {
 	var u *User

@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
@@ -162,49 +161,7 @@ func (s *S) TestRemoteShouldFormatAndReturnTheGitRemote(c *C) {
 	c.Assert(remote, Equals, "git@gandalfhost.com:lol.git")
 }
 
-func (s *S) TestGrantAccessShouldAddUserToRepositoryDocument(c *C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, IsNil)
-	defer commandmocker.Remove(tmpdir)
-	r, err := New("myproj", []string{"someuser"}, true)
-	c.Assert(err, IsNil)
-	defer db.Session.Repository().RemoveId(r.Name)
-	u := struct {
-		Name string `bson:"_id"`
-	}{Name: "lolcat"}
-	err = db.Session.User().Insert(&u)
-	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
-	err = GrantAccess(r.Name, u.Name)
-	c.Assert(err, IsNil)
-	err = db.Session.Repository().FindId(r.Name).One(&r)
-	c.Assert(err, IsNil)
-	c.Assert(r.Users, DeepEquals, []string{"someuser", u.Name})
-}
-
-func (s *S) TestGrantAccessShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *C) {
-	u := struct {
-		Name string `bson:"_id"`
-	}{Name: "lolcat"}
-	err := db.Session.User().Insert(&u)
-	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
-	err = GrantAccess("absentrepo", "someuser")
-	c.Assert(err, ErrorMatches, "^Repository \"absentrepo\" does not exists$")
-}
-
-func (s *S) TestGrantAccessShouldReturnFormatedErrorWhenUserDoesNotExists(c *C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, IsNil)
-	defer commandmocker.Remove(tmpdir)
-	r, err := New("myproj", []string{"someuser"}, true)
-	c.Assert(err, IsNil)
-	defer db.Session.Repository().RemoveId(r.Name)
-	err = GrantAccess(r.Name, "absentuser")
-	c.Assert(err, ErrorMatches, "^User \"absentuser\" does not exists$")
-}
-
-func (s *S) TestBulkGrantAccessShouldAddUserToListOfRepositories(c *C) {
+func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)
 	defer commandmocker.Remove(tmpdir)
@@ -220,7 +177,7 @@ func (s *S) TestBulkGrantAccessShouldAddUserToListOfRepositories(c *C) {
 	err = db.Session.User().Insert(&u)
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	err = BulkGrantAccess(u.Name, []string{r.Name, r2.Name})
+	err = GrantAccess([]string{r.Name, r2.Name}, []string{u.Name})
 	c.Assert(err, IsNil)
 	err = db.Session.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, IsNil)
@@ -230,7 +187,7 @@ func (s *S) TestBulkGrantAccessShouldAddUserToListOfRepositories(c *C) {
 	c.Assert(r2.Users, DeepEquals, []string{"otheruser", u.Name})
 }
 
-func (s *S) TestBulkGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *C) {
+func (s *S) TestGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *C) {
 	r := Repository{Name: "proj1"}
 	err := db.Session.Repository().Insert(&r)
 	c.Assert(err, IsNil)
@@ -239,7 +196,7 @@ func (s *S) TestBulkGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *C) {
 	err = db.Session.Repository().Insert(&r2)
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().RemoveId(r2.Name)
-	err = BulkGrantAccess("Umi", []string{r.Name, r2.Name})
+	err = GrantAccess([]string{r.Name, r2.Name}, []string{"Umi"})
 	c.Assert(err, IsNil)
 	err = db.Session.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, IsNil)
@@ -249,7 +206,7 @@ func (s *S) TestBulkGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *C) {
 	c.Assert(r2.Users, DeepEquals, []string{"Umi"})
 }
 
-func (s *S) TestBulkRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
+func (s *S) TestRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)
 	defer commandmocker.Remove(tmpdir)
@@ -259,7 +216,7 @@ func (s *S) TestBulkRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
 	r2, err := New("proj2", []string{"otheruser", "umi"}, true)
 	c.Assert(err, IsNil)
 	defer db.Session.Repository().RemoveId(r2.Name)
-	err = BulkRevokeAccess("umi", []string{r.Name, r2.Name})
+	err = RevokeAccess([]string{r.Name, r2.Name}, []string{"umi"})
 	c.Assert(err, IsNil)
 	err = db.Session.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, IsNil)
@@ -267,52 +224,4 @@ func (s *S) TestBulkRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(r.Users, DeepEquals, []string{"someuser"})
 	c.Assert(r2.Users, DeepEquals, []string{"otheruser"})
-}
-
-func (s *S) TestRevokeAccessShouldRemoveUserFromRepositoryDocument(c *C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, IsNil)
-	defer commandmocker.Remove(tmpdir)
-	u := struct {
-		Name string `bson:"_id"`
-	}{Name: "lolcat"}
-	err = db.Session.User().Insert(&u)
-	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
-	r, err := New("myproj", []string{u.Name, "zezinho"}, true)
-	c.Assert(err, IsNil)
-	defer db.Session.Repository().RemoveId(r.Name)
-	err = RevokeAccess(r.Name, u.Name)
-	c.Assert(err, IsNil)
-	err = db.Session.Repository().FindId(r.Name).One(&r)
-	c.Assert(err, IsNil)
-	c.Assert(r.Users, DeepEquals, []string{"zezinho"})
-}
-
-func (s *S) TestRevokeAccessShouldReturnFormatedErrorWhenUserHasNotAccessToRepository(c *C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, IsNil)
-	defer commandmocker.Remove(tmpdir)
-	r, err := New("myproj", []string{"zezinho", "luizinho"}, true)
-	c.Assert(err, IsNil)
-	defer db.Session.Repository().RemoveId(r.Name)
-	err = RevokeAccess(r.Name, "gandalf")
-	expected := fmt.Sprintf("^User \"gandalf\" does not have access to repository \"%s\"$", r.Name)
-	c.Assert(err, ErrorMatches, expected)
-}
-
-func (s *S) TestRevokeAccessShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *C) {
-	err := RevokeAccess("absentrepo", "gandalf")
-	c.Assert(err, ErrorMatches, "^Repository \"absentrepo\" does not exists$")
-}
-
-func (s *S) TestRevokeAccessShouldReturnErrorIfUserBeingRevokedIsTheOnlyOneWithAccessIntoRepository(c *C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, IsNil)
-	defer commandmocker.Remove(tmpdir)
-	r, err := New("myproj", []string{"luizinho"}, true)
-	c.Assert(err, IsNil)
-	defer db.Session.Repository().RemoveId(r.Name)
-	err = RevokeAccess(r.Name, "luizinho")
-	c.Assert(err, ErrorMatches, "^Cannot revoke access to only user that has access into repository \"myproj\"$")
 }
