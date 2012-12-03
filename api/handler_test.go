@@ -250,11 +250,11 @@ func (s *S) TestAddKey(c *C) {
 	user, err := user.New("Frodo", map[string]string{})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId("Frodo")
-	b := strings.NewReader(`{"key": "a public key"}`)
+	b := strings.NewReader(`{"keyname": "keycontent"}`)
 	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, c)
 	AddKey(recorder, request)
 	got := readBody(recorder.Body, c)
-	expected := "Key \"a public key\" successfuly created"
+	expected := "Key(s) successfuly created"
 	c.Assert(got, Equals, expected)
 	c.Assert(recorder.Code, Equals, 200)
 }
@@ -274,7 +274,7 @@ func (s *S) TestAddKeyShouldRequireKey(c *C) {
 	err := db.Session.User().Insert(&u)
 	c.Assert(err, IsNil)
 	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
-	b := strings.NewReader(`{"key": ""}`)
+	b := strings.NewReader(`{}`)
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
 	body := readBody(recorder.Body, c)

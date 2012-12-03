@@ -56,22 +56,21 @@ func RevokeAccess(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddKey(w http.ResponseWriter, r *http.Request) {
-	params := map[string]string{}
-	if err := parseBody(r.Body, &params); err != nil {
+	keys := map[string]string{}
+	if err := parseBody(r.Body, &keys); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if params["key"] == "" {
+	if len(keys) == 0 {
 		http.Error(w, "A key is needed", http.StatusBadRequest)
 		return
 	}
 	uName := r.URL.Query().Get(":name")
-	k := map[string]string{params["name"]: params["key"]}
-	if err := user.AddKey(uName, k); err != nil {
+	if err := user.AddKey(uName, keys); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	fmt.Fprintf(w, "Key \"%s\" successfuly created", params["key"])
+	fmt.Fprint(w, "Key(s) successfuly created")
 }
 
 func RemoveKey(w http.ResponseWriter, r *http.Request) {
