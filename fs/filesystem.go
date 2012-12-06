@@ -1,3 +1,5 @@
+// fs is just a filesystem wrapper.
+// It makes use of tsuru/fs pkg.
 package fs
 
 import (
