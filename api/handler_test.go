@@ -301,7 +301,7 @@ func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": "ssh-key somekey gandalf@host"})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
 	c.Assert(recorder.Code, Equals, 200)
@@ -314,7 +314,7 @@ func (s *S) TestRemoveKeyRemovesKeyFromUserDocument(c *C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": k})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
 	err = db.Session.User().FindId(u.Name).One(&u)
@@ -327,7 +327,7 @@ func (s *S) TestRemoveKeyShouldRemoveKeyFromAuthorizedKeysFile(c *C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": k})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId(u.Name)
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
 	content := s.authKeysContent(c)
@@ -335,7 +335,7 @@ func (s *S) TestRemoveKeyShouldRemoveKeyFromAuthorizedKeysFile(c *C) {
 }
 
 func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *C) {
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:username=Gandalf"
+	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
 	b := readBody(recorder.Body, c)

@@ -74,7 +74,7 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveKey(w http.ResponseWriter, r *http.Request) {
-	uName := r.URL.Query().Get(":username")
+	uName := r.URL.Query().Get(":name")
 	kName := r.URL.Query().Get(":keyname")
 	if err := user.RemoveKey(uName, kName); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
