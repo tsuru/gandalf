@@ -206,6 +206,18 @@ func (s *S) TestGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *C) {
 	c.Assert(r2.Users, DeepEquals, []string{"Umi"})
 }
 
+func (s *S) TestGrantAccessShouldSkipDuplicatedUsers(c *C) {
+	r := Repository{Name: "proj1", Users: []string{"umi", "luke", "pade"}}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().RemoveId(r.Name)
+	err = GrantAccess([]string{r.Name}, []string{"pade"})
+	c.Assert(err, IsNil)
+	err = db.Session.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, IsNil)
+	c.Assert(r.Users, DeepEquals, []string{"umi", "luke", "pade"})
+}
+
 func (s *S) TestRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)

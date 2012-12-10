@@ -73,7 +73,7 @@ func (r *Repository) isValid() (bool, error) {
 // Gives write permission for users (uNames) in all specified repositories (rNames)
 // If any of the repositories/users do not exists, just skip it.
 func GrantAccess(rNames, uNames []string) error {
-	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pushAll": bson.M{"users": uNames}})
+	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
 	return err
 }
 
