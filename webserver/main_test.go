@@ -19,11 +19,15 @@ var _ = Suite(&S{})
 func (s *S) SetUpSuite(c *C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Assert(err, IsNil)
+}
+
+func (s *S) SetUpTest(c *C) {
+	var err error
 	s.tmpdir, err = commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)
 }
 
-func (s *S) TearDownSuite(c *C) {
+func (s *S) TearDownTest(c *C) {
 	commandmocker.Remove(s.tmpdir)
 }
 
