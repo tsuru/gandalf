@@ -14,12 +14,17 @@ function send_to_s3 {
 }
 
 function compact {
-    echo "Compacting $1 ..."
-    tar zcvf $1.tar.gz $1
+    echo "Compacting $1 into $2 ..."
+    tar zcvf $2 $1
 }
 
 # making the backup for authorized_keys
 [ -f "${HOME}/.ssh/authorized_keys" ]  && send_to_s3 "${HOME}/.ssh/authorized_keys" $1
 
 # making the backup for repositories files
-[ -d $2 ] && send_to_s3 compact $2 $1
+if [ -d $2 ]; then
+    echo "making the backup for repositories files..."
+    name="repositories.tar.gz"
+    compact $2 $name
+    send_to_s3 $name $1
+fi
