@@ -68,6 +68,15 @@ func (s *S) TestaddKeysShouldWriteToAuthorizedKeysFile(c *C) {
 	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
 }
 
+func (s *S) TestaddDuplicateKeyShouldReturnError(c *C) {
+	keys := map[string]string{
+		"somekey": "ssh-rsa mykey pippin@nowhere",
+		"double":  "ssh-rsa mykey pippin@nowhere",
+	}
+	err := addKeys(keys, "someuser")
+	c.Assert(err, ErrorMatches, "Key already exists.")
+}
+
 func (s *S) TestremoveKeysShouldRemoveKeysFromAuthorizedKeys(c *C) {
 	key := map[string]string{"somekey": "ssh-rsa mykey pippin@nowhere"}
 	err := removeKeys(key, "someuser")
