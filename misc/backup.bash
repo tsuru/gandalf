@@ -18,3 +18,5 @@ function compact {
 
 # making the backup for authorized_keys
 [ -f "${HOME}/.ssh/authorized_keys" ]  && send_to_s3 "${HOME}/.ssh/authorized_keys" $1
+
+[ -d $2 ] && send_to_s3 compact $2 $1
