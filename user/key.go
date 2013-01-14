@@ -27,6 +27,9 @@ func addKey(k, username string) error {
 		return err
 	}
 	content := formatKey(k, username)
+	if strings.Contains(string(keys), content) {
+		return fmt.Errorf("Key already exists.")
+	}
 	if len(keys) != 0 {
 		content = fmt.Sprintf("%s\n%s", keys, content)
 	}
