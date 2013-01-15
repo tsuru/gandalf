@@ -1,22 +1,14 @@
-.. gandalf documentation master file, created by
-   sphinx-quickstart on Mon Jan 14 20:44:50 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+=======
+Gandalf
+=======
 
-Welcome to gandalf's documentation!
-===================================
+Gandalf is an api for authenticate git users per project.
 
-Contents:
-
-.. toctree::
-   :maxdepth: 2
-
-
-
-Indices and tables
+YOU SHALL NOT PASS!
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Getting started
+===============
 
+* :doc:`Installation </install>`
+* :doc:`Quickstart tutorial </quickstart>`
