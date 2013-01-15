@@ -9,5 +9,5 @@ YOU SHALL NOT PASS!
 
 * :doc:`Installation </install>`
 * :doc:`Quickstart tutorial </quickstart>`
-* :doc:`Macking a backup </macking-backup>`
+* :doc:`Making a backup </making-backup>`
 * :doc:`Contribute </contribute>`
