@@ -8,7 +8,7 @@
 #
 # To use this script it's need install and configure the s3cmd.
 
-name="repositories.tar.gz"
+name="$(date +%y-%m-%d-%H-%M-%S).tar.gz"
 
 function send_to_s3 {
     echo "Sending $1 to $2 in s3 ..."
