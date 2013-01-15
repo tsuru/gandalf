@@ -31,6 +31,7 @@ Now let's configure s3cmd, its need to set your amazon access and secret key:
 .. highlight:: bash
 
 ::
+
     $ s3cmd --configure
 
 
@@ -39,6 +40,7 @@ For use backup.bash script to make a backup for authorized_keys:
 .. highlight:: bash
 
 ::
+
     $ ./backup.bash s3://mybucket
 
 And, if you wanto make a backup for authorized_keys and repositorie files:
@@ -46,4 +48,5 @@ And, if you wanto make a backup for authorized_keys and repositorie files:
 .. highlight:: bash
 
 ::
+
     $ ./backup.bash s3://mybucket /var/repositories
