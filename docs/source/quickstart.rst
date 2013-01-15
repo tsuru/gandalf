@@ -2,6 +2,8 @@
 Quickstart Guide
 ================
 
+Before starting, make sure Gandalf is :doc:`installed </install>`.
+
 Api usage
 =========
 
