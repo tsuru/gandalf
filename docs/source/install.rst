@@ -25,6 +25,8 @@ Now test if gandalf server is up and running
 
 .. highlight:: bash
 
+::
+
     $ ps -ef | grep gandalf
 
 This should output something like the following
