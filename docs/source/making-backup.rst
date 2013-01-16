@@ -47,3 +47,39 @@ to the repositories:
 ::
 
     $ ./misc/backup.bash s3://mybucket /var/repositories
+
+MongoDB
+=======
+
+To backup the Mongo database, you can use the generic script ``backup.bash``
+present in the ``misc/mongodb`` directory. It's pretty straightforward to use:
+
+.. highlight:: bash
+
+::
+
+    $ ./misc/mongodb/backup.bash s3://mybucket localhost database
+
+As in the previous script, the first parameter is the S3 bucket. The second
+parameter is the database host. You can provide just the hostname, or the
+host:port (for example, 127.0.0.1:27018). The third parameter is the name of
+the database.
+
+Database healer
+---------------
+
+There is another useful script in the ``misc/mongodb`` directory:
+``healer.bash``. This script checks a list of collections and if any of them is
+gone, download the last backup and fix all gone collections.
+
+This is how you should use it:
+
+.. highlight:: bash
+
+::
+
+    $ ./misc/mongodb/healer.bash s3://mybucket localhost mongodb repositories users
+
+The first three parameters mean the same as in the backup script. From the
+fourth parameter onwards, you should list the collections. In the example
+above, we provided two collections: "repositories" and "users".
