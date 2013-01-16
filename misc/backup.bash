@@ -7,6 +7,17 @@
 # This script is used to backup on s3 repositories created by gandalf.
 #
 # To use this script it's need install and configure the s3cmd.
+#
+# Usage:
+#
+#    ./backup.bash <bucket-path> <repositories-path>
+
+if [ $# -lt 3 ]; then
+	echo "Usage:"
+	echo
+	echo "  $0 <bucket-path> <repositories-path>"
+	exit 1
+fi
 
 name="$(date +%y-%m-%d-%H-%M-%S).tar.gz"
 
