@@ -70,7 +70,7 @@ Database healer
 
 There is another useful script in the ``misc/mongodb`` directory:
 ``healer.bash``. This script checks a list of collections and if any of them is
-gone, download the last backup and fix all gone collections.
+gone, download the last three backup archives and fix all gone collections.
 
 This is how you should use it:
 
