@@ -13,15 +13,15 @@ type S struct{}
 var _ = Suite(&S{})
 
 func (s *S) TestSessionRepositoryShouldReturnAMongoCollection(c *C) {
-	var rep interface{}
+	var rep *mgo.Collection
 	rep = Session.Repository()
-	_, ok := rep.(*mgo.Collection)
-	c.Assert(ok, Equals, true)
+	cRep := Session.DB.C("repository")
+	c.Assert(rep, DeepEquals, cRep)
 }
 
 func (s *S) TestSessionUserShouldReturnAMongoCollection(c *C) {
-	var usr interface{}
+	var usr *mgo.Collection
 	usr = Session.User()
-	_, ok := usr.(*mgo.Collection)
-	c.Assert(ok, Equals, true)
+	cUsr := Session.DB.C("user")
+	c.Assert(usr, DeepEquals, cUsr)
 }
