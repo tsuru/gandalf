@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
+	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"regexp"
 )
@@ -26,7 +27,11 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	if err := newBare(name); err != nil {
 		return r, err
 	}
-	return r, db.Session.Repository().Insert(&r)
+	err := db.Session.Repository().Insert(&r)
+	if mgo.IsDup(err) {
+		return r, fmt.Errorf("A repository with this name already exists.")
+	}
+	return r, err
 }
 
 // Deletes the repository from the database and
