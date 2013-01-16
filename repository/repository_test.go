@@ -26,6 +26,11 @@ func (s *S) SetUpSuite(c *C) {
 	c.Check(err, IsNil)
 }
 
+func (s *S) TearDownSuite(c *C) {
+	db.Session.Repository().RemoveAll(nil)
+	db.Session.User().RemoveAll(nil)
+}
+
 func (s *S) TestNewShouldCreateANewRepository(c *C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)

@@ -39,6 +39,8 @@ func (s *S) TearDownTest(c *C) {
 
 func (s *S) TearDownSuite(c *C) {
 	commandmocker.Remove(s.tmpdir)
+	db.Session.Repository().RemoveAll(nil)
+	db.Session.User().RemoveAll(nil)
 }
 
 func (s *S) TestGetUserOr404(c *C) {

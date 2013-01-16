@@ -59,6 +59,8 @@ func (s *S) TearDownTest(c *C) {
 
 func (s *S) TearDownSuite(c *C) {
 	fs.Fsystem = nil
+	db.Session.Repository().RemoveAll(nil)
+	db.Session.User().RemoveAll(nil)
 }
 
 func (s *S) TestNewUserReturnsAStructFilled(c *C) {
