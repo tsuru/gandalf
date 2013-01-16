@@ -182,8 +182,7 @@ func (s *S) TestParseBodyShouldReturnErrorWhenBodyIsEmpty(c *C) {
 	b := bufferCloser{bytes.NewBufferString("")}
 	err := parseBody(b, &p)
 	c.Assert(err, NotNil)
-	expected := "Could not parse json: unexpected end of JSON input"
-	c.Assert(err.Error(), Equals, expected)
+	c.Assert(err, ErrorMatches, `^Could not parse json:.*$`)
 }
 
 func (s *S) TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(c *C) {
