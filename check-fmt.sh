@@ -1,8 +1,11 @@
 #!/bin/bash -e
 
-# Copyright 2012 gandalf authors. All rights reserved.
+# Copyright 2013 tsuru authors. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
+
+# This script was copied from tsuru, that's why the Copyright note above refers
+# to "tsuru authors" instead of "gandalf authors".
 
 status=0
 out=`gofmt -s -l .`
