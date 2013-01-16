@@ -1,32 +1,22 @@
-===========================
-Making a backup for Gandalf
-===========================
+==================
+Backing up Gandalf
+==================
 
-You can use the misc/backup.bash script to make a backup
-for authorized_keys and repositories files created by gandalf.
+You can use the misc/backup.bash script to make a backup of authorized_keys and
+repositories files created by gandalf, and misc/mongodb/backup.bash to make a
+backup of the database. Both scripts store archives in S3 buckets.
 
-This backup script sends these data to the s3.
+Dependencies
+============
 
-First, let's install the s3cmd.
+The backups script sends these data to the s3 using the `s3cmd
+<http://s3tools.org/s3cmd>`_ tool.
 
-If you use ubuntu you can use apt-get to install s3cmd.
+First, make sure you have installed s3cmd. You can install it using your
+preferred package manager. For more details, refer to its `download
+documentation <http://s3tools.org/download>`_.
 
-.. highlight:: bash
-
-::
-
-    $ sudo apt-get install s3cmd
-
-If you use mac you can use homebrew to install s3cmd:
-
-.. highlight:: bash
-
-::
-
-    $ brew install s3cmd
-
-
-Now let's configure s3cmd, its need to set your amazon access and secret key:
+Now let's configure s3cmd, it requires your amazon access and secret key:
 
 .. highlight:: bash
 
@@ -34,19 +24,26 @@ Now let's configure s3cmd, its need to set your amazon access and secret key:
 
     $ s3cmd --configure
 
+authorized_keys and bare repositories
+=====================================
 
-For use backup.bash script to make a backup for authorized_keys:
-
-.. highlight:: bash
-
-::
-
-    $ ./backup.bash s3://mybucket
-
-And, if you wanto make a backup for authorized_keys and repositorie files:
+In order to make backups, use the ``backup.bash`` script. It's able to backup
+the authorized_keys file and all repositories. For backing up only the
+authorized_keys file, execute it with only one parameter:
 
 .. highlight:: bash
 
 ::
 
-    $ ./backup.bash s3://mybucket /var/repositories
+    $ ./misc/backup.bash s3://mybucket
+
+This parameter is the bucket to which you want to send the file.
+
+To include all bare repositories, use a second parameter, indicating the path
+to the repositories:
+
+.. highlight:: bash
+
+::
+
+    $ ./misc/backup.bash s3://mybucket /var/repositories
