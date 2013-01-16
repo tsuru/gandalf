@@ -237,3 +237,14 @@ func (s *S) TestRevokeAccessShouldRemoveUserFromAllRepositories(c *C) {
 	c.Assert(r.Users, DeepEquals, []string{"someuser"})
 	c.Assert(r2.Users, DeepEquals, []string{"otheruser"})
 }
+
+func (s *S) TestConflictingRepositoryNameShouldReturnExplicitError(c *C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, IsNil)
+	defer commandmocker.Remove(tmpdir)
+	_, err = New("someRepo", []string{"gollum"}, true)
+	defer db.Session.Repository().Remove(bson.M{"_id": "someRepo"})
+	c.Assert(err, IsNil)
+	_, err = New("someRepo", []string{"gollum"}, true)
+	c.Assert(err, ErrorMatches, "A repository with this name already exists.")
+}
