@@ -4,7 +4,10 @@
 
 package db
 
-import "labix.org/v2/mgo"
+import (
+	"github.com/globocom/config"
+	"labix.org/v2/mgo"
+)
 
 type session struct {
 	DB *mgo.Database
@@ -12,12 +15,23 @@ type session struct {
 
 var Session = session{}
 
-func init() {
-	s, err := mgo.Dial("localhost:27017")
+// Connect uses database:url and database:name settings in config file and
+// connects to the database. If it cannot connect or these settings are not
+// defined, it will panic.
+func Connect() {
+	url, err := config.GetString("database:url")
 	if err != nil {
 		panic(err)
 	}
-	Session.DB = s.DB("gandalf")
+	name, err := config.GetString("database:name")
+	if err != nil {
+		panic(err)
+	}
+	s, err := mgo.Dial(url)
+	if err != nil {
+		panic(err)
+	}
+	Session.DB = s.DB(name)
 }
 
 func (s *session) Repository() *mgo.Collection {
