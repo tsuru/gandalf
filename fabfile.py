@@ -5,16 +5,11 @@
 # license that can be found in the LICENSE file.
 
 import os
-from fabric.api import abort, cd, env, local, put, run, settings
+from fabric.api import abort, cd, env, local, put, run
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 env.user = 'git'
 env.gandalf_path = '/home/%s/gandalf' % env.user
-
-
-def stop():
-    with settings(warn_only=True):
-        run('killall -KILL gandalf-webserver')
 
 
 def build():
@@ -39,15 +34,14 @@ def send():
     put(os.path.join(current_dir, "dist.tar.gz"), env.gandalf_path)
 
 
-def start():
+def restart():
     with cd(env.gandalf_path):
         run("tar -xzf dist.tar.gz")
-    run("nohup %s/dist/gandalf-webserver >& ./gandalf-webserver.out &" % env.gandalf_path, pty=False)
+    run("circusctl restart gandalf-webserver")
 
 
 def deploy():
     build()
     send()
-    stop()
-    start()
+    restart()
     clean()
