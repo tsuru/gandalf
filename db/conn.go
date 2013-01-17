@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package db provides util functions to deal with Gandalf's database.
 package db
 
 import (
@@ -13,6 +14,7 @@ type session struct {
 	DB *mgo.Database
 }
 
+// The global Session that must be used by users.
 var Session = session{}
 
 // Connect uses database:url and database:name settings in config file and
@@ -34,10 +36,12 @@ func Connect() {
 	Session.DB = s.DB(name)
 }
 
+// Repository returns a reference to the "repository" collection in MongoDB.
 func (s *session) Repository() *mgo.Collection {
 	return s.DB.C("repository")
 }
 
+// User returns a reference to the "user" collection in MongoDB.
 func (s *session) User() *mgo.Collection {
 	return s.DB.C("user")
 }
