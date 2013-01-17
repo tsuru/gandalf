@@ -49,6 +49,8 @@ func (s *S) clearAuthKeyFile() bool {
 func (s *S) SetUpSuite(c *C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Check(err, IsNil)
+	config.Set("database:name", "gandalf_user_tests")
+	db.Connect()
 }
 
 func (s *S) SetUpTest(c *C) {
@@ -63,8 +65,7 @@ func (s *S) TearDownTest(c *C) {
 
 func (s *S) TearDownSuite(c *C) {
 	fs.Fsystem = nil
-	db.Session.Repository().RemoveAll(nil)
-	db.Session.User().RemoveAll(nil)
+	db.Session.DB.DropDatabase()
 }
 
 func (s *S) TestNewUserReturnsAStructFilled(c *C) {

@@ -10,6 +10,7 @@ import (
 	"github.com/bmizerany/pat"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/api"
+	"github.com/globocom/gandalf/db"
 	"log"
 	"net/http"
 	"os/exec"
@@ -38,6 +39,7 @@ func main() {
 For an example conf check gandalf/etc/gandalf.conf file.`
 		log.Panicf(msg, *configFile)
 	}
+	db.Connect()
 	router := pat.New()
 	router.Post("/user/:name/key", http.HandlerFunc(api.AddKey))
 	router.Del("/user/:name/key/:keyname", http.HandlerFunc(api.RemoveKey))

@@ -28,6 +28,9 @@ var _ = Suite(&S{})
 func (s *S) SetUpSuite(c *C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Assert(err, IsNil)
+	config.Set("database:url", "127.0.0.1:27017")
+	config.Set("database:name", "gandalf_api_tests")
+	db.Connect()
 	s.tmpdir, err = commandmocker.Add("git", "")
 	c.Assert(err, IsNil)
 }
@@ -43,8 +46,7 @@ func (s *S) TearDownTest(c *C) {
 
 func (s *S) TearDownSuite(c *C) {
 	commandmocker.Remove(s.tmpdir)
-	db.Session.Repository().RemoveAll(nil)
-	db.Session.User().RemoveAll(nil)
+	db.Session.DB.DropDatabase()
 }
 
 func (s *S) TestGetUserOr404(c *C) {
