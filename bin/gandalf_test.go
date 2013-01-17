@@ -32,19 +32,20 @@ func (s *S) SetUpSuite(c *C) {
 	var err error
 	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
 	c.Check(err, IsNil)
+	err = config.ReadConfigFile("../etc/gandalf.conf")
+	c.Check(err, IsNil)
+	config.Set("database:name", "gandalf_bin_tests")
+	db.Connect()
 	s.user, err = user.New("testuser", map[string]string{})
 	c.Check(err, IsNil)
 	// does not uses repository.New to avoid creation of bare git repo
 	s.repo = &repository.Repository{Name: "myapp", Users: []string{s.user.Name}}
 	err = db.Session.Repository().Insert(s.repo)
 	c.Check(err, IsNil)
-	err = config.ReadConfigFile("../etc/gandalf.conf")
-	c.Check(err, IsNil)
 }
 
 func (s *S) TearDownSuite(c *C) {
-	db.Session.User().Remove(bson.M{"_id": s.user.Name})
-	db.Session.Repository().Remove(bson.M{"_id": s.repo.Name})
+	db.Session.DB.DropDatabase()
 }
 
 func (s *S) TestHasWritePermissionSholdReturnTrueWhenUserCanWriteInRepo(c *C) {
