@@ -37,7 +37,7 @@ def send():
 def restart():
     with cd(env.gandalf_path):
         run("tar -xzf dist.tar.gz")
-    run("circusctl restart gandalf-webserver")
+    run("circusctl restart gandalf-web")
 
 
 def deploy():
