@@ -18,6 +18,9 @@ type User struct {
 	Keys map[string]string
 }
 
+// Creates a new user and write his/her keys into authorized_keys file.
+//
+// The authorized_keys file belongs to the user running the process.
 func New(name string, keys map[string]string) (*User, error) {
 	u := &User{Name: name, Keys: keys}
 	if v, err := u.isValid(); !v {
@@ -40,13 +43,13 @@ func (u *User) isValid() (isValid bool, err error) {
 	return true, nil
 }
 
-// Remove a user
+// Removes a user.
 // Also removes it's associated keys from authorized_keys and repositories
-// It handles user with repositories specially:
-// - if a user has at least one repository:
+// It handles user with repositories specially when:
+// - a user has at least one repository:
 //     - if he/she is the only one with access to the repository, the removal will stop and return an error
 //     - if there are more than one user with access to the repository, gandalf will first revoke user's access and then remove the user permanently
-// - if a user has no repositories, gandalf will simply remove the user
+// - a user has no repositories: gandalf will simply remove the user
 func Remove(name string) error {
 	var u *User
 	if err := db.Session.User().Find(bson.M{"_id": name}).One(&u); err != nil {
@@ -85,6 +88,11 @@ func (u *User) handleAssociatedRepositories() error {
 	return nil
 }
 
+// Adds a key into a user.
+//
+// Stores the key in the user's document and write it in authorized_keys.
+//
+// Returns an error in case the user does not exists.
 func AddKey(uName string, k map[string]string) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
@@ -98,6 +106,7 @@ func AddKey(uName string, k map[string]string) error {
 }
 
 // RemoveKey removes the key from the user's document and from authorized_keys file
+//
 // If the user or the key is not found, returns an error
 func RemoveKey(uName, kName string) error {
 	var u User
