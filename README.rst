@@ -7,16 +7,25 @@ YOU SHALL NOT PASS!
 ==================
 
 
-Installation
-------------
+Installation from source
+------------------------
 
-Clone gandalf
+Gandalf is built in Go, see http://golang.org/doc/install to install it. Gandalf also uses mongodb:
 
-    $> git clone git://github.com/globocom/gandalf
+    $> [sudo] apt-get install mongodb
 
-Now run the install script (from gandalf root)
+Get gandalf:
 
-    $> cd gandalf
+    $> go get github.com/globocom/gandalf
+
+Gandalf will come with a default configuration file, at etc/gandalf.conf, customize it with your needs before running the install script.
+
+The script will build and run gandalf server with the current user, so if you want your
+repositories urls to be like `git@host.com` you should create a user called git and change to it before running the script.
+
+So let's run it:
+
+    $> cd $GOPATH/github.com/globocom/gandalf
     $> ./setup/install.sh
 
 No output means no error :)
@@ -36,7 +45,7 @@ Api usage
 
 Create a user:
 
-    $> curl -d '{"name": "username", "keys": [{"content": "ssh-rsa userpubkey user@host", "name": "keyname"}]}' gandalf-host.com/user
+    $> curl -d '{"name": "username", "keys": [{"keyname": "ssh-rsa userpubkey user@host"}]}' gandalf-host.com/user
 
 You should see the following:
 
