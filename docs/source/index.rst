@@ -11,3 +11,4 @@ YOU SHALL NOT PASS!
 * :doc:`Quickstart tutorial </quickstart>`
 * :doc:`Making a backup </making-backup>`
 * :doc:`Contribute </contribute>`
+* :doc:`Community </community>`
