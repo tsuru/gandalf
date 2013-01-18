@@ -12,7 +12,7 @@
 #
 #    ./backup.bash <bucket-path> <repositories-path>
 
-if [ $# -lt 3 ]; then
+if [ $# -lt 1 ]; then
 	echo "Usage:"
 	echo
 	echo "  $0 <bucket-path> <repositories-path>"
