@@ -25,8 +25,8 @@ repositories urls to be like `git@host.com` you should create a user called git 
 
 So let's run it:
 
-    $> cd $GOPATH/github.com/globocom/gandalf
-    $> ./setup/install.sh
+    | $> cd $GOPATH/github.com/globocom/gandalf
+    | $> ./setup/install.sh
 
 No output means no error :)
 
