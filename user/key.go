@@ -10,18 +10,27 @@ import (
 	"github.com/globocom/gandalf/fs"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path"
 	"strings"
 )
 
-// file to write user's keys
-var authKey string = path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
+// authKey returns the file to write user's keys.
+func authKey() string {
+	var home string
+	if current, err := user.Current(); err == nil {
+		home = current.HomeDir
+	} else {
+		home = os.ExpandEnv("$HOME")
+	}
+	return path.Join(home, ".ssh", "authorized_keys")
+}
 
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
 func addKey(k, username string) error {
-	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
+	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -68,7 +77,7 @@ func removeKeys(keys map[string]string, username string) error {
 
 // removes a key from auhtKey file
 func removeKey(key, username string) error {
-	file, err := fs.Filesystem().OpenFile(authKey, os.O_RDWR|os.O_EXCL, 0755)
+	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0755)
 	defer file.Close()
 	if err != nil {
 		return err

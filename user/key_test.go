@@ -16,7 +16,7 @@ import (
 func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
 	home := os.Getenv("HOME")
 	expected := path.Join(home, ".ssh", "authorized_keys")
-	c.Assert(authKey, Equals, expected)
+	c.Assert(authKey(), Equals, expected)
 }
 
 func (s *S) TestShouldAddKeyWithoutError(c *C) {
@@ -28,7 +28,7 @@ func (s *S) TestShouldWriteKeyInFile(c *C) {
 	key := "somekey blaaaaaaa r2d2@host"
 	err := addKey(key, "someuser")
 	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
 	got := string(b)
@@ -42,7 +42,7 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 	key2 := "somekey foo r2d2@host"
 	err = addKey(key2, "someuser")
 	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -56,7 +56,7 @@ func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
 	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
 	err := addKey(key, "someuser")
 	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -97,7 +97,7 @@ func (s *S) TestRemoveKey(c *C) {
 	err = addKey(key2, "someuser")
 	c.Assert(err, IsNil)
 	err = removeKey(key1, "someuser")
-	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -111,7 +111,7 @@ func (s *S) TestRemoveKey(c *C) {
 func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
 	err := removeKey("somekey blaaaaaaa r2d2@host", "anotheruser")
 	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
@@ -125,7 +125,7 @@ func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 	c.Assert(err, IsNil)
 	err = removeKey(key, "someuser")
 	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)

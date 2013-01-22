@@ -36,7 +36,7 @@ func (s *S) authKeysContent(c *C) string {
 }
 
 func (s *S) clearAuthKeyFile() bool {
-	f, err := s.rfs.OpenFile(authKey, os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	if err != nil {
 		return false
 	}
