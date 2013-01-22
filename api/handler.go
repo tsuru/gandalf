@@ -90,12 +90,12 @@ func RemoveKey(w http.ResponseWriter, r *http.Request) {
 func NewUser(w http.ResponseWriter, r *http.Request) {
 	var usr user.User
 	if err := parseBody(r.Body, &usr); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Got error while parsing body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	u, err := user.New(usr.Name, usr.Keys)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Got error while creating user: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	fmt.Fprintf(w, "User \"%s\" successfuly created\n", u.Name)

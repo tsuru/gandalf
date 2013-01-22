@@ -85,7 +85,7 @@ func (s *S) TestNewUserShouldRepassParseBodyErrors(c *C) {
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	body := readBody(recorder.Body, c)
-	expected := "Could not parse json: invalid character ']' looking for beginning of object key string"
+	expected := "Got error while parsing body: Could not parse json: invalid character ']' looking for beginning of object key string"
 	got := strings.Replace(body, "\n", "", -1)
 	c.Assert(got, Equals, expected)
 }
@@ -95,7 +95,7 @@ func (s *S) TestNewUserShouldRequireUserName(c *C) {
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	body := readBody(recorder.Body, c)
-	expected := "Validation Error: user name is not valid"
+	expected := "Got error while creating user: Validation Error: user name is not valid"
 	got := strings.Replace(body, "\n", "", -1)
 	c.Assert(got, Equals, expected)
 }
