@@ -16,7 +16,7 @@ Gandalf is built in Go, see http://golang.org/doc/install to install it. Gandalf
 
 Get gandalf:
 
-    $> go get github.com/globocom/gandalf
+    $> go get github.com/globocom/gandalf/...
 
 Gandalf will come with a default configuration file, at etc/gandalf.conf, customize it with your needs before running the install script.
 
