@@ -17,3 +17,6 @@ get-prod:
 test:
 	@go test -i ./...
 	@go test ./...
+
+doc:
+	@cd docs && make html
