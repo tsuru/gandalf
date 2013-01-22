@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	dry := flag.Bool("dry", false, "dry-run: does not start the server and git daemon (for testing purpose)")
+	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
 	configFile := flag.String("config", "/etc/gandalf.conf", "Gandalf configuration file")
 	flag.Parse()
 
