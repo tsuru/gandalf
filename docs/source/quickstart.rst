@@ -27,11 +27,15 @@ Now let's create a repository:
 
 .. highlight:: bash
 
+::
+
     $ curl -d '{"name": "myproject", "users": ["username"], "ispublic": true}' gandalf-host.com/repository
 
 You should get the following:
 
 .. highlight:: bash
+
+::
 
     Repository "myproject" successfuly created
 
