@@ -78,10 +78,10 @@ func removeKeys(keys map[string]string, username string) error {
 // removes a key from auhtKey file
 func removeKey(key, username string) error {
 	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0755)
-	defer file.Close()
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	keys, err := ioutil.ReadAll(file)
 	key = formatKey(key, username)
 	content := strings.Replace(string(keys), key+"\n", "", -1)
