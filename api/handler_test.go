@@ -66,7 +66,7 @@ func (s *S) TestNewUser(c *C) {
 	c.Assert(recorder.Code, Equals, 200)
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
-	c.Assert(string(body), Equals, "User \"brain\" successfuly created\n")
+	c.Assert(string(body), Equals, "User \"brain\" successfully created\n")
 }
 
 func (s *S) TestNewUserShouldSaveInDB(c *C) {
@@ -114,7 +114,7 @@ func (s *S) TestNewRepository(c *C) {
 	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
 	got := readBody(recorder.Body, c)
-	expected := "Repository \"some_repository\" successfuly created\n"
+	expected := "Repository \"some_repository\" successfully created\n"
 	c.Assert(got, Equals, expected)
 }
 
@@ -257,7 +257,7 @@ func (s *S) TestAddKey(c *C) {
 	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, c)
 	AddKey(recorder, request)
 	got := readBody(recorder.Body, c)
-	expected := "Key(s) successfuly created"
+	expected := "Key(s) successfully created"
 	c.Assert(got, Equals, expected)
 	c.Assert(recorder.Code, Equals, 200)
 }
@@ -309,7 +309,7 @@ func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
 	RemoveKey(recorder, request)
 	c.Assert(recorder.Code, Equals, 200)
 	b := readBody(recorder.Body, c)
-	c.Assert(b, Equals, `Key "keyname" successfuly removed`)
+	c.Assert(b, Equals, `Key "keyname" successfully removed`)
 }
 
 func (s *S) TestRemoveKeyRemovesKeyFromUserDocument(c *C) {
@@ -356,7 +356,7 @@ func (s *S) TestRemoveUser(c *C) {
 	c.Assert(recorder.Code, Equals, 200)
 	b, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
-	c.Assert(string(b), Equals, "User \"username\" successfuly removed\n")
+	c.Assert(string(b), Equals, "User \"username\" successfully removed\n")
 }
 
 func (s *S) TestRemoveUserShouldRemoveFromDB(c *C) {
@@ -384,7 +384,7 @@ func (s *S) TestRemoveRepository(c *C) {
 	c.Assert(recorder.Code, Equals, 200)
 	b, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
-	c.Assert(string(b), Equals, "Repository \"myRepo\" successfuly removed\n")
+	c.Assert(string(b), Equals, "Repository \"myRepo\" successfully removed\n")
 }
 
 func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *C) {

@@ -21,7 +21,7 @@ You should see the following:
 
 ::
 
-    User "username" successfuly created
+    User "username" successfully created
 
 Now let's create a repository:
 
@@ -37,7 +37,7 @@ You should get the following:
 
 ::
 
-    Repository "myproject" successfuly created
+    Repository "myproject" successfully created
 
 In order to delete a repository, execute the following:
 
@@ -53,7 +53,7 @@ The output should be:
 
 ::
 
-    Repository "myproject" successfuly removed
+    Repository "myproject" successfully removed
 
 To delete a user:
 
@@ -69,7 +69,7 @@ The output should be:
 
 ::
 
-    User "username" successfuly removed
+    User "username" successfully removed
 
 TODO: grant/revoke user access to a repository
 
