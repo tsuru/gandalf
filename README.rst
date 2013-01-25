@@ -13,7 +13,7 @@ YOU SHALL NOT PASS!
 First steps:
 ============
 
-* `Instalation guide <https://gandalf.readthedocs.org/en/latest/install.html>`_
+* `Installation guide <https://gandalf.readthedocs.org/en/latest/install.html>`_
 * `Quickstart tutorial <https://gandalf.readthedocs.org/en/latest/quickstart.html>`_
 
 Get involved:
