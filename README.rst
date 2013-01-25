@@ -20,5 +20,6 @@ Get involved:
 =============
 
 * `contribute <https://gandalf.readthedocs.org/en/latest/contribute.html>`_
+* `community <https://gandalf.readthedocs.org/en/latest/community.html>`_
 
 For more information see the `documentation <https://gandalf.readthedocs.org/en/latest/index.html>`_
