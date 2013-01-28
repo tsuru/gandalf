@@ -180,6 +180,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return
 	}
+	db.Connect()
 	err = validateCmd()
 	if err != nil {
 		log.Err(err.Error())
