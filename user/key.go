@@ -31,10 +31,10 @@ func authKey() string {
 // object is embedded on the user's document
 func addKey(k, username string) error {
 	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0755)
-	defer file.Close()
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 	keys, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err
