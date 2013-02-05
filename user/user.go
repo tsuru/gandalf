@@ -96,7 +96,7 @@ func (u *User) handleAssociatedRepositories() error {
 func AddKey(uName string, k map[string]string) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
-		return fmt.Errorf(`User "%s" not found`, uName)
+		return fmt.Errorf("User %q not found", uName)
 	}
 	u.Keys = mergeMaps(u.Keys, k)
 	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
