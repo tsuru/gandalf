@@ -273,7 +273,7 @@ func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExists(c *C) {
 }
 
 func (s *S) TestAddKeyShouldReturnProperStatusCodeWhenKeyAlreadyExists(c *C) {
-	user, err := user.New("Frodo", map[string]string{"keyname":"keycontent"})
+	user, err := user.New("Frodo", map[string]string{"keyname": "keycontent"})
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId("Frodo")
 	b := strings.NewReader(`{"keyname": "keycontent"}`)
