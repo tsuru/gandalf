@@ -14,7 +14,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"regexp"
 )
+
+var re = regexp.MustCompile(`^User ".*" not found$`)
 
 func accessParameters(body io.ReadCloser) (repositories, users []string, err error) {
 	var params map[string][]string
@@ -71,7 +74,11 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 	}
 	uName := r.URL.Query().Get(":name")
 	if err := user.AddKey(uName, keys); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		status := http.StatusNotFound
+		if !re.MatchString(err.Error()) {
+			status = http.StatusConflict
+		}
+		http.Error(w, err.Error(), status)
 		return
 	}
 	fmt.Fprint(w, "Key(s) successfully created")

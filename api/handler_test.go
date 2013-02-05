@@ -262,7 +262,7 @@ func (s *S) TestAddKey(c *C) {
 	c.Assert(recorder.Code, Equals, 200)
 }
 
-func (s *S) TestAddKeyShouldReturnErorWhenUserDoesNotExists(c *C) {
+func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExists(c *C) {
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
@@ -270,6 +270,19 @@ func (s *S) TestAddKeyShouldReturnErorWhenUserDoesNotExists(c *C) {
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
 	c.Assert(string(body), Equals, "User \"Frodo\" not found\n")
+}
+
+func (s *S) TestAddKeyShouldReturnProperStatusCodeWhenKeyAlreadyExists(c *C) {
+	user, err := user.New("Frodo", map[string]string{"keyname":"keycontent"})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId("Frodo")
+	b := strings.NewReader(`{"keyname": "keycontent"}`)
+	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, c)
+	AddKey(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "Key already exists.\n"
+	c.Assert(got, Equals, expected)
+	c.Assert(recorder.Code, Equals, http.StatusConflict)
 }
 
 func (s *S) TestAddKeyShouldRequireKey(c *C) {
