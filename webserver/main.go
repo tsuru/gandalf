@@ -19,7 +19,7 @@ func main() {
 	configFile := flag.String("config", "/etc/gandalf.conf", "Gandalf configuration file")
 	flag.Parse()
 
-	err := config.ReadConfigFile(*configFile)
+	err := config.ReadAndWatchConfigFile(*configFile)
 	if err != nil {
 		msg := `Could not find gandalf config file. Searched on %s.
 For an example conf check gandalf/etc/gandalf.conf file.`
