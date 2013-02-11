@@ -4,8 +4,8 @@ Quickstart Guide
 
 Before starting, make sure Gandalf is :doc:`installed </install>`.
 
-Api usage
-=========
+Creating an user and a repository
+=================================
 
 Create a user:
 
@@ -13,7 +13,7 @@ Create a user:
 
 ::
 
-    $ curl -d '{"name": "username", "keys": [{"content": "ssh-rsa userpubkey user@host", "name": "keyname"}]}' gandalf-host.com/user
+    $ curl -d '{"name": "username", "keys": {"keyname": "ssh-rsa userpubkey user@host"}}' gandalf-host.com/user
 
 You should see the following:
 
@@ -38,6 +38,29 @@ You should get the following:
 ::
 
     Repository "myproject" successfully created
+
+Pushing into myproject
+======================
+
+Now we already have access to myproject, let's create a git repository locally to test our setup:
+
+.. highlight:: bash
+
+::
+
+    $ mkdir myproject
+    $ cd myproject
+    $ git init
+    $ git remote add gandalf git@gandalf-host.com:myproject.git
+    $ touch README
+    $ git add .
+    $ git commit -m "first commit"
+    $ git push gandalf master
+
+You ould see the usual git output.
+
+Removing an user and a repository
+=================================
 
 In order to delete a repository, execute the following:
 
@@ -70,25 +93,3 @@ The output should be:
 ::
 
     User "username" successfully removed
-
-TODO: grant/revoke user access to a repository
-
-Pushing into myproject
-======================
-
-Now we already have access to myproject, let's create a git repository locally to test our setup:
-
-.. highlight:: bash
-
-::
-
-    $ mkdir myproject
-    $ cd myproject
-    $ git init
-    $ git remote add gandalf git@gandalf-host.com:myproject.git
-    $ touch README
-    $ git add .
-    $ git commit -m "first commit"
-    $ git push gandalf master
-
-You ould see the usual git output.
