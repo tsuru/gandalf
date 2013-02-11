@@ -48,10 +48,10 @@ func (s *S) TestNewBareShouldReturnMeaningfullErrorWhenBareCreationFails(c *C) {
 }
 
 func (s *S) TestNewBareShouldPassTemplateOptionWhenItExistsOnConfig(c *C) {
-	bareTempl, err := config.GetString("git:bare:template")
-	c.Assert(err, IsNil)
+	bareTemplate := "/var/templates"
 	bareLocation, err := config.GetString("git:bare:location")
-	c.Assert(err, IsNil)
+	config.Set("git:bare:template", bareTemplate)
+	defer config.Unset("git:bare:template")
 	barePath := path.Join(bareLocation, "foo.git")
 	dir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)
@@ -59,15 +59,12 @@ func (s *S) TestNewBareShouldPassTemplateOptionWhenItExistsOnConfig(c *C) {
 	err = newBare("foo")
 	c.Assert(err, IsNil)
 	c.Assert(commandmocker.Ran(dir), Equals, true)
-	expected := fmt.Sprintf("init %s --bare --template=%s", barePath, bareTempl)
+	expected := fmt.Sprintf("init %s --bare --template=%s", barePath, bareTemplate)
 	c.Assert(commandmocker.Output(dir), Equals, expected)
 }
 
 func (s *S) TestNewBareShouldNotPassTemplateOptionWhenItsNotSetInConfig(c *C) {
-	oldBareTempl, err := config.GetString("git:bare:template")
-	c.Assert(err, IsNil)
 	config.Unset("git:bare:template")
-	defer config.Set("git:bare:template", oldBareTempl)
 	bareLocation, err := config.GetString("git:bare:location")
 	c.Assert(err, IsNil)
 	barePath := path.Join(bareLocation, "foo.git")

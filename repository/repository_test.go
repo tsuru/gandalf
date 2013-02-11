@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"fmt"
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
@@ -167,8 +168,10 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 }
 
 func (s *S) TestRemoteShouldFormatAndReturnTheGitRemote(c *C) {
+	host, err := config.GetString("host")
+	c.Assert(err, IsNil)
 	remote := (&Repository{Name: "lol"}).Remote()
-	c.Assert(remote, Equals, "git@gandalfhost.com:lol.git")
+	c.Assert(remote, Equals, fmt.Sprintf("git@%s:lol.git", host))
 }
 
 func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *C) {
