@@ -2,7 +2,7 @@
 Quickstart Guide
 ================
 
-Before starting, make sure Gandalf is :doc:`installed </install>`.
+Before starting, make sure Gandalf is :doc:`installed </install>` and :doc:`configured </config>`.
 
 Creating an user and a repository
 =================================
