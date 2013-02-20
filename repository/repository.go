@@ -66,11 +66,11 @@ func (r *Repository) Remote() string {
 //  - a name without any special chars only alphanumeric and underlines are allowed.
 //  - at least one user in users array
 func (r *Repository) isValid() (bool, error) {
-	m, e := regexp.Match(`(^$)|\W+|\s+`, []byte(r.Name))
+	m, e := regexp.Match(`^[\w-]+$`, []byte(r.Name))
 	if e != nil {
 		panic(e)
 	}
-	if m {
+	if !m {
 		return false, errors.New("Validation Error: repository name is not valid")
 	}
 	if len(r.Users) == 0 {
