@@ -31,7 +31,7 @@ So let's run it:
 
 ::
 
-    $ cd $GOPATH/github.com/globocom/gandalf
+    $ cd $GOPATH/src/github.com/globocom/gandalf
     $ ./setup/install.sh
 
 No output means no error :)
