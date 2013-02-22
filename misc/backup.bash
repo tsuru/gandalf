@@ -39,4 +39,5 @@ if [ -d $2 ]; then
     echo "making the backup for repositories files..."
     compact $2
     send_to_s3 ${name} $1
+    rm -f ${name}
 fi
