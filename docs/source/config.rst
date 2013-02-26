@@ -39,6 +39,14 @@ webserver:port
 form <host>:<port>. You may omit the host (example: ``:8080``). This setting
 has no default value.
 
+host
+++++
+
+``host`` is the value used to compose the remote URL for the repositories
+managed by Gandalf. For example, if the repository is named "myapp" and the
+host is "gandalf.mycompany.com", then the remote URL for the repository will be
+"git@gandalf.mycompany.com:myapp.git".
+
 Database access
 ---------------
 
@@ -67,17 +75,34 @@ mandatory setting and has no default value. An example of value is "gandalf".
 Git configuration
 -----------------
 
-Ganfalf uses `Gandalf <https://github.com/globocom/gandalf>`_ to manage git
-repositories. Gandalf exposes a REST API for repositories management, and gandalf
-uses it. So gandalf requires information about the Gandalf HTTP server.
+In order to manage git repositories and SSH access, Gandalf requires some
+settings. Whenever a user pushes to a repository, he/she access the git
+repository through SSH protocol, so Gandalf provides a command wrapper to
+protect the server against unwanted SSH access.
 
-Ganfalf also needs to know where the git repository will be cloned and stored in
-units storage. Here are all options related to git repositories:
+bin-path
+++++++++
+
+``bin-path`` is the path to the git wrapper used by gandalf to protect unwanted
+SSH access to the machine, and control access to repositories.
 
 git:bare:location
 +++++++++++++++++
 
-``git:bare:location`` is the path where gandalf will create the bare repositories.
+``git:bare:location`` is the path where gandalf will create the bare
+repositories. The user running Gandalf must have write access to this
+directory.
+
+git:bare:template
++++++++++++++++++
+
+``git:bare:template`` is the path that represents the template used in new git
+bare repositories. This setting can be used to define hooks that will be
+present in all repositories. This setting is optional, if you want just a bare
+repository, without any hook or customization, you can omit this setting.
+
+For more details, refer to `git-init manual page
+<http://git-scm.com/docs/git-init>`_.
 
 Sample file
 ===========
@@ -95,6 +120,7 @@ Here is a complete example:
     git:
         bare:
             location: /var/repositories
+            template: /home/git/bare-template
     host: localhost:8000
     webserver:
         port: ":8000"
