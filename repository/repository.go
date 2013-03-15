@@ -58,7 +58,11 @@ func (r *Repository) Remote() string {
 	if err != nil {
 		panic(err.Error())
 	}
-	return fmt.Sprintf("git@%s:%s", host, formatName(r.Name))
+	uid, err := config.GetString("uid")
+	if err != nil {
+		panic(err.Error())
+	}
+	return fmt.Sprintf("%s@%s:%s", uid, host, formatName(r.Name))
 }
 
 // Validates a repository

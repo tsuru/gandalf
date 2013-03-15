@@ -174,6 +174,17 @@ func (s *S) TestRemoteShouldFormatAndReturnTheGitRemote(c *C) {
 	c.Assert(remote, Equals, fmt.Sprintf("git@%s:lol.git", host))
 }
 
+func (s *S) TestRemoteShouldUseUidFromConfigFile(c *C) {
+	uid, err := config.GetString("uid")
+	c.Assert(err, IsNil)
+	host, err := config.GetString("host")
+	c.Assert(err, IsNil)
+	config.Set("uid", "test")
+	defer config.Set("uid", uid)
+	remote := (&Repository{Name: "f#"}).Remote()
+	c.Assert(remote, Equals, fmt.Sprintf("test@%s:f#.git", host))
+}
+
 func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, IsNil)
