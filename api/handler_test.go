@@ -6,6 +6,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/fs"
@@ -27,6 +28,10 @@ type bufferCloser struct {
 }
 
 func (b bufferCloser) Close() error { return nil }
+
+func get(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
+	return request("GET", url, b, c)
+}
 
 func post(url string, b io.Reader, c *C) (*httptest.ResponseRecorder, *http.Request) {
 	return request("POST", url, b, c)
@@ -106,6 +111,27 @@ func (s *S) TestNewUserWihoutKey(c *C) {
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
 	c.Assert(recorder.Code, Equals, 200)
+}
+
+func (s *S) TestGetRepository(c *C) {
+	r := repository.Repository{Name: "onerepo"}
+	err := db.Session.Repository().Insert(&r)
+	c.Assert(err, IsNil)
+	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	recorder, request := get("/repository/onerepo?:name=onerepo", nil, c)
+	GetRepository(recorder, request)
+	body, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	var data map[string]string
+	err = json.Unmarshal(body, &data)
+	c.Assert(err, IsNil)
+	expected := map[string]string{
+		"name":    r.Name,
+		"public":  "true",
+		"ssh_url": r.SshUrl(),
+		"git_url": r.GitUrl(),
+	}
+	c.Assert(data, DeepEquals, expected)
 }
 
 func (s *S) TestNewRepository(c *C) {

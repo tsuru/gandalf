@@ -131,6 +131,18 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Repository \"%s\" successfully created\n", rep.Name)
 }
 
+func GetRepository(w http.ResponseWriter, r *http.Request) {
+	repo, _ := repository.Get(r.URL.Query().Get(":name"))
+	data := map[string]string{
+		"name":    repo.Name,
+		"public":  "true",
+		"ssh_url": repo.SshUrl(),
+		"git_url": repo.GitUrl(),
+	}
+	out, _ := json.Marshal(data)
+	w.Write(out)
+}
+
 func RemoveRepository(w http.ResponseWriter, r *http.Request) {
 	repo := &repository.Repository{Name: r.URL.Query().Get(":name")}
 	if err := repository.Remove(repo); err != nil {
