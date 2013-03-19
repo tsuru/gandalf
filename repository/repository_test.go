@@ -167,6 +167,13 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 	c.Assert(err, ErrorMatches, "^Could not remove repository: not found$")
 }
 
+func (s *S) TestGitUrl(c *C) {
+	host, err := config.GetString("host")
+	c.Assert(err, IsNil)
+	remote := (&Repository{Name: "lol"}).GitUrl()
+	c.Assert(remote, Equals, fmt.Sprintf("git://%s/lol.git", host))
+}
+
 func (s *S) TestSshUrl(c *C) {
 	host, err := config.GetString("host")
 	c.Assert(err, IsNil)

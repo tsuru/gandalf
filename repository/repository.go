@@ -65,6 +65,16 @@ func (r *Repository) SshUrl() string {
 	return fmt.Sprintf("%s@%s:%s", uid, host, formatName(r.Name))
 }
 
+// GitUrl formats the git url and return it
+// If no host is configured in gandalf.conf GitUrl will panic
+func (r *Repository) GitUrl() string {
+	host, err := config.GetString("host")
+	if err != nil {
+		panic(err.Error())
+	}
+	return fmt.Sprintf("git://%s/%s", host, formatName(r.Name))
+}
+
 // Validates a repository
 // A valid repository must have:
 //  - a name without any special chars only alphanumeric and underlines are allowed.
