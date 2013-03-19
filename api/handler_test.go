@@ -122,12 +122,12 @@ func (s *S) TestGetRepository(c *C) {
 	GetRepository(recorder, request)
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
-	var data map[string]string
+	var data map[string]interface{}
 	err = json.Unmarshal(body, &data)
 	c.Assert(err, IsNil)
-	expected := map[string]string{
+	expected := map[string]interface{}{
 		"name":    r.Name,
-		"public":  "true",
+		"public":  r.IsPublic,
 		"ssh_url": r.SshUrl(),
 		"git_url": r.GitUrl(),
 	}

@@ -133,13 +133,7 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 
 func GetRepository(w http.ResponseWriter, r *http.Request) {
 	repo, _ := repository.Get(r.URL.Query().Get(":name"))
-	data := map[string]string{
-		"name":    repo.Name,
-		"public":  "true",
-		"ssh_url": repo.SshUrl(),
-		"git_url": repo.GitUrl(),
-	}
-	out, _ := json.Marshal(data)
+	out, _ := json.Marshal(&repo)
 	w.Write(out)
 }
 
