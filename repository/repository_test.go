@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
@@ -287,4 +288,20 @@ func (s *S) TestGet(c *C) {
 	r, err := Get("somerepo")
 	c.Assert(err, IsNil)
 	c.Assert(r, DeepEquals, repo)
+}
+
+func (s *S) TestMarshalJSON(c *C) {
+	repo := Repository{Name: "somerepo", Users: []string{}}
+	expected := map[string]interface{}{
+		"name":    repo.Name,
+		"public":  repo.IsPublic,
+		"ssh_url": repo.SshUrl(),
+		"git_url": repo.GitUrl(),
+	}
+	data, err := json.Marshal(&repo)
+	c.Assert(err, IsNil)
+	var result map[string]interface{}
+	err = json.Unmarshal(data, &result)
+	c.Assert(err, IsNil)
+	c.Assert(result, DeepEquals, expected)
 }

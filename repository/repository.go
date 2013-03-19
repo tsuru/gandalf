@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/globocom/config"
@@ -18,6 +19,17 @@ type Repository struct {
 	Name     string `bson:"_id"`
 	Users    []string
 	IsPublic bool
+}
+
+// MarshalJSON marshals the Repository in json format.
+func (r *Repository) MarshalJSON() ([]byte, error) {
+	data := map[string]interface{}{
+		"name":    r.Name,
+		"public":  r.IsPublic,
+		"ssh_url": r.SshUrl(),
+		"git_url": r.GitUrl(),
+	}
+	return json.Marshal(&data)
 }
 
 // Creates a representation of a git repository
