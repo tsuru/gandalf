@@ -132,8 +132,16 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRepository(w http.ResponseWriter, r *http.Request) {
-	repo, _ := repository.Get(r.URL.Query().Get(":name"))
-	out, _ := json.Marshal(&repo)
+	repo, err := repository.Get(r.URL.Query().Get(":name"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	out, err := json.Marshal(&repo)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Write(out)
 }
 

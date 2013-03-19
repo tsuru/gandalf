@@ -134,6 +134,12 @@ func (s *S) TestGetRepository(c *C) {
 	c.Assert(data, DeepEquals, expected)
 }
 
+func (s *S) TestGetRepositoryDoesNotExist(c *C) {
+	recorder, request := get("/repository/doesnotexists?:name=doesnotexists", nil, c)
+	GetRepository(recorder, request)
+	c.Assert(recorder.Code, Equals, 500)
+}
+
 func (s *S) TestNewRepository(c *C) {
 	defer db.Session.Repository().Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
