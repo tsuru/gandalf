@@ -51,9 +51,9 @@ func Remove(r *Repository) error {
 	return nil
 }
 
-// Format the git remote url and return it
-// If no remote is configured in gandalf.conf Remote will panic
-func (r *Repository) Remote() string {
+// SshUrl formats the git ssh url and return it
+// If no remote is configured in gandalf.conf SshUrl will panic
+func (r *Repository) SshUrl() string {
 	host, err := config.GetString("host")
 	if err != nil {
 		panic(err.Error())
