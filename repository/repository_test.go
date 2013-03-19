@@ -279,3 +279,12 @@ func (s *S) TestConflictingRepositoryNameShouldReturnExplicitError(c *C) {
 	_, err = New("someRepo", []string{"gollum"}, true)
 	c.Assert(err, ErrorMatches, "A repository with this name already exists.")
 }
+
+func (s *S) TestGet(c *C) {
+	repo := Repository{Name: "somerepo", Users: []string{}}
+	err := db.Session.Repository().Insert(repo)
+	c.Assert(err, IsNil)
+	r, err := Get("somerepo")
+	c.Assert(err, IsNil)
+	c.Assert(r, DeepEquals, repo)
+}

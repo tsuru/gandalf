@@ -38,6 +38,13 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	return r, err
 }
 
+// Get find a repository by name
+func Get(name string) (Repository, error) {
+	var r Repository
+	err := db.Session.Repository().FindId(name).One(&r)
+	return r, err
+}
+
 // Deletes the repository from the database and
 // removes it's bare git repository
 func Remove(r *Repository) error {
