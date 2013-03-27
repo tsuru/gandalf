@@ -2,7 +2,9 @@
 Installation guide
 ==================
 
-This document describes how to install gandalf.
+This document describes how to install gandalf using the pre-built binaries.
+
+If you want, you can :doc:`install gandalf from source </install-from-source>` too.
 
 This document assumes that gandalf is being installed on a Ubuntu (12.10) machine. You
 can use equivalent packages for git, MongoDB and other gandalf dependencies. Please make
