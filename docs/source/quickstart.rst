@@ -13,7 +13,7 @@ Create a user:
 
 ::
 
-    $ curl -d '{"name": "username", "keys": {"keyname": "ssh-rsa userpubkey user@host"}}' localhost:8000.com/user
+    $ curl -d '{"name": "username", "keys": {"keyname": "ssh-rsa userpubkey user@host"}}' localhost:8000/user
 
 You should see the following:
 
@@ -29,7 +29,7 @@ Now let's create a repository:
 
 ::
 
-    $ curl -d '{"name": "myproject", "users": ["username"], "ispublic": true}' localhost:8000.com/repository
+    $ curl -d '{"name": "myproject", "users": ["username"], "ispublic": true}' localhost:8000/repository
 
 You should get the following:
 
@@ -68,7 +68,7 @@ In order to delete a repository, execute the following:
 
 ::
 
-    $ curl -XDELETE localhost:8000.com/repository/myproject
+    $ curl -XDELETE localhost:8000/repository/myproject
 
 The output should be:
 
@@ -84,7 +84,7 @@ To delete a user:
 
 ::
 
-    $ curl -XDELETE localhost:8000.com/user/username
+    $ curl -XDELETE localhost:8000/user/username
 
 The output should be:
 
