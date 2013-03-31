@@ -84,7 +84,7 @@ Start gandalf
 
 ::
 
-    $ webserver &
+    $ gandalf-webserver &
 
 And the git daemon
 
