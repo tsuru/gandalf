@@ -29,6 +29,7 @@ For an example conf check gandalf/etc/gandalf.conf file.`
 	router := pat.New()
 	router.Post("/user/:name/key", http.HandlerFunc(api.AddKey))
 	router.Del("/user/:name/key/:keyname", http.HandlerFunc(api.RemoveKey))
+	router.Get("/user/:name/keys", http.HandlerFunc(api.ListKeys))
 	router.Post("/user", http.HandlerFunc(api.NewUser))
 	router.Del("/user/:name", http.HandlerFunc(api.RemoveUser))
 	router.Post("/repository", http.HandlerFunc(api.NewRepository))

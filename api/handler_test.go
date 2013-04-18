@@ -409,6 +409,31 @@ func (s *S) TestListKeysGivesExpectedSuccessResponse(c *C) {
 	c.Assert(data, DeepEquals, keys)
 }
 
+func (s *S) TestListKeysWithoutKeysGivesEmptyJSON(c *C) {
+	u, err := user.New("Gandalf", map[string]string{})
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	url := "/user/Gandalf/keys?:name=Gandalf"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	ListKeys(recorder, request)
+	c.Assert(recorder.Code, Equals, 200)
+	b := readBody(recorder.Body, c)
+	c.Assert(b, Equals, "{}")
+}
+
+func (s *S) TestListKeysWithInvalidUserReturnsNotFound(c *C) {
+	url := "/user/no-Gandalf/keys?:name=no-Gandalf"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	ListKeys(recorder, request)
+	c.Assert(recorder.Code, Equals, 404)
+	b := readBody(recorder.Body, c)
+	c.Assert(b, Equals, "User \"no-Gandalf\" does not exists\n")
+}
+
 func (s *S) TestRemoveUser(c *C) {
 	u, err := user.New("username", map[string]string{})
 	c.Assert(err, IsNil)
