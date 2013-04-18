@@ -94,6 +94,21 @@ func RemoveKey(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Key \"%s\" successfully removed", kName)
 }
 
+func ListKeys(w http.ResponseWriter, r *http.Request) {
+	uName := r.URL.Query().Get(":name")
+	keys, err := user.ListKeys(uName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	out, err := json.Marshal(&keys)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(out)
+}
+
 func NewUser(w http.ResponseWriter, r *http.Request) {
 	var usr user.User
 	if err := parseBody(r.Body, &usr); err != nil {
