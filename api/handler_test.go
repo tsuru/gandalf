@@ -390,6 +390,25 @@ func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *C) {
 	c.Assert(b, Equals, "User \"Gandalf\" does not exists\n")
 }
 
+func (s *S) TestListKeysGivesExpectedSuccessResponse(c *C) {
+	keys := map[string]string{"key1": "ssh-key somekey gandalf@host1", "key2": "ssh-key somekey gandalf@host2"}
+	u, err := user.New("Gandalf", keys)
+	c.Assert(err, IsNil)
+	defer db.Session.User().RemoveId(u.Name)
+	url := "/user/Gandalf/keys?:name=Gandalf"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	ListKeys(recorder, request)
+	c.Assert(recorder.Code, Equals, 200)
+	body, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	var data map[string]string
+	err = json.Unmarshal(body, &data)
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, keys)
+}
+
 func (s *S) TestRemoveUser(c *C) {
 	u, err := user.New("username", map[string]string{})
 	c.Assert(err, IsNil)

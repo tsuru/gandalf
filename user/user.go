@@ -123,3 +123,14 @@ func RemoveKey(uName, kName string) error {
 	}
 	return removeKey(kContent, uName)
 }
+
+// ListKeys lists all user's keys
+//
+// If the user is not found, returns an error
+func ListKeys(uName string) (map[string]string, error) {
+	var u User
+	if err := db.Session.User().FindId(uName).One(&u); err != nil {
+		return nil, fmt.Errorf(`User "%s" does not exists`, uName)
+	}
+	return u.Keys, nil
+}
