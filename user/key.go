@@ -30,7 +30,7 @@ func authKey() string {
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
 func addKey(k, username string) error {
-	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0755)
+	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL|os.O_CREATE, 0755)
 	if err != nil {
 		return err
 	}

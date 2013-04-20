@@ -72,6 +72,14 @@ func (s *S) TestaddKeysShouldWriteToAuthorizedKeysFile(c *C) {
 	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
 }
 
+func (s *S) TestAddKeyShouldCreateAuthorizedKeysFile(c *C) {
+	err := s.rfs.Remove(authKey())
+	c.Assert(err, IsNil)
+	key := "somekey what"
+	err = addKey(key, "user")
+	c.Assert(err, IsNil)
+}
+
 func (s *S) TestaddDuplicateKeyShouldReturnError(c *C) {
 	keys := map[string]string{
 		"somekey": "ssh-rsa mykey pippin@nowhere",
@@ -82,6 +90,7 @@ func (s *S) TestaddDuplicateKeyShouldReturnError(c *C) {
 }
 
 func (s *S) TestremoveKeysShouldRemoveKeysFromAuthorizedKeys(c *C) {
+	addKey("ssh-rsa mykey pippin@nowhere", "someuser")
 	key := map[string]string{"somekey": "ssh-rsa mykey pippin@nowhere"}
 	err := removeKeys(key, "someuser")
 	c.Assert(err, IsNil)
@@ -109,9 +118,12 @@ func (s *S) TestRemoveKey(c *C) {
 }
 
 func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
+	path := authKey()
+	s.rfs.Create(path)
+	defer s.rfs.Remove(path)
 	err := removeKey("somekey blaaaaaaa r2d2@host", "anotheruser")
 	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
+	f, err := s.rfs.OpenFile(path, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
