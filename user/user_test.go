@@ -35,17 +35,6 @@ func (s *S) authKeysContent(c *C) string {
 	return string(b)
 }
 
-func (s *S) clearAuthKeyFile() bool {
-	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
-	if err != nil {
-		return false
-	}
-	if err := f.Truncate(0); err != nil {
-		return false
-	}
-	return true
-}
-
 func (s *S) SetUpSuite(c *C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Check(err, IsNil)
@@ -59,7 +48,7 @@ func (s *S) SetUpTest(c *C) {
 }
 
 func (s *S) TearDownTest(c *C) {
-	s.clearAuthKeyFile()
+	s.rfs.Remove(authKey())
 }
 
 func (s *S) TearDownSuite(c *C) {
