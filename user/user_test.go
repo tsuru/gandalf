@@ -59,8 +59,7 @@ func (s *S) SetUpTest(c *C) {
 }
 
 func (s *S) TearDownTest(c *C) {
-	ok := s.clearAuthKeyFile()
-	c.Assert(ok, Equals, true)
+	s.clearAuthKeyFile()
 }
 
 func (s *S) TearDownSuite(c *C) {
