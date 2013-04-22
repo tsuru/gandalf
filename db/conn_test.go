@@ -43,6 +43,15 @@ func (s *S) TestSessionKeyShouldReturnKeyCollection(c *C) {
 	c.Assert(key, DeepEquals, cKey)
 }
 
+func (s *S) TestSessionKeyBodyIsUnique(c *C) {
+	key := Session.Key()
+	indexes, err := key.Indexes()
+	c.Assert(err, IsNil)
+	c.Assert(indexes, HasLen, 2)
+	c.Assert(indexes[1].Key, DeepEquals, []string{"body"})
+	c.Assert(indexes[1].Unique, DeepEquals, true)
+}
+
 func (s *S) TestConnect(c *C) {
 	Connect()
 	c.Assert(Session.DB.Name, Equals, "gandalf_tests")

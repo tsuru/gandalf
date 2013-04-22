@@ -47,5 +47,8 @@ func (s *session) User() *mgo.Collection {
 }
 
 func (s *session) Key() *mgo.Collection {
-	return s.DB.C("key")
+	index := mgo.Index{Key: []string{"body"}, Unique: true}
+	c := s.DB.C("key")
+	c.EnsureIndex(index)
+	return c
 }
