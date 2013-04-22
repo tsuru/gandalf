@@ -45,3 +45,7 @@ func (s *session) Repository() *mgo.Collection {
 func (s *session) User() *mgo.Collection {
 	return s.DB.C("user")
 }
+
+func (s *session) Key() *mgo.Collection {
+	return s.DB.C("key")
+}

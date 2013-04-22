@@ -37,6 +37,12 @@ func (s *S) TestSessionUserShouldReturnAMongoCollection(c *C) {
 	c.Assert(usr, DeepEquals, cUsr)
 }
 
+func (s *S) TestSessionKeyShouldReturnKeyCollection(c *C) {
+	key := Session.Key()
+	cKey := Session.DB.C("key")
+	c.Assert(key, DeepEquals, cKey)
+}
+
 func (s *S) TestConnect(c *C) {
 	Connect()
 	c.Assert(Session.DB.Name, Equals, "gandalf_tests")
