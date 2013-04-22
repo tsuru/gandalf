@@ -15,6 +15,13 @@ import (
 	"strings"
 )
 
+type Key struct {
+	Name     string
+	Body     string
+	Comment  string
+	UserName string
+}
+
 // authKey returns the file to write user's keys.
 func authKey() string {
 	var home string
@@ -29,7 +36,7 @@ func authKey() string {
 // Writes `key` in authorized_keys file (from current user)
 // It does not writes in the database, there is no need for that since the key
 // object is embedded on the user's document
-func addKey(k, username string) error {
+func addKey(name, body, username string) error {
 	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL|os.O_CREATE, 0755)
 	if err != nil {
 		return err
@@ -39,7 +46,7 @@ func addKey(k, username string) error {
 	if err != nil {
 		return err
 	}
-	content := formatKey(k, username)
+	content := formatKey(body, username)
 	if strings.Contains(string(keys), content) {
 		return fmt.Errorf("Key already exists.")
 	}
@@ -56,8 +63,8 @@ func addKey(k, username string) error {
 }
 
 func addKeys(keys map[string]string, username string) error {
-	for _, k := range keys {
-		err := addKey(k, username)
+	for name, k := range keys {
+		err := addKey(name, k, username)
 		if err != nil {
 			return err
 		}

@@ -20,13 +20,13 @@ func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C)
 }
 
 func (s *S) TestShouldAddKeyWithoutError(c *C) {
-	err := addKey("somekey blaaaaaaa r2d2@host", "someuser")
+	err := addKey("key1", "somekey blaaaaaaa r2d2@host", "someuser")
 	c.Assert(err, IsNil)
 }
 
 func (s *S) TestShouldWriteKeyInFile(c *C) {
 	key := "somekey blaaaaaaa r2d2@host"
-	err := addKey(key, "someuser")
+	err := addKey("key1", key, "someuser")
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	b, err := ioutil.ReadAll(f)
@@ -37,10 +37,10 @@ func (s *S) TestShouldWriteKeyInFile(c *C) {
 
 func (s *S) TestShouldAppendKeyInFile(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := addKey(key1, "someuser")
+	err := addKey("key1", key1, "someuser")
 	c.Assert(err, IsNil)
 	key2 := "somekey foo r2d2@host"
-	err = addKey(key2, "someuser")
+	err = addKey("key2", key2, "someuser")
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
@@ -54,7 +54,7 @@ func (s *S) TestShouldAppendKeyInFile(c *C) {
 func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
 	key := "somekey bleeeerh r2d2@host"
 	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
-	err := addKey(key, "someuser")
+	err := addKey("key1", key, "someuser")
 	c.Assert(err, IsNil)
 	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
@@ -76,7 +76,7 @@ func (s *S) TestAddKeyShouldCreateAuthorizedKeysFile(c *C) {
 	err := s.rfs.Remove(authKey())
 	c.Assert(err, IsNil)
 	key := "somekey what"
-	err = addKey(key, "user")
+	err = addKey("key1", key, "user")
 	c.Assert(err, IsNil)
 }
 
@@ -90,7 +90,7 @@ func (s *S) TestaddDuplicateKeyShouldReturnError(c *C) {
 }
 
 func (s *S) TestremoveKeysShouldRemoveKeysFromAuthorizedKeys(c *C) {
-	addKey("ssh-rsa mykey pippin@nowhere", "someuser")
+	addKey("key1", "ssh-rsa mykey pippin@nowhere", "someuser")
 	key := map[string]string{"somekey": "ssh-rsa mykey pippin@nowhere"}
 	err := removeKeys(key, "someuser")
 	c.Assert(err, IsNil)
@@ -100,10 +100,10 @@ func (s *S) TestremoveKeysShouldRemoveKeysFromAuthorizedKeys(c *C) {
 
 func (s *S) TestRemoveKey(c *C) {
 	key1 := "somekey blaaaaaaa r2d2@host"
-	err := addKey(key1, "someuser")
+	err := addKey("key1", key1, "someuser")
 	c.Assert(err, IsNil)
 	key2 := "someotherkey fooo r2d2@host"
-	err = addKey(key2, "someuser")
+	err = addKey("key2", key2, "someuser")
 	c.Assert(err, IsNil)
 	err = removeKey(key1, "someuser")
 	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
@@ -133,7 +133,7 @@ func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
 
 func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
 	key := "somekey blaaaaaaa r2d2@host"
-	err := addKey(key, "someuser")
+	err := addKey("key1", key, "someuser")
 	c.Assert(err, IsNil)
 	err = removeKey(key, "someuser")
 	c.Assert(err, IsNil)

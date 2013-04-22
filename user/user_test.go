@@ -30,6 +30,7 @@ func (s *S) authKeysContent(c *C) string {
 	authFile := path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
 	f, err := fs.Filesystem().OpenFile(authFile, os.O_RDWR, 0755)
 	c.Assert(err, IsNil)
+	defer f.Close()
 	b, err := ioutil.ReadAll(f)
 	c.Assert(err, IsNil)
 	return string(b)
