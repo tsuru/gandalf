@@ -23,6 +23,10 @@ func (s *S) SetUpSuite(c *C) {
 	Connect()
 }
 
+func (s *S) TearDownSuite(c *C) {
+	Session.DB.DropDatabase()
+}
+
 func (s *S) TestSessionRepositoryShouldReturnAMongoCollection(c *C) {
 	var rep *mgo.Collection
 	rep = Session.Repository()
