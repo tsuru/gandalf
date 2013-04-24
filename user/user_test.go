@@ -245,7 +245,7 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *C) {
 
 func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExists(c *C) {
 	err := AddKey("umi", map[string]string{"somekey": "ssh-rsa mykey umi@host"})
-	c.Assert(err, ErrorMatches, `^User "umi" not found$`)
+	c.Assert(err, Equals, ErrUserNotFound)
 }
 
 func (s *S) TestRemoveKeyShouldRemoveKeyFromTheDatabase(c *C) {

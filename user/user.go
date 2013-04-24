@@ -97,7 +97,7 @@ func (u *User) handleAssociatedRepositories() error {
 func AddKey(uName string, k map[string]string) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
-		return fmt.Errorf("User %q not found", uName)
+		return ErrUserNotFound
 	}
 	return addKeys(k, u.Name)
 }
