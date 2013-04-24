@@ -14,10 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
-	"regexp"
 )
-
-var re = regexp.MustCompile(`^User ".*" not found$`)
 
 func accessParameters(body io.ReadCloser) (repositories, users []string, err error) {
 	var params map[string][]string
@@ -74,11 +71,16 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 	}
 	uName := r.URL.Query().Get(":name")
 	if err := user.AddKey(uName, keys); err != nil {
-		status := http.StatusNotFound
-		if !re.MatchString(err.Error()) {
-			status = http.StatusConflict
+		switch err {
+		case user.ErrInvalidKey:
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case user.ErrDuplicateKey:
+			http.Error(w, "Key already exists.", http.StatusConflict)
+		case user.ErrUserNotFound:
+			http.Error(w, err.Error(), http.StatusNotFound)
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		http.Error(w, err.Error(), status)
 		return
 	}
 	fmt.Fprint(w, "Key(s) successfully created")
@@ -109,8 +111,13 @@ func ListKeys(w http.ResponseWriter, r *http.Request) {
 	w.Write(out)
 }
 
+type jsonUser struct {
+	Name string
+	Keys map[string]string
+}
+
 func NewUser(w http.ResponseWriter, r *http.Request) {
-	var usr user.User
+	var usr jsonUser
 	if err := parseBody(r.Body, &usr); err != nil {
 		http.Error(w, "Got error while parsing body: "+err.Error(), http.StatusBadRequest)
 		return

@@ -64,25 +64,27 @@ func (s *S) authKeysContent(c *C) string {
 }
 
 func (s *S) TestNewUser(c *C) {
-	b := strings.NewReader(`{"name": "brain", "keys": {"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}}`)
+	b := strings.NewReader(fmt.Sprintf(`{"name": "brain", "keys": {"keyname": %q}}`, rawKey))
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
 	defer db.Session.User().Remove(bson.M{"_id": "brain"})
-	c.Assert(recorder.Code, Equals, 200)
+	defer db.Session.Key().Remove(bson.M{"username": "brain"})
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
 	c.Assert(string(body), Equals, "User \"brain\" successfully created\n")
+	c.Assert(recorder.Code, Equals, 200)
 }
 
 func (s *S) TestNewUserShouldSaveInDB(c *C) {
 	b := strings.NewReader(`{"name": "brain", "keys": {"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
-	collection := db.Session.User()
+	defer db.Session.User().Remove(bson.M{"_id": "brain"})
+	defer db.Session.Key().Remove(bson.M{"username": "brain"})
 	var u user.User
-	err := collection.Find(bson.M{"_id": "brain"}).One(&u)
-	defer collection.Remove(bson.M{"_id": "brain"})
+	err := db.Session.User().Find(bson.M{"_id": "brain"}).One(&u)
 	c.Assert(err, IsNil)
+	c.Assert(u.Name, Equals, "brain")
 }
 
 func (s *S) TestNewUserShouldRepassParseBodyErrors(c *C) {
@@ -105,7 +107,7 @@ func (s *S) TestNewUserShouldRequireUserName(c *C) {
 	c.Assert(got, Equals, expected)
 }
 
-func (s *S) TestNewUserWihoutKey(c *C) {
+func (s *S) TestNewUserWihoutKeys(c *C) {
 	b := strings.NewReader(`{"name": "brain"}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
@@ -282,16 +284,21 @@ func (s *S) TestRevokeAccessUpdatesReposDocument(c *C) {
 }
 
 func (s *S) TestAddKey(c *C) {
-	user, err := user.New("Frodo", map[string]string{})
+	usr, err := user.New("Frodo", map[string]string{})
 	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId("Frodo")
-	b := strings.NewReader(`{"keyname": "keycontent"}`)
-	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, c)
+	defer user.Remove(usr.Name)
+	b := strings.NewReader(fmt.Sprintf(`{"keyname": %q}`, rawKey))
+	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", usr.Name, usr.Name), b, c)
 	AddKey(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Key(s) successfully created"
 	c.Assert(got, Equals, expected)
 	c.Assert(recorder.Code, Equals, 200)
+	var k user.Key
+	err = db.Session.Key().Find(bson.M{"name": "keyname", "username": usr.Name}).One(&k)
+	c.Assert(err, IsNil)
+	c.Assert(k.Body, Equals, keyBody)
+	c.Assert(k.Comment, Equals, keyComment)
 }
 
 func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExists(c *C) {
@@ -301,20 +308,50 @@ func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExists(c *C) {
 	c.Assert(recorder.Code, Equals, 404)
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
-	c.Assert(string(body), Equals, "User \"Frodo\" not found\n")
+	c.Assert(string(body), Equals, "User not found\n")
 }
 
 func (s *S) TestAddKeyShouldReturnProperStatusCodeWhenKeyAlreadyExists(c *C) {
-	user, err := user.New("Frodo", map[string]string{"keyname": "keycontent"})
+	usr, err := user.New("Frodo", map[string]string{"keyname": rawKey})
 	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId("Frodo")
-	b := strings.NewReader(`{"keyname": "keycontent"}`)
-	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", user.Name, user.Name), b, c)
+	defer user.Remove(usr.Name)
+	b := strings.NewReader(fmt.Sprintf(`{"keyname": %q}`, rawKey))
+	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", usr.Name, usr.Name), b, c)
 	AddKey(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Key already exists.\n"
 	c.Assert(got, Equals, expected)
 	c.Assert(recorder.Code, Equals, http.StatusConflict)
+}
+
+func (s *S) TestAddKeyShouldNotAcceptRepeatedKeysForDifferentUsers(c *C) {
+	usr, err := user.New("Frodo", map[string]string{"keyname": rawKey})
+	c.Assert(err, IsNil)
+	defer user.Remove(usr.Name)
+	usr2, err := user.New("tempo", nil)
+	c.Assert(err, IsNil)
+	defer user.Remove(usr2.Name)
+	b := strings.NewReader(fmt.Sprintf(`{"keyname": %q}`, rawKey))
+	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", usr2.Name, usr2.Name), b, c)
+	AddKey(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "Key already exists.\n"
+	c.Assert(got, Equals, expected)
+	c.Assert(recorder.Code, Equals, http.StatusConflict)
+}
+
+func (s *S) TestAddKeyInvalidKey(c *C) {
+	u := user.User{Name: "Frodo"}
+	err := db.Session.User().Insert(&u)
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
+	b := strings.NewReader(`{"keyname":"invalid-rsa"}`)
+	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", u.Name, u.Name), b, c)
+	AddKey(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "Invalid key\n"
+	c.Assert(got, Equals, expected)
+	c.Assert(recorder.Code, Equals, http.StatusBadRequest)
 }
 
 func (s *S) TestAddKeyShouldRequireKey(c *C) {
@@ -336,19 +373,19 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeysFile(c *C) {
 	err := db.Session.User().Insert(&u)
 	c.Assert(err, IsNil)
 	defer db.Session.User().RemoveId("Frodo")
-	k := "ssh-key frodoskey frodo@host"
-	b := strings.NewReader(fmt.Sprintf(`{"key": "%s"}`, k))
+	b := strings.NewReader(fmt.Sprintf(`{"key": "%s"}`, rawKey))
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
+	defer db.Session.Key().Remove(bson.M{"name": "key", "username": u.Name})
 	c.Assert(recorder.Code, Equals, 200)
 	content := s.authKeysContent(c)
-	c.Assert(content, Matches, ".*"+k)
+	c.Assert(strings.HasSuffix(strings.TrimSpace(content), rawKey), Equals, true)
 }
 
 func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
-	u, err := user.New("Gandalf", map[string]string{"keyname": "ssh-key somekey gandalf@host"})
+	u, err := user.New("Gandalf", map[string]string{"keyname": rawKey})
 	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
+	defer user.Remove(u.Name)
 	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
@@ -357,44 +394,42 @@ func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *C) {
 	c.Assert(b, Equals, `Key "keyname" successfully removed`)
 }
 
-func (s *S) TestRemoveKeyRemovesKeyFromUserDocument(c *C) {
-	k := "ssh-key somekey gandalf@host"
-	u, err := user.New("Gandalf", map[string]string{"keyname": k})
+func (s *S) TestRemoveKeyRemovesKeyFromDatabase(c *C) {
+	u, err := user.New("Gandalf", map[string]string{"keyname": rawKey})
 	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
+	defer user.Remove(u.Name)
 	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
-	err = db.Session.User().FindId(u.Name).One(&u)
+	count, err := db.Session.Key().Find(bson.M{"name": "keyname", "username": "Gandalf"}).Count()
 	c.Assert(err, IsNil)
-	c.Assert(u.Keys, DeepEquals, map[string]string{})
+	c.Assert(count, Equals, 0)
 }
 
 func (s *S) TestRemoveKeyShouldRemoveKeyFromAuthorizedKeysFile(c *C) {
-	k := "ssh-key somekey gandalf@host"
-	u, err := user.New("Gandalf", map[string]string{"keyname": k})
+	u, err := user.New("Gandalf", map[string]string{"keyname": rawKey})
 	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
+	defer user.Remove(u.Name)
 	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
 	content := s.authKeysContent(c)
-	c.Assert(content, Not(Matches), ".* "+k)
+	c.Assert(content, Equals, "")
 }
 
 func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *C) {
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
+	url := "/user/idiocracy/key/keyname?:keyname=keyname&:name=idiocracy"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
 	b := readBody(recorder.Body, c)
-	c.Assert(b, Equals, "User \"Gandalf\" does not exists\n")
+	c.Assert(b, Equals, "User not found\n")
 }
 
 func (s *S) TestListKeysGivesExpectedSuccessResponse(c *C) {
-	keys := map[string]string{"key1": "ssh-key somekey gandalf@host1", "key2": "ssh-key somekey gandalf@host2"}
+	keys := map[string]string{"key1": rawKey, "key2": otherKey}
 	u, err := user.New("Gandalf", keys)
 	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
+	defer user.Remove(u.Name)
 	url := "/user/Gandalf/keys?:name=Gandalf"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, IsNil)
@@ -412,7 +447,7 @@ func (s *S) TestListKeysGivesExpectedSuccessResponse(c *C) {
 func (s *S) TestListKeysWithoutKeysGivesEmptyJSON(c *C) {
 	u, err := user.New("Gandalf", map[string]string{})
 	c.Assert(err, IsNil)
-	defer db.Session.User().RemoveId(u.Name)
+	defer user.Remove(u.Name)
 	url := "/user/Gandalf/keys?:name=Gandalf"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, IsNil)
@@ -431,7 +466,7 @@ func (s *S) TestListKeysWithInvalidUserReturnsNotFound(c *C) {
 	ListKeys(recorder, request)
 	c.Assert(recorder.Code, Equals, 404)
 	b := readBody(recorder.Body, c)
-	c.Assert(b, Equals, "User \"no-Gandalf\" does not exists\n")
+	c.Assert(b, Equals, "User not found\n")
 }
 
 func (s *S) TestRemoveUser(c *C) {
