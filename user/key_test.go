@@ -6,6 +6,7 @@ package user
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/globocom/config"
@@ -337,6 +338,25 @@ func (s *S) TestRemoveUserMultipleKeys(c *C) {
 	c.Assert(got, Equals, "")
 }
 
+func (s *S) TestKeyListJSON(c *C) {
+	keys := []Key{
+		{Name: "key1", Body: "ssh-dss not-secret", Comment: "me@host1"},
+		{Name: "key2", Body: "ssh-dss not-secret1", Comment: "me@host2"},
+		{Name: "another-key", Body: "ssh-rsa not-secret", Comment: "me@work"},
+	}
+	expected := map[string]string{
+		keys[0].Name: keys[0].String(),
+		keys[1].Name: keys[1].String(),
+		keys[2].Name: keys[2].String(),
+	}
+	var got map[string]string
+	b, err := KeyList(keys).MarshalJSON()
+	c.Assert(err, IsNil)
+	err = json.Unmarshal(b, &got)
+	c.Assert(err, IsNil)
+	c.Assert(got, DeepEquals, expected)
+}
+
 func (s *S) TestListKeys(c *C) {
 	user := map[string]string{"_id": "glenda"}
 	err := db.Session.User().Insert(user)
@@ -352,7 +372,7 @@ func (s *S) TestListKeys(c *C) {
 	c.Assert(err, IsNil)
 	got, err := ListKeys("glenda")
 	c.Assert(err, IsNil)
-	c.Assert(got, DeepEquals, expected)
+	c.Assert(got, DeepEquals, KeyList(expected))
 }
 
 func (s *S) TestListKeysUnknownUser(c *C) {
@@ -391,5 +411,5 @@ func (s *S) TestListKeysFromTheUserOnly(c *C) {
 	c.Assert(err, IsNil)
 	got, err := ListKeys("gopher")
 	c.Assert(err, IsNil)
-	c.Assert(got, DeepEquals, expected)
+	c.Assert(got, DeepEquals, KeyList(expected))
 }

@@ -7,6 +7,7 @@ package user
 import (
 	"bufio"
 	"code.google.com/p/go.crypto/ssh"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/globocom/config"
@@ -177,14 +178,24 @@ func removeKey(name, username string) error {
 	return remove(&k)
 }
 
+type KeyList []Key
+
+func (keys KeyList) MarshalJSON() ([]byte, error) {
+	m := make(map[string]string, len(keys))
+	for _, key := range keys {
+		m[key.Name] = key.String()
+	}
+	return json.Marshal(m)
+}
+
 // ListKeys lists all user's keys.
 //
 // If the user is not found, returns an error
-func ListKeys(uName string) ([]Key, error) {
+func ListKeys(uName string) (KeyList, error) {
 	if n, err := db.Session.User().FindId(uName).Count(); err != nil || n != 1 {
 		return nil, ErrUserNotFound
 	}
 	var keys []Key
 	err := db.Session.Key().Find(bson.M{"username": uName}).All(&keys)
-	return keys, err
+	return KeyList(keys), err
 }
