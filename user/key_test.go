@@ -5,159 +5,85 @@
 package user
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"github.com/globocom/config"
+	"github.com/globocom/gandalf/db"
+	"io"
 	"io/ioutil"
+	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
 	"os"
 	"path"
 )
 
-func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
-	home := os.Getenv("HOME")
-	expected := path.Join(home, ".ssh", "authorized_keys")
-	c.Assert(authKey(), Equals, expected)
+type shortWriter struct{}
+
+func (shortWriter) Write(p []byte) (int, error) {
+	return len(p) / 2, nil
 }
 
-func (s *S) TestShouldAddKeyWithoutError(c *C) {
-	err := addKey("key1", "somekey blaaaaaaa r2d2@host", "someuser")
-	c.Assert(err, IsNil)
+type failWriter struct{}
+
+func (failWriter) Write(p []byte) (int, error) {
+	return 0, errors.New("Failed")
 }
 
-func (s *S) TestShouldWriteKeyInFile(c *C) {
-	key := "somekey blaaaaaaa r2d2@host"
-	err := addKey("key1", key, "someuser")
+const rawKey = "ssh-dss AAAAB3NzaC1kc3MAAACBAIHfSDLpSCfIIVEJ/Is3RFMQhsCi7WZtFQeeyfi+DzVP0NGX4j/rMoQEHgXgNlOKVCJvPk5e00tukSv6iVzJPFcozArvVaoCc5jCoDi5Ef8k3Jil4Q7qNjcoRDDyqjqLcaviJEz5GrtmqAyXEIzJ447BxeEdw3Z7UrIWYcw2YyArAAAAFQD7wiOGZIoxu4XIOoeEe5aToTxN1QAAAIAZNAbJyOnNceGcgRRgBUPfY5ChX+9A29n2MGnyJ/Cxrhuh8d7B0J8UkvEBlfgQICq1UDZbC9q5NQprwD47cGwTjUZ0Z6hGpRmEEZdzsoj9T6vkLiteKH3qLo7IPVx4mV6TTF6PWQbQMUsuxjuDErwS9nhtTM4nkxYSmUbnWb6wfwAAAIB2qm/1J6Jl8bByBaMQ/ptbm4wQCvJ9Ll9u6qtKy18D4ldoXM0E9a1q49swml5CPFGyU+cgPRhEjN5oUr5psdtaY8CHa2WKuyIVH3B8UhNzqkjpdTFSpHs6tGluNVC+SQg1MVwfG2wsZUdkUGyn+6j8ZZarUfpAmbb5qJJpgMFEKQ== f@xikinbook.local"
+const body = "ssh-dss AAAAB3NzaC1kc3MAAACBAIHfSDLpSCfIIVEJ/Is3RFMQhsCi7WZtFQeeyfi+DzVP0NGX4j/rMoQEHgXgNlOKVCJvPk5e00tukSv6iVzJPFcozArvVaoCc5jCoDi5Ef8k3Jil4Q7qNjcoRDDyqjqLcaviJEz5GrtmqAyXEIzJ447BxeEdw3Z7UrIWYcw2YyArAAAAFQD7wiOGZIoxu4XIOoeEe5aToTxN1QAAAIAZNAbJyOnNceGcgRRgBUPfY5ChX+9A29n2MGnyJ/Cxrhuh8d7B0J8UkvEBlfgQICq1UDZbC9q5NQprwD47cGwTjUZ0Z6hGpRmEEZdzsoj9T6vkLiteKH3qLo7IPVx4mV6TTF6PWQbQMUsuxjuDErwS9nhtTM4nkxYSmUbnWb6wfwAAAIB2qm/1J6Jl8bByBaMQ/ptbm4wQCvJ9Ll9u6qtKy18D4ldoXM0E9a1q49swml5CPFGyU+cgPRhEjN5oUr5psdtaY8CHa2WKuyIVH3B8UhNzqkjpdTFSpHs6tGluNVC+SQg1MVwfG2wsZUdkUGyn+6j8ZZarUfpAmbb5qJJpgMFEKQ==\n"
+const comment = "f@xikinbook.local"
+const otherKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCaNZSIEyP6FSdCX0WHDcUFTvebNbvqKiiLEiC7NTGvKrT15r2MtCDi4EPi4Ul+UyxWqb2D7FBnK1UmIcEFHd/ZCnBod2/FSplGOIbIb2UVVbqPX5Alv7IBCMyZJD14ex5cFh16zoqOsPOkOD803LMIlNvXPDDwKjY4TVOQV1JtA2tbZXvYUchqhTcKPxt5BDBZbeQkMMgUgHIEz6IueglFB3+dIZfrzlmM8CVSElKZOpucnJ5JOpGh3paSO/px2ZEcvY8WvjFdipvAWsis75GG/04F641I6XmYlo9fib/YytBXS23szqmvOqEqAopFnnGkDEo+LWI0+FXgPE8lc5BD"
+
+func (s *S) TestNewKey(c *C) {
+	k, err := newKey("key1", "me@tsuru.io", rawKey)
 	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
-	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	got := string(b)
-	c.Assert(got, Equals, formatKey(key, "someuser"))
+	c.Assert(k.Name, Equals, "key1")
+	c.Assert(k.Body, Equals, body)
+	c.Assert(k.Comment, Equals, comment)
+	c.Assert(k.UserName, Equals, "me@tsuru.io")
 }
 
-func (s *S) TestShouldAppendKeyInFile(c *C) {
-	key1 := "somekey blaaaaaaa r2d2@host"
-	err := addKey("key1", key1, "someuser")
-	c.Assert(err, IsNil)
-	key2 := "somekey foo r2d2@host"
-	err = addKey("key2", key2, "someuser")
-	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
-	c.Assert(err, IsNil)
-	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	got := string(b)
-	expected := fmt.Sprintf(".*%s\n.*%s", key1, key2)
-	c.Assert(got, Matches, expected)
+func (s *S) TestNewKeyInvalidKey(c *C) {
+	raw := "ssh-dss ASCCDD== invalid@tsuru.io"
+	k, err := newKey("key1", "me@tsuru.io", raw)
+	c.Assert(k, IsNil)
+	c.Assert(err, Equals, ErrInvalidKey)
 }
 
-func (s *S) TestAddShouldWrapKeyWithRestrictions(c *C) {
-	key := "somekey bleeeerh r2d2@host"
-	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
-	err := addKey("key1", key, "someuser")
-	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
-	c.Assert(err, IsNil)
-	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	got := string(b)
-	c.Assert(got, Matches, expected)
+func (s *S) TestKeyString(c *C) {
+	k := Key{Body: "ssh-dss not-secret", Comment: "me@host"}
+	c.Assert(k.Body+" "+k.Comment, Equals, k.String())
 }
 
-func (s *S) TestaddKeysShouldWriteToAuthorizedKeysFile(c *C) {
-	key := map[string]string{"somekey": "ssh-rsa mykey pippin@nowhere"}
-	err := addKeys(key, "someuser")
-	c.Assert(err, IsNil)
-	keys := s.authKeysContent(c)
-	c.Assert(keys, Matches, ".*ssh-rsa mykey pippin@nowhere")
-}
-
-func (s *S) TestAddKeyShouldCreateAuthorizedKeysFile(c *C) {
-	err := s.rfs.Remove(authKey())
-	c.Assert(err, IsNil)
-	key := "somekey what"
-	err = addKey("key1", key, "user")
-	c.Assert(err, IsNil)
-}
-
-func (s *S) TestaddDuplicateKeyShouldReturnError(c *C) {
-	keys := map[string]string{
-		"somekey": "ssh-rsa mykey pippin@nowhere",
-		"double":  "ssh-rsa mykey pippin@nowhere",
-	}
-	err := addKeys(keys, "someuser")
-	c.Assert(err, ErrorMatches, "Key already exists.")
-}
-
-func (s *S) TestremoveKeysShouldRemoveKeysFromAuthorizedKeys(c *C) {
-	addKey("key1", "ssh-rsa mykey pippin@nowhere", "someuser")
-	key := map[string]string{"somekey": "ssh-rsa mykey pippin@nowhere"}
-	err := removeKeys(key, "someuser")
-	c.Assert(err, IsNil)
-	keys := s.authKeysContent(c)
-	c.Assert(keys, Equals, "")
-}
-
-func (s *S) TestRemoveKey(c *C) {
-	key1 := "somekey blaaaaaaa r2d2@host"
-	err := addKey("key1", key1, "someuser")
-	c.Assert(err, IsNil)
-	key2 := "someotherkey fooo r2d2@host"
-	err = addKey("key2", key2, "someuser")
-	c.Assert(err, IsNil)
-	err = removeKey(key1, "someuser")
-	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
-	c.Assert(err, IsNil)
-	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	got := string(b)
-	expected := formatKey(key2, "someuser")
-	c.Assert(got, Matches, expected)
-	expected = formatKey(key1, "someuser")
-	c.Assert(got, Not(Matches), expected)
-}
-
-func (s *S) TestRemoveWhenKeyDoesNotExists(c *C) {
-	path := authKey()
-	s.rfs.Create(path)
-	defer s.rfs.Remove(path)
-	err := removeKey("somekey blaaaaaaa r2d2@host", "anotheruser")
-	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(path, os.O_RDWR, 0755)
-	c.Assert(err, IsNil)
-	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	got := string(b)
-	c.Assert(got, Equals, "")
-}
-
-func (s *S) TestRemoveWhenExistsOnlyOneKey(c *C) {
-	key := "somekey blaaaaaaa r2d2@host"
-	err := addKey("key1", key, "someuser")
-	c.Assert(err, IsNil)
-	err = removeKey(key, "someuser")
-	c.Assert(err, IsNil)
-	f, err := s.rfs.OpenFile(authKey(), os.O_RDWR, 0755)
-	c.Assert(err, IsNil)
-	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	got := string(b)
-	c.Assert(got, Equals, "")
+func (s *S) TestKeyStringNewLine(c *C) {
+	k := Key{Body: "ssh-dss not-secret\n", Comment: "me@host"}
+	c.Assert("ssh-dss not-secret me@host", Equals, k.String())
 }
 
 func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {
-	key := "somekey fooo bar@bar.com"
-	got := formatKey(key, "someuser")
-	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s", key)
+	key := Key{
+		Name:     "my-key",
+		Body:     "somekey\n",
+		Comment:  "me@host",
+		UserName: "brain",
+	}
+	got := key.format()
+	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s\n", &key)
 	c.Assert(got, Matches, expected)
 }
 
 func (s *S) TestFormatKeyShouldAddCommandAfterSshRestrictions(c *C) {
-	key := "somekeyyyy fooow bar@bar.com"
-	got := formatKey(key, "brain")
+	key := Key{
+		Name:     "my-key",
+		Body:     "somekey\n",
+		Comment:  "me@host",
+		UserName: "brain",
+	}
+	got := key.format()
 	p, err := config.GetString("bin-path")
 	c.Assert(err, IsNil)
-	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s brain" %s`, p, key)
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s brain" %s`+"\n", p, &key)
 	c.Assert(got, Equals, expected)
 }
 
@@ -166,24 +92,247 @@ func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *C) {
 	c.Assert(err, IsNil)
 	config.Set("bin-path", "/foo/bar/hi.go")
 	defer config.Set("bin-path", oldConf)
-	key := "lol loool bar@bar.com"
-	got := formatKey(key, "dash")
-	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/foo/bar/hi.go dash" %s`, key)
+	key := Key{
+		Name:     "my-key",
+		Body:     "somekey\n",
+		Comment:  "me@host",
+		UserName: "dash",
+	}
+	got := key.format()
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/foo/bar/hi.go dash" %s`+"\n", &key)
 	c.Assert(got, Equals, expected)
 }
 
 func (s *S) TestFormatKeyShouldAppendUserNameAsCommandParameter(c *C) {
-	key := "ssh-rsa fueeel bar@bar.com"
 	p, err := config.GetString("bin-path")
 	c.Assert(err, IsNil)
-	got := formatKey(key, "someuser")
-	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s someuser" %s`, p, key)
+	key := Key{
+		Name:     "my-key",
+		Body:     "somekey\n",
+		Comment:  "me@host",
+		UserName: "someuser",
+	}
+	got := key.format()
+	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s someuser" %s`+"\n", p, &key)
 	c.Assert(got, Equals, expected)
 }
 
-func (s *S) TestMergeMaps(c *C) {
-	m1 := map[string]string{"foo": "bar"}
-	m2 := map[string]string{"bar": "foo"}
-	m3 := mergeMaps(m1, m2)
-	c.Assert(m3, DeepEquals, map[string]string{"foo": "bar", "bar": "foo"})
+func (s *S) TestDump(c *C) {
+	var buf bytes.Buffer
+	key := Key{
+		Name:     "my-key",
+		Body:     "somekey\n",
+		Comment:  "me@host",
+		UserName: "someuser",
+	}
+	err := key.dump(&buf)
+	c.Assert(err, IsNil)
+	c.Assert(buf.String(), Equals, key.format())
+}
+
+func (s *S) TestDumpShortWrite(c *C) {
+	key := Key{
+		Name:     "my-key",
+		Body:     "somekey\n",
+		Comment:  "me@host",
+		UserName: "someuser",
+	}
+	err := key.dump(shortWriter{})
+	c.Assert(err, Equals, io.ErrShortWrite)
+}
+
+func (s *S) TestDumpWriteFailure(c *C) {
+	key := Key{
+		Name:     "my-key",
+		Body:     "somekey\n",
+		Comment:  "me@host",
+		UserName: "someuser",
+	}
+	err := key.dump(failWriter{})
+	c.Assert(err, NotNil)
+}
+
+func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
+	home := os.Getenv("HOME")
+	expected := path.Join(home, ".ssh", "authorized_keys")
+	c.Assert(authKey(), Equals, expected)
+}
+
+func (s *S) TestWriteKey(c *C) {
+	key, err := newKey("my-key", "me@tsuru.io", rawKey)
+	c.Assert(err, IsNil)
+	writeKey(key)
+	f, err := s.rfs.Open(authKey())
+	c.Assert(err, IsNil)
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, key.format())
+}
+
+func (s *S) TestWriteTwoKeys(c *C) {
+	key1 := Key{
+		Name:     "my-key",
+		Body:     "ssh-dss mykeys-not-secret",
+		Comment:  "me@machine",
+		UserName: "gopher",
+	}
+	key2 := Key{
+		Name:     "your-key",
+		Body:     "ssh-dss yourkeys-not-secret",
+		Comment:  "me@machine",
+		UserName: "glenda",
+	}
+	writeKey(&key1)
+	writeKey(&key2)
+	expected := key1.format() + key2.format()
+	f, err := s.rfs.Open(authKey())
+	c.Assert(err, IsNil)
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, expected)
+}
+
+func (s *S) TestAddKeyStoresKeyInTheDatabase(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	var k Key
+	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&k)
+	c.Assert(err, IsNil)
+	defer db.Session.Key().Remove(bson.M{"name": "key1"})
+	c.Assert(k.Name, Equals, "key1")
+	c.Assert(k.UserName, Equals, "gopher")
+	c.Assert(k.Comment, Equals, comment)
+	c.Assert(k.Body, Equals, body)
+}
+
+func (s *S) TestAddKeyShouldSaveTheKeyInTheAuthorizedKeys(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	defer db.Session.Key().Remove(bson.M{"name": "key1"})
+	var k Key
+	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&k)
+	c.Assert(err, IsNil)
+	f, err := s.rfs.Open(authKey())
+	c.Assert(err, IsNil)
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	c.Assert(string(b), Equals, k.format())
+}
+
+func (s *S) TestAddKeyDuplicate(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	defer db.Session.Key().Remove(bson.M{"name": "key1"})
+	err = addKey("key2", rawKey, "gopher")
+	c.Assert(err, Equals, ErrDuplicateKey)
+}
+
+func (s *S) TestAddKeyInvalidKey(c *C) {
+	err := addKey("key1", "something-invalid", "gopher")
+	c.Assert(err, Equals, ErrInvalidKey)
+}
+
+func (s *S) TestRemoveKeyDeletesFromDB(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	err = removeKey("key1", "gopher")
+	c.Assert(err, IsNil)
+	count, err := db.Session.Key().Find(bson.M{"name": "key1"}).Count()
+	c.Assert(err, IsNil)
+	c.Assert(count, Equals, 0)
+}
+
+func (s *S) TestRemoveKeyDeletesOnlyTheRightKey(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	defer removeKey("key1", "gopher")
+	err = addKey("key1", otherKey, "glenda")
+	c.Assert(err, IsNil)
+	err = removeKey("key1", "glenda")
+	c.Assert(err, IsNil)
+	count, err := db.Session.Key().Find(bson.M{"name": "key1", "username": "gopher"}).Count()
+	c.Assert(err, IsNil)
+	c.Assert(count, Equals, 1)
+}
+
+func (s *S) TestRemoveUnknownKey(c *C) {
+	err := removeKey("wut", "glenda")
+	c.Assert(err, Equals, ErrKeyNotFound)
+}
+
+func (s *S) TestRemoveKeyRemovesFromAuthorizedKeys(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	err = removeKey("key1", "gopher")
+	f, err := s.rfs.Open(authKey())
+	c.Assert(err, IsNil)
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, "")
+}
+
+func (s *S) TestRemoveKeyKeepOtherKeys(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	defer removeKey("key1", "gopher")
+	err = addKey("key2", otherKey, "gopher")
+	c.Assert(err, IsNil)
+	err = removeKey("key2", "gopher")
+	c.Assert(err, IsNil)
+	var key Key
+	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&key)
+	c.Assert(err, IsNil)
+	f, err := s.rfs.Open(authKey())
+	c.Assert(err, IsNil)
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, key.format())
+}
+
+func (s *S) TestRemoveUserKeys(c *C) {
+	err := addKey("key1", rawKey, "gopher")
+	c.Assert(err, IsNil)
+	defer removeKey("key1", "gopher")
+	err = addKey("key1", otherKey, "glenda")
+	c.Assert(err, IsNil)
+	err = removeUserKeys("glenda")
+	c.Assert(err, IsNil)
+	var key Key
+	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&key)
+	c.Assert(err, IsNil)
+	f, err := s.rfs.Open(authKey())
+	c.Assert(err, IsNil)
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, key.format())
+}
+
+func (s *S) TestRemoveUserMultipleKeys(c *C) {
+	err := addKey("key1", rawKey, "glenda")
+	c.Assert(err, IsNil)
+	err = addKey("key1", otherKey, "glenda")
+	c.Assert(err, IsNil)
+	err = removeUserKeys("glenda")
+	c.Assert(err, IsNil)
+	count, err := db.Session.Key().Find(nil).Count()
+	c.Assert(err, IsNil)
+	c.Assert(count, Equals, 0)
+	f, err := s.rfs.Open(authKey())
+	c.Assert(err, IsNil)
+	defer f.Close()
+	b, err := ioutil.ReadAll(f)
+	c.Assert(err, IsNil)
+	got := string(b)
+	c.Assert(got, Equals, "")
 }

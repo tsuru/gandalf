@@ -13,23 +13,24 @@ import (
 	"regexp"
 )
 
+var ErrUserNotFound = errors.New("User not found")
+
 type User struct {
 	Name string `bson:"_id"`
-	Keys map[string]string
 }
 
 // Creates a new user and write his/her keys into authorized_keys file.
 //
 // The authorized_keys file belongs to the user running the process.
 func New(name string, keys map[string]string) (*User, error) {
-	u := &User{Name: name, Keys: keys}
+	u := &User{Name: name}
 	if v, err := u.isValid(); !v {
 		return u, err
 	}
 	if err := db.Session.User().Insert(&u); err != nil {
 		return u, err
 	}
-	return u, addKeys(keys, name)
+	return u, addKeys(keys, u.Name)
 }
 
 func (u *User) isValid() (isValid bool, err error) {
@@ -61,7 +62,7 @@ func Remove(name string) error {
 	if err := db.Session.User().RemoveId(u.Name); err != nil {
 		return fmt.Errorf("Could not remove user: %s", err.Error())
 	}
-	return removeKeys(u.Keys, u.Name)
+	return removeUserKeys(u.Name)
 }
 
 func (u *User) handleAssociatedRepositories() error {
@@ -98,39 +99,16 @@ func AddKey(uName string, k map[string]string) error {
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
 		return fmt.Errorf("User %q not found", uName)
 	}
-	u.Keys = mergeMaps(u.Keys, k)
-	if err := db.Session.User().UpdateId(u.Name, u); err != nil {
-		return err
-	}
 	return addKeys(k, u.Name)
 }
 
-// RemoveKey removes the key from the user's document and from authorized_keys file
+// RemoveKey removes the key from the database and from authorized_keys file.
 //
-// If the user or the key is not found, returns an error
+// If the user or the key is not found, returns an error.
 func RemoveKey(uName, kName string) error {
 	var u User
 	if err := db.Session.User().FindId(uName).One(&u); err != nil {
-		return fmt.Errorf(`User "%s" does not exists`, uName)
+		return ErrUserNotFound
 	}
-	kContent, ok := u.Keys[kName]
-	if !ok {
-		return fmt.Errorf(`Key "%s" for user "%s" does not exists`, kName, uName)
-	}
-	delete(u.Keys, kName)
-	if err := db.Session.User().UpdateId(uName, u); err != nil {
-		return err
-	}
-	return removeKey(kContent, uName)
-}
-
-// ListKeys lists all user's keys
-//
-// If the user is not found, returns an error
-func ListKeys(uName string) (map[string]string, error) {
-	var u User
-	if err := db.Session.User().FindId(uName).One(&u); err != nil {
-		return nil, fmt.Errorf(`User "%s" does not exists`, uName)
-	}
-	return u.Keys, nil
+	return removeKey(kName, uName)
 }

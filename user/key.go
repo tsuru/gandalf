@@ -5,14 +5,26 @@
 package user
 
 import (
+	"bufio"
+	"code.google.com/p/go.crypto/ssh"
+	"errors"
 	"fmt"
 	"github.com/globocom/config"
+	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/fs"
-	"io/ioutil"
+	"io"
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 	"os"
 	"os/user"
 	"path"
 	"strings"
+)
+
+var (
+	ErrDuplicateKey = errors.New("Duplicate key")
+	ErrInvalidKey   = errors.New("Invalid key")
+	ErrKeyNotFound  = errors.New("Key not found")
 )
 
 type Key struct {
@@ -20,6 +32,46 @@ type Key struct {
 	Body     string
 	Comment  string
 	UserName string
+}
+
+func newKey(name, user, raw string) (*Key, error) {
+	key, comment, _, _, ok := ssh.ParseAuthorizedKey([]byte(raw))
+	if !ok {
+		return nil, ErrInvalidKey
+	}
+	body := ssh.MarshalAuthorizedKey(key)
+	k := Key{
+		Name:     name,
+		Body:     string(body),
+		Comment:  comment,
+		UserName: user,
+	}
+	return &k, nil
+}
+
+func (k *Key) String() string {
+	return fmt.Sprintf("%s %s", strings.TrimSpace(k.Body), k.Comment)
+}
+
+func (k *Key) format() string {
+	binPath, err := config.GetString("bin-path")
+	if err != nil {
+		panic(err)
+	}
+	keyFmt := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s %s" %s` + "\n"
+	return fmt.Sprintf(keyFmt, binPath, k.UserName, k)
+}
+
+func (k *Key) dump(w io.Writer) error {
+	formatted := k.format()
+	n, err := fmt.Fprint(w, formatted)
+	if err != nil {
+		return err
+	}
+	if n != len(formatted) {
+		return io.ErrShortWrite
+	}
+	return nil
 }
 
 // authKey returns the file to write user's keys.
@@ -33,33 +85,33 @@ func authKey() string {
 	return path.Join(home, ".ssh", "authorized_keys")
 }
 
-// Writes `key` in authorized_keys file (from current user)
-// It does not writes in the database, there is no need for that since the key
-// object is embedded on the user's document
-func addKey(name, body, username string) error {
-	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL|os.O_CREATE, 0755)
+// writeKeys serializes the given key in the authorized_keys file (of the
+// current user).
+func writeKey(k *Key) error {
+	file, err := fs.Filesystem().OpenFile(authKey(), os.O_APPEND|os.O_EXCL|os.O_CREATE, 644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	keys, err := ioutil.ReadAll(file)
+	return k.dump(file)
+}
+
+// Writes `key` in authorized_keys file (from current user)
+// It does not writes in the database, there is no need for that since the key
+// object is embedded on the user's document
+func addKey(name, body, username string) error {
+	key, err := newKey(name, username, body)
 	if err != nil {
 		return err
 	}
-	content := formatKey(body, username)
-	if strings.Contains(string(keys), content) {
-		return fmt.Errorf("Key already exists.")
-	}
-	if len(keys) != 0 {
-		content = fmt.Sprintf("%s\n%s", keys, content)
-	}
-	if _, err := file.Seek(0, 0); err != nil {
+	err = db.Session.Key().Insert(key)
+	if err != nil {
+		if e, ok := err.(*mgo.LastError); ok && e.Code == 11000 {
+			return ErrDuplicateKey
+		}
 		return err
 	}
-	if _, err := file.WriteString(content); err != nil {
-		return err
-	}
-	return nil
+	return writeKey(key)
 }
 
 func addKeys(keys map[string]string, username string) error {
@@ -72,48 +124,62 @@ func addKeys(keys map[string]string, username string) error {
 	return nil
 }
 
-func removeKeys(keys map[string]string, username string) error {
-	for _, k := range keys {
-		err := removeKey(k, username)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// removes a key from auhtKey file
-func removeKey(key, username string) error {
-	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0755)
+func remove(k *Key) error {
+	formatted := k.format()
+	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	keys, err := ioutil.ReadAll(file)
-	key = formatKey(key, username)
-	content := strings.Replace(string(keys), key+"\n", "", -1)
-	content = strings.Replace(content, key, "", -1)
-	err = file.Truncate(0)
-	_, err = file.Seek(0, 0)
-	_, err = file.WriteString(content)
+	lines := make([]string, 0, 10)
+	reader := bufio.NewReader(file)
+	line, _ := reader.ReadString('\n')
+	for line != "" {
+		if line != formatted {
+			lines = append(lines, line)
+		}
+		line, _ = reader.ReadString('\n')
+	}
+	file.Truncate(0)
+	content := strings.Join(lines, "")
+	n, err := file.WriteString(content)
 	if err != nil {
 		return err
+	}
+	if n != len(content) {
+		return io.ErrShortWrite
 	}
 	return nil
 }
 
-func formatKey(key, username string) string {
-	binPath, err := config.GetString("bin-path")
+func removeUserKeys(username string) error {
+	var keys []Key
+	q := bson.M{"username": username}
+	err := db.Session.Key().Find(q).All(&keys)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	keyTmpl := `no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s %s" %s`
-	return fmt.Sprintf(keyTmpl, binPath, username, key)
+	db.Session.Key().RemoveAll(q)
+	for _, k := range keys {
+		remove(&k)
+	}
+	return nil
 }
 
-func mergeMaps(x, y map[string]string) map[string]string {
-	for k, v := range y {
-		x[k] = v
+// removes a key from the database and the authorized_keys file.
+func removeKey(name, username string) error {
+	var k Key
+	err := db.Session.Key().Find(bson.M{"name": name, "username": username}).One(&k)
+	if err != nil {
+		return ErrKeyNotFound
 	}
-	return x
+	db.Session.Key().Remove(k)
+	return remove(&k)
+}
+
+// ListKeys lists all user's keys
+//
+// If the user is not found, returns an error
+func ListKeys(uName string) (map[string]string, error) {
+	return nil, fmt.Errorf("missing code")
 }
