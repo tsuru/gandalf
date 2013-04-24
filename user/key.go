@@ -20,6 +20,7 @@ import (
 	"os/user"
 	"path"
 	"strings"
+	"syscall"
 )
 
 var (
@@ -99,6 +100,7 @@ func writeKey(k *Key) error {
 		return err
 	}
 	defer file.Close()
+	syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
 	return k.dump(file)
 }
 
