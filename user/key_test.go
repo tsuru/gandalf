@@ -54,12 +54,17 @@ func (s *S) TestNewKeyInvalidKey(c *C) {
 
 func (s *S) TestKeyString(c *C) {
 	k := Key{Body: "ssh-dss not-secret", Comment: "me@host"}
-	c.Assert(k.Body+" "+k.Comment, Equals, k.String())
+	c.Assert(k.String(), Equals, k.Body+" "+k.Comment)
 }
 
 func (s *S) TestKeyStringNewLine(c *C) {
 	k := Key{Body: "ssh-dss not-secret\n", Comment: "me@host"}
-	c.Assert("ssh-dss not-secret me@host", Equals, k.String())
+	c.Assert(k.String(), Equals, "ssh-dss not-secret me@host")
+}
+
+func (s *S) TestKeyStringNoComment(c *C) {
+	k := Key{Body: "ssh-dss not-secret"}
+	c.Assert(k.String(), Equals, k.Body)
 }
 
 func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {

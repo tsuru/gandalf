@@ -51,7 +51,12 @@ func newKey(name, user, raw string) (*Key, error) {
 }
 
 func (k *Key) String() string {
-	return fmt.Sprintf("%s %s", strings.TrimSpace(k.Body), k.Comment)
+	parts := make([]string, 1, 2)
+	parts[0] = strings.TrimSpace(k.Body)
+	if k.Comment != "" {
+		parts = append(parts, k.Comment)
+	}
+	return strings.Join(parts, " ")
 }
 
 func (k *Key) format() string {
