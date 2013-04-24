@@ -177,9 +177,14 @@ func removeKey(name, username string) error {
 	return remove(&k)
 }
 
-// ListKeys lists all user's keys
+// ListKeys lists all user's keys.
 //
 // If the user is not found, returns an error
-func ListKeys(uName string) (map[string]string, error) {
-	return nil, fmt.Errorf("missing code")
+func ListKeys(uName string) ([]Key, error) {
+	if n, err := db.Session.User().FindId(uName).Count(); err != nil || n != 1 {
+		return nil, ErrUserNotFound
+	}
+	var keys []Key
+	err := db.Session.Key().Find(bson.M{"username": uName}).All(&keys)
+	return keys, err
 }

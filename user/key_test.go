@@ -336,3 +336,60 @@ func (s *S) TestRemoveUserMultipleKeys(c *C) {
 	got := string(b)
 	c.Assert(got, Equals, "")
 }
+
+func (s *S) TestListKeys(c *C) {
+	user := map[string]string{"_id": "glenda"}
+	err := db.Session.User().Insert(user)
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(user)
+	err = addKey("key1", rawKey, "glenda")
+	c.Assert(err, IsNil)
+	err = addKey("key2", otherKey, "glenda")
+	c.Assert(err, IsNil)
+	defer removeUserKeys("glenda")
+	var expected []Key
+	err = db.Session.Key().Find(nil).All(&expected)
+	c.Assert(err, IsNil)
+	got, err := ListKeys("glenda")
+	c.Assert(err, IsNil)
+	c.Assert(got, DeepEquals, expected)
+}
+
+func (s *S) TestListKeysUnknownUser(c *C) {
+	got, err := ListKeys("glenda")
+	c.Assert(got, IsNil)
+	c.Assert(err, Equals, ErrUserNotFound)
+}
+
+func (s *S) TestListKeysEmpty(c *C) {
+	user := map[string]string{"_id": "gopher"}
+	err := db.Session.User().Insert(user)
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(user)
+	got, err := ListKeys("gopher")
+	c.Assert(err, IsNil)
+	c.Assert(got, HasLen, 0)
+}
+
+func (s *S) TestListKeysFromTheUserOnly(c *C) {
+	user := map[string]string{"_id": "gopher"}
+	err := db.Session.User().Insert(user)
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(user)
+	user2 := map[string]string{"_id": "glenda"}
+	err = db.Session.User().Insert(user2)
+	c.Assert(err, IsNil)
+	defer db.Session.User().Remove(user2)
+	err = addKey("key1", rawKey, "glenda")
+	c.Assert(err, IsNil)
+	err = addKey("key1", otherKey, "gopher")
+	c.Assert(err, IsNil)
+	defer removeUserKeys("glenda")
+	defer removeUserKeys("gopher")
+	var expected []Key
+	err = db.Session.Key().Find(bson.M{"username": "gopher"}).All(&expected)
+	c.Assert(err, IsNil)
+	got, err := ListKeys("gopher")
+	c.Assert(err, IsNil)
+	c.Assert(got, DeepEquals, expected)
+}
