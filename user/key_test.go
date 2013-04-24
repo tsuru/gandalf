@@ -14,7 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
-	. "launchpad.net/gocheck"
+	"launchpad.net/gocheck"
 	"os"
 	"path"
 )
@@ -36,38 +36,38 @@ const body = "ssh-dss AAAAB3NzaC1kc3MAAACBAIHfSDLpSCfIIVEJ/Is3RFMQhsCi7WZtFQeeyf
 const comment = "f@xikinbook.local"
 const otherKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCaNZSIEyP6FSdCX0WHDcUFTvebNbvqKiiLEiC7NTGvKrT15r2MtCDi4EPi4Ul+UyxWqb2D7FBnK1UmIcEFHd/ZCnBod2/FSplGOIbIb2UVVbqPX5Alv7IBCMyZJD14ex5cFh16zoqOsPOkOD803LMIlNvXPDDwKjY4TVOQV1JtA2tbZXvYUchqhTcKPxt5BDBZbeQkMMgUgHIEz6IueglFB3+dIZfrzlmM8CVSElKZOpucnJ5JOpGh3paSO/px2ZEcvY8WvjFdipvAWsis75GG/04F641I6XmYlo9fib/YytBXS23szqmvOqEqAopFnnGkDEo+LWI0+FXgPE8lc5BD"
 
-func (s *S) TestNewKey(c *C) {
+func (s *S) TestNewKey(c *gocheck.C) {
 	k, err := newKey("key1", "me@tsuru.io", rawKey)
-	c.Assert(err, IsNil)
-	c.Assert(k.Name, Equals, "key1")
-	c.Assert(k.Body, Equals, body)
-	c.Assert(k.Comment, Equals, comment)
-	c.Assert(k.UserName, Equals, "me@tsuru.io")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(k.Name, gocheck.Equals, "key1")
+	c.Assert(k.Body, gocheck.Equals, body)
+	c.Assert(k.Comment, gocheck.Equals, comment)
+	c.Assert(k.UserName, gocheck.Equals, "me@tsuru.io")
 }
 
-func (s *S) TestNewKeyInvalidKey(c *C) {
+func (s *S) TestNewKeyInvalidKey(c *gocheck.C) {
 	raw := "ssh-dss ASCCDD== invalid@tsuru.io"
 	k, err := newKey("key1", "me@tsuru.io", raw)
-	c.Assert(k, IsNil)
-	c.Assert(err, Equals, ErrInvalidKey)
+	c.Assert(k, gocheck.IsNil)
+	c.Assert(err, gocheck.Equals, ErrInvalidKey)
 }
 
-func (s *S) TestKeyString(c *C) {
+func (s *S) TestKeyString(c *gocheck.C) {
 	k := Key{Body: "ssh-dss not-secret", Comment: "me@host"}
-	c.Assert(k.String(), Equals, k.Body+" "+k.Comment)
+	c.Assert(k.String(), gocheck.Equals, k.Body+" "+k.Comment)
 }
 
-func (s *S) TestKeyStringNewLine(c *C) {
+func (s *S) TestKeyStringNewLine(c *gocheck.C) {
 	k := Key{Body: "ssh-dss not-secret\n", Comment: "me@host"}
-	c.Assert(k.String(), Equals, "ssh-dss not-secret me@host")
+	c.Assert(k.String(), gocheck.Equals, "ssh-dss not-secret me@host")
 }
 
-func (s *S) TestKeyStringNoComment(c *C) {
+func (s *S) TestKeyStringNoComment(c *gocheck.C) {
 	k := Key{Body: "ssh-dss not-secret"}
-	c.Assert(k.String(), Equals, k.Body)
+	c.Assert(k.String(), gocheck.Equals, k.Body)
 }
 
-func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {
+func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *gocheck.C) {
 	key := Key{
 		Name:     "my-key",
 		Body:     "somekey\n",
@@ -76,10 +76,10 @@ func (s *S) TestFormatKeyShouldAddSshLoginRestrictionsAtBegining(c *C) {
 	}
 	got := key.format()
 	expected := fmt.Sprintf("no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command=.* %s\n", &key)
-	c.Assert(got, Matches, expected)
+	c.Assert(got, gocheck.Matches, expected)
 }
 
-func (s *S) TestFormatKeyShouldAddCommandAfterSshRestrictions(c *C) {
+func (s *S) TestFormatKeyShouldAddCommandAfterSshRestrictions(c *gocheck.C) {
 	key := Key{
 		Name:     "my-key",
 		Body:     "somekey\n",
@@ -88,14 +88,14 @@ func (s *S) TestFormatKeyShouldAddCommandAfterSshRestrictions(c *C) {
 	}
 	got := key.format()
 	p, err := config.GetString("bin-path")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s brain" %s`+"\n", p, &key)
-	c.Assert(got, Equals, expected)
+	c.Assert(got, gocheck.Equals, expected)
 }
 
-func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *C) {
+func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *gocheck.C) {
 	oldConf, err := config.GetString("bin-path")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	config.Set("bin-path", "/foo/bar/hi.go")
 	defer config.Set("bin-path", oldConf)
 	key := Key{
@@ -106,12 +106,12 @@ func (s *S) TestFormatKeyShouldGetCommandPathFromGandalfConf(c *C) {
 	}
 	got := key.format()
 	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="/foo/bar/hi.go dash" %s`+"\n", &key)
-	c.Assert(got, Equals, expected)
+	c.Assert(got, gocheck.Equals, expected)
 }
 
-func (s *S) TestFormatKeyShouldAppendUserNameAsCommandParameter(c *C) {
+func (s *S) TestFormatKeyShouldAppendUserNameAsCommandParameter(c *gocheck.C) {
 	p, err := config.GetString("bin-path")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	key := Key{
 		Name:     "my-key",
 		Body:     "somekey\n",
@@ -120,10 +120,10 @@ func (s *S) TestFormatKeyShouldAppendUserNameAsCommandParameter(c *C) {
 	}
 	got := key.format()
 	expected := fmt.Sprintf(`no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,command="%s someuser" %s`+"\n", p, &key)
-	c.Assert(got, Equals, expected)
+	c.Assert(got, gocheck.Equals, expected)
 }
 
-func (s *S) TestDump(c *C) {
+func (s *S) TestDump(c *gocheck.C) {
 	var buf bytes.Buffer
 	key := Key{
 		Name:     "my-key",
@@ -132,11 +132,11 @@ func (s *S) TestDump(c *C) {
 		UserName: "someuser",
 	}
 	err := key.dump(&buf)
-	c.Assert(err, IsNil)
-	c.Assert(buf.String(), Equals, key.format())
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(buf.String(), gocheck.Equals, key.format())
 }
 
-func (s *S) TestDumpShortWrite(c *C) {
+func (s *S) TestDumpShortWrite(c *gocheck.C) {
 	key := Key{
 		Name:     "my-key",
 		Body:     "somekey\n",
@@ -144,10 +144,10 @@ func (s *S) TestDumpShortWrite(c *C) {
 		UserName: "someuser",
 	}
 	err := key.dump(shortWriter{})
-	c.Assert(err, Equals, io.ErrShortWrite)
+	c.Assert(err, gocheck.Equals, io.ErrShortWrite)
 }
 
-func (s *S) TestDumpWriteFailure(c *C) {
+func (s *S) TestDumpWriteFailure(c *gocheck.C) {
 	key := Key{
 		Name:     "my-key",
 		Body:     "somekey\n",
@@ -155,29 +155,29 @@ func (s *S) TestDumpWriteFailure(c *C) {
 		UserName: "someuser",
 	}
 	err := key.dump(failWriter{})
-	c.Assert(err, NotNil)
+	c.Assert(err, gocheck.NotNil)
 }
 
-func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *C) {
+func (s *S) TestAuthKeysShouldBeAbsolutePathToUsersAuthorizedKeysByDefault(c *gocheck.C) {
 	home := os.Getenv("HOME")
 	expected := path.Join(home, ".ssh", "authorized_keys")
-	c.Assert(authKey(), Equals, expected)
+	c.Assert(authKey(), gocheck.Equals, expected)
 }
 
-func (s *S) TestWriteKey(c *C) {
+func (s *S) TestWriteKey(c *gocheck.C) {
 	key, err := newKey("my-key", "me@tsuru.io", rawKey)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	writeKey(key)
 	f, err := s.rfs.Open(authKey())
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got := string(b)
-	c.Assert(got, Equals, key.format())
+	c.Assert(got, gocheck.Equals, key.format())
 }
 
-func (s *S) TestWriteTwoKeys(c *C) {
+func (s *S) TestWriteTwoKeys(c *gocheck.C) {
 	key1 := Key{
 		Name:     "my-key",
 		Body:     "ssh-dss mykeys-not-secret",
@@ -194,156 +194,156 @@ func (s *S) TestWriteTwoKeys(c *C) {
 	writeKey(&key2)
 	expected := key1.format() + key2.format()
 	f, err := s.rfs.Open(authKey())
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got := string(b)
-	c.Assert(got, Equals, expected)
+	c.Assert(got, gocheck.Equals, expected)
 }
 
-func (s *S) TestAddKeyStoresKeyInTheDatabase(c *C) {
+func (s *S) TestAddKeyStoresKeyInTheDatabase(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	var k Key
 	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&k)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer db.Session.Key().Remove(bson.M{"name": "key1"})
-	c.Assert(k.Name, Equals, "key1")
-	c.Assert(k.UserName, Equals, "gopher")
-	c.Assert(k.Comment, Equals, comment)
-	c.Assert(k.Body, Equals, body)
+	c.Assert(k.Name, gocheck.Equals, "key1")
+	c.Assert(k.UserName, gocheck.Equals, "gopher")
+	c.Assert(k.Comment, gocheck.Equals, comment)
+	c.Assert(k.Body, gocheck.Equals, body)
 }
 
-func (s *S) TestAddKeyShouldSaveTheKeyInTheAuthorizedKeys(c *C) {
+func (s *S) TestAddKeyShouldSaveTheKeyInTheAuthorizedKeys(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer db.Session.Key().Remove(bson.M{"name": "key1"})
 	var k Key
 	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&k)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	f, err := s.rfs.Open(authKey())
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
-	c.Assert(string(b), Equals, k.format())
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(b), gocheck.Equals, k.format())
 }
 
-func (s *S) TestAddKeyDuplicate(c *C) {
+func (s *S) TestAddKeyDuplicate(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer db.Session.Key().Remove(bson.M{"name": "key1"})
 	err = addKey("key2", rawKey, "gopher")
-	c.Assert(err, Equals, ErrDuplicateKey)
+	c.Assert(err, gocheck.Equals, ErrDuplicateKey)
 }
 
-func (s *S) TestAddKeyInvalidKey(c *C) {
+func (s *S) TestAddKeyInvalidKey(c *gocheck.C) {
 	err := addKey("key1", "something-invalid", "gopher")
-	c.Assert(err, Equals, ErrInvalidKey)
+	c.Assert(err, gocheck.Equals, ErrInvalidKey)
 }
 
-func (s *S) TestRemoveKeyDeletesFromDB(c *C) {
+func (s *S) TestRemoveKeyDeletesFromDB(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = removeKey("key1", "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	count, err := db.Session.Key().Find(bson.M{"name": "key1"}).Count()
-	c.Assert(err, IsNil)
-	c.Assert(count, Equals, 0)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(count, gocheck.Equals, 0)
 }
 
-func (s *S) TestRemoveKeyDeletesOnlyTheRightKey(c *C) {
+func (s *S) TestRemoveKeyDeletesOnlyTheRightKey(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer removeKey("key1", "gopher")
 	err = addKey("key1", otherKey, "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = removeKey("key1", "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	count, err := db.Session.Key().Find(bson.M{"name": "key1", "username": "gopher"}).Count()
-	c.Assert(err, IsNil)
-	c.Assert(count, Equals, 1)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(count, gocheck.Equals, 1)
 }
 
-func (s *S) TestRemoveUnknownKey(c *C) {
+func (s *S) TestRemoveUnknownKey(c *gocheck.C) {
 	err := removeKey("wut", "glenda")
-	c.Assert(err, Equals, ErrKeyNotFound)
+	c.Assert(err, gocheck.Equals, ErrKeyNotFound)
 }
 
-func (s *S) TestRemoveKeyRemovesFromAuthorizedKeys(c *C) {
+func (s *S) TestRemoveKeyRemovesFromAuthorizedKeys(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = removeKey("key1", "gopher")
 	f, err := s.rfs.Open(authKey())
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got := string(b)
-	c.Assert(got, Equals, "")
+	c.Assert(got, gocheck.Equals, "")
 }
 
-func (s *S) TestRemoveKeyKeepOtherKeys(c *C) {
+func (s *S) TestRemoveKeyKeepOtherKeys(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer removeKey("key1", "gopher")
 	err = addKey("key2", otherKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = removeKey("key2", "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	var key Key
 	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&key)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	f, err := s.rfs.Open(authKey())
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got := string(b)
-	c.Assert(got, Equals, key.format())
+	c.Assert(got, gocheck.Equals, key.format())
 }
 
-func (s *S) TestRemoveUserKeys(c *C) {
+func (s *S) TestRemoveUserKeys(c *gocheck.C) {
 	err := addKey("key1", rawKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer removeKey("key1", "gopher")
 	err = addKey("key1", otherKey, "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = removeUserKeys("glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	var key Key
 	err = db.Session.Key().Find(bson.M{"name": "key1"}).One(&key)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	f, err := s.rfs.Open(authKey())
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got := string(b)
-	c.Assert(got, Equals, key.format())
+	c.Assert(got, gocheck.Equals, key.format())
 }
 
-func (s *S) TestRemoveUserMultipleKeys(c *C) {
+func (s *S) TestRemoveUserMultipleKeys(c *gocheck.C) {
 	err := addKey("key1", rawKey, "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = addKey("key1", otherKey, "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = removeUserKeys("glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	count, err := db.Session.Key().Find(nil).Count()
-	c.Assert(err, IsNil)
-	c.Assert(count, Equals, 0)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(count, gocheck.Equals, 0)
 	f, err := s.rfs.Open(authKey())
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got := string(b)
-	c.Assert(got, Equals, "")
+	c.Assert(got, gocheck.Equals, "")
 }
 
-func (s *S) TestKeyListJSON(c *C) {
+func (s *S) TestKeyListJSON(c *gocheck.C) {
 	keys := []Key{
 		{Name: "key1", Body: "ssh-dss not-secret", Comment: "me@host1"},
 		{Name: "key2", Body: "ssh-dss not-secret1", Comment: "me@host2"},
@@ -356,65 +356,65 @@ func (s *S) TestKeyListJSON(c *C) {
 	}
 	var got map[string]string
 	b, err := KeyList(keys).MarshalJSON()
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = json.Unmarshal(b, &got)
-	c.Assert(err, IsNil)
-	c.Assert(got, DeepEquals, expected)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(got, gocheck.DeepEquals, expected)
 }
 
-func (s *S) TestListKeys(c *C) {
+func (s *S) TestListKeys(c *gocheck.C) {
 	user := map[string]string{"_id": "glenda"}
 	err := db.Session.User().Insert(user)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer db.Session.User().Remove(user)
 	err = addKey("key1", rawKey, "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = addKey("key2", otherKey, "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer removeUserKeys("glenda")
 	var expected []Key
 	err = db.Session.Key().Find(nil).All(&expected)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got, err := ListKeys("glenda")
-	c.Assert(err, IsNil)
-	c.Assert(got, DeepEquals, KeyList(expected))
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(got, gocheck.DeepEquals, KeyList(expected))
 }
 
-func (s *S) TestListKeysUnknownUser(c *C) {
+func (s *S) TestListKeysUnknownUser(c *gocheck.C) {
 	got, err := ListKeys("glenda")
-	c.Assert(got, IsNil)
-	c.Assert(err, Equals, ErrUserNotFound)
+	c.Assert(got, gocheck.IsNil)
+	c.Assert(err, gocheck.Equals, ErrUserNotFound)
 }
 
-func (s *S) TestListKeysEmpty(c *C) {
+func (s *S) TestListKeysEmpty(c *gocheck.C) {
 	user := map[string]string{"_id": "gopher"}
 	err := db.Session.User().Insert(user)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer db.Session.User().Remove(user)
 	got, err := ListKeys("gopher")
-	c.Assert(err, IsNil)
-	c.Assert(got, HasLen, 0)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(got, gocheck.HasLen, 0)
 }
 
-func (s *S) TestListKeysFromTheUserOnly(c *C) {
+func (s *S) TestListKeysFromTheUserOnly(c *gocheck.C) {
 	user := map[string]string{"_id": "gopher"}
 	err := db.Session.User().Insert(user)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer db.Session.User().Remove(user)
 	user2 := map[string]string{"_id": "glenda"}
 	err = db.Session.User().Insert(user2)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer db.Session.User().Remove(user2)
 	err = addKey("key1", rawKey, "glenda")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	err = addKey("key1", otherKey, "gopher")
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	defer removeUserKeys("glenda")
 	defer removeUserKeys("gopher")
 	var expected []Key
 	err = db.Session.Key().Find(bson.M{"username": "gopher"}).All(&expected)
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 	got, err := ListKeys("gopher")
-	c.Assert(err, IsNil)
-	c.Assert(got, DeepEquals, KeyList(expected))
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(got, gocheck.DeepEquals, KeyList(expected))
 }
