@@ -6,19 +6,19 @@ package fs
 
 import (
 	tsurufs "github.com/globocom/tsuru/fs"
-	. "launchpad.net/gocheck"
+	"launchpad.net/gocheck"
 	"testing"
 )
 
-func Test(t *testing.T) { TestingT(t) }
+func Test(t *testing.T) { gocheck.TestingT(t) }
 
 type S struct{}
 
-var _ = Suite(&S{})
+var _ = gocheck.Suite(&S{})
 
-func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *C) {
+func (s *S) TestFsystemShouldSetGlobalFsystemWhenItsNil(c *gocheck.C) {
 	Fsystem = nil
 	fsys := Filesystem()
 	_, ok := fsys.(tsurufs.Fs)
-	c.Assert(ok, Equals, true)
+	c.Assert(ok, gocheck.Equals, true)
 }
