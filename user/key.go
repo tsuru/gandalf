@@ -95,7 +95,7 @@ func authKey() string {
 // writeKeys serializes the given key in the authorized_keys file (of the
 // current user).
 func writeKey(k *Key) error {
-	file, err := fs.Filesystem().OpenFile(authKey(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 644)
+	file, err := fs.Filesystem().OpenFile(authKey(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func addKeys(keys map[string]string, username string) error {
 
 func remove(k *Key) error {
 	formatted := k.format()
-	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 644)
+	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0644)
 	if err != nil {
 		return err
 	}
