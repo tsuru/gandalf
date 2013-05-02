@@ -22,8 +22,8 @@ func main() {
 	err := config.ReadAndWatchConfigFile(*configFile)
 	if err != nil {
 		msg := `Could not find gandalf config file. Searched on %s.
-For an example conf check gandalf/etc/gandalf.conf file.`
-		log.Panicf(msg, *configFile)
+For an example conf check gandalf/etc/gandalf.conf file.\n %s`
+		log.Panicf(msg, *configFile, err)
 	}
 	db.Connect()
 	router := pat.New()
