@@ -32,9 +32,9 @@ func newBare(name string) error {
 		args = append(args, "--template="+bareTempl)
 	}
 	cmd := exec.Command("git", args...)
-	_, err := cmd.CombinedOutput()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Could not create git bare repository: %s", err)
+		return fmt.Errorf("Could not create git bare repository: %s. %s", err, string(out))
 	}
 	return nil
 }

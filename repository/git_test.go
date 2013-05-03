@@ -37,13 +37,13 @@ func (s *S) TestNewBareShouldCreateADir(c *gocheck.C) {
 }
 
 func (s *S) TestNewBareShouldReturnMeaningfullErrorWhenBareCreationFails(c *gocheck.C) {
-	dir, err := commandmocker.Error("git", "ooooi", 1)
+	dir, err := commandmocker.Error("git", "cmd output", 1)
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(dir)
 	err = newBare("foo")
 	c.Check(err, gocheck.NotNil)
 	got := err.Error()
-	expected := "Could not create git bare repository: exit status 1"
+	expected := "Could not create git bare repository: exit status 1. cmd output"
 	c.Assert(got, gocheck.Equals, expected)
 }
 
