@@ -150,6 +150,7 @@ func remove(k *Key) error {
 		line, _ = reader.ReadString('\n')
 	}
 	file.Truncate(0)
+	file.Seek(0, 0)
 	content := strings.Join(lines, "")
 	n, err := file.WriteString(content)
 	if err != nil {
