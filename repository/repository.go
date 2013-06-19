@@ -32,9 +32,9 @@ func (r *Repository) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&data)
 }
 
-// Creates a representation of a git repository
-// This function creates a git repository using the "bare-dir" config
-// and saves repository's meta data in the database
+// New creates a representation of a git repository. It creates a Git
+// repository using the "bare-dir" setting and saves repository's meta data in
+// the database.
 func New(name string, users []string, isPublic bool) (*Repository, error) {
 	r := &Repository{Name: name, Users: users, IsPublic: isPublic}
 	if v, err := r.isValid(); !v {
@@ -50,15 +50,15 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	return r, err
 }
 
-// Get find a repository by name
+// Get find a repository by name.
 func Get(name string) (Repository, error) {
 	var r Repository
 	err := db.Session.Repository().FindId(name).One(&r)
 	return r, err
 }
 
-// Deletes the repository from the database and
-// removes it's bare git repository
+// Remove deletes the repository from the database and removes it's bare Git
+// repository.
 func Remove(r *Repository) error {
 	// maybe it should receive only a name, to standardize the api (user.Remove already does that)
 	if err := removeBare(r.Name); err != nil {
@@ -112,13 +112,15 @@ func (r *Repository) isValid() (bool, error) {
 	return true, nil
 }
 
-// Gives write permission for users (uNames) in all specified repositories (rNames)
-// If any of the repositories/users do not exists, just skip it.
+// GrantAccess gives write permission for users in all specified repositories.
+// If any of the repositories/users do not exists, GrantAccess just skips it.
 func GrantAccess(rNames, uNames []string) error {
 	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
 	return err
 }
 
+// RevokeAccess revokes write permission from users in all specified
+// repositories.
 func RevokeAccess(rNames, uNames []string) error {
 	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
 	return err
