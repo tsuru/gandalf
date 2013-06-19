@@ -176,6 +176,22 @@ func RemoveRepository(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Repository \"%s\" successfully removed\n", name)
 }
 
+func RenameRepository(w http.ResponseWriter, r *http.Request) {
+	var p struct{ Name string }
+	defer r.Body.Close()
+	err := parseBody(r.Body, &p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	name := r.URL.Query().Get(":name")
+	err = repository.Rename(name, p.Name)
+	if err != nil && err.Error() == "not found" {
+		http.Error(w, err.Error(), http.StatusNotFound)
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func parseBody(body io.ReadCloser, result interface{}) error {
 	if reflect.ValueOf(result).Kind() == reflect.Struct {
 		return errors.New("parseBody function cannot deal with struct. Use pointer")
