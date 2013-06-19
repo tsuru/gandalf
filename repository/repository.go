@@ -70,8 +70,8 @@ func Remove(r *Repository) error {
 	return nil
 }
 
-// SshUrl formats the git ssh url and return it
-// If no remote is configured in gandalf.conf SshUrl will panic
+// SshUrl formats the git ssh url and return it. If no remote is configured in
+// gandalf.conf, this method panics.
 func (r *Repository) SshUrl() string {
 	host, err := config.GetString("host")
 	if err != nil {
@@ -84,8 +84,8 @@ func (r *Repository) SshUrl() string {
 	return fmt.Sprintf("%s@%s:%s", uid, host, formatName(r.Name))
 }
 
-// GitUrl formats the git url and return it
-// If no host is configured in gandalf.conf GitUrl will panic
+// GitUrl formats the git url and return it. If no host is configured in
+// gandalf.conf, this method panics.
 func (r *Repository) GitUrl() string {
 	host, err := config.GetString("host")
 	if err != nil {
