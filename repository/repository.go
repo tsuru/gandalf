@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/globocom/config"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/fs"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"regexp"
@@ -73,15 +74,21 @@ func Remove(name string) error {
 
 // Rename renames a repository.
 func Rename(oldName, newName string) error {
-	repository, err := Get(oldName)
+	repo, err := Get(oldName)
 	if err != nil {
 		return err
 	}
-	_, err = New(newName, repository.Users, repository.IsPublic)
+	newRepo := repo
+	newRepo.Name = newName
+	err = db.Session.Repository().Insert(newRepo)
 	if err != nil {
 		return err
 	}
-	return Remove(oldName)
+	err = db.Session.Repository().RemoveId(oldName)
+	if err != nil {
+		return err
+	}
+	return fs.Fsystem.Rename(barePath(oldName), barePath(newName))
 }
 
 // SshURL formats the git ssh url and return it. If no remote is configured in
@@ -95,7 +102,7 @@ func (r *Repository) SshURL() string {
 	if err != nil {
 		panic(err.Error())
 	}
-	return fmt.Sprintf("%s@%s:%s", uid, host, formatName(r.Name))
+	return fmt.Sprintf("%s@%s:%s.git", uid, host, r.Name)
 }
 
 // GitURL formats the git url and return it. If no host is configured in
@@ -105,7 +112,7 @@ func (r *Repository) GitURL() string {
 	if err != nil {
 		panic(err.Error())
 	}
-	return fmt.Sprintf("git://%s/%s", host, formatName(r.Name))
+	return fmt.Sprintf("git://%s/%s.git", host, r.Name)
 }
 
 // Validates a repository

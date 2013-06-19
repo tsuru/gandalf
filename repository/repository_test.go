@@ -174,9 +174,9 @@ func (s *S) TestRename(c *gocheck.C) {
 	repository, err := New("freedom", []string{"fss@corp.globo.com", "andrews@corp.globo.com"}, true)
 	c.Check(err, gocheck.IsNil)
 	commandmocker.Remove(tmpdir)
-	tmpdir, err = commandmocker.Add("git", "$*")
-	c.Assert(err, gocheck.IsNil)
-	defer commandmocker.Remove(tmpdir)
+	rfs := &fstesting.RecordingFs{}
+	fs.Fsystem = rfs
+	defer func() { fs.Fsystem = nil }()
 	err = Rename(repository.Name, "free")
 	c.Assert(err, gocheck.IsNil)
 	_, err = Get("freedom")
@@ -185,8 +185,8 @@ func (s *S) TestRename(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	repository.Name = "free"
 	c.Assert(repo, gocheck.DeepEquals, *repository)
-	params := commandmocker.Parameters(tmpdir)
-	c.Assert(params, gocheck.DeepEquals, []string{"init", path.Join(bareLocation(), "free.git"), "--bare"})
+	action := "rename " + barePath("freedom") + " " + barePath("free")
+	c.Assert(rfs.HasAction(action), gocheck.Equals, true)
 }
 
 func (s *S) TestRenameNotFound(c *gocheck.C) {
