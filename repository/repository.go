@@ -15,6 +15,8 @@ import (
 	"regexp"
 )
 
+// Repository represents a Git repository. A Git repository is a record in the
+// database and a directory in the filesystem (the bare repository).
 type Repository struct {
 	Name     string `bson:"_id"`
 	Users    []string
