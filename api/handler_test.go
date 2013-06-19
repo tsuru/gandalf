@@ -130,8 +130,8 @@ func (s *S) TestGetRepository(c *gocheck.C) {
 	expected := map[string]interface{}{
 		"name":    r.Name,
 		"public":  r.IsPublic,
-		"ssh_url": r.SshUrl(),
-		"git_url": r.GitUrl(),
+		"ssh_url": r.SshURL(),
+		"git_url": r.GitURL(),
 	}
 	c.Assert(data, gocheck.DeepEquals, expected)
 }
