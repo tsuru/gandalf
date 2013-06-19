@@ -138,7 +138,7 @@ func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *gocheck.C) {
 	defer func() { fs.Fsystem = nil }()
 	r, err := New("myRepo", []string{"pumpkin"}, false)
 	c.Assert(err, gocheck.IsNil)
-	err = Remove(r)
+	err = Remove(r.Name)
 	c.Assert(err, gocheck.IsNil)
 	action := "removeall " + path.Join(bareLocation(), "myRepo.git")
 	c.Assert(rfs.HasAction(action), gocheck.Equals, true)
@@ -153,7 +153,7 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *gocheck.C) {
 	defer func() { fs.Fsystem = nil }()
 	r, err := New("myRepo", []string{"pumpkin"}, false)
 	c.Assert(err, gocheck.IsNil)
-	err = Remove(r)
+	err = Remove(r.Name)
 	c.Assert(err, gocheck.IsNil)
 	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
 	c.Assert(err, gocheck.ErrorMatches, "^not found$")
@@ -164,7 +164,7 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	r := &Repository{Name: "fooBar"}
-	err := Remove(r)
+	err := Remove(r.Name)
 	c.Assert(err, gocheck.ErrorMatches, "^Could not remove repository: not found$")
 }
 

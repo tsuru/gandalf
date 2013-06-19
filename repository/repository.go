@@ -61,12 +61,11 @@ func Get(name string) (Repository, error) {
 
 // Remove deletes the repository from the database and removes it's bare Git
 // repository.
-func Remove(r *Repository) error {
-	// maybe it should receive only a name, to standardize the api (user.Remove already does that)
-	if err := removeBare(r.Name); err != nil {
+func Remove(name string) error {
+	if err := removeBare(name); err != nil {
 		return err
 	}
-	if err := db.Session.Repository().RemoveId(r.Name); err != nil {
+	if err := db.Session.Repository().RemoveId(name); err != nil {
 		return fmt.Errorf("Could not remove repository: %s", err)
 	}
 	return nil
