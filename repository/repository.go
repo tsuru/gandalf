@@ -71,6 +71,19 @@ func Remove(name string) error {
 	return nil
 }
 
+// Rename renames a repository.
+func Rename(oldName, newName string) error {
+	repository, err := Get(oldName)
+	if err != nil {
+		return err
+	}
+	_, err = New(newName, repository.Users, repository.IsPublic)
+	if err != nil {
+		return err
+	}
+	return Remove(oldName)
+}
+
 // SshURL formats the git ssh url and return it. If no remote is configured in
 // gandalf.conf, this method panics.
 func (r *Repository) SshURL() string {

@@ -168,6 +168,32 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 	c.Assert(err, gocheck.ErrorMatches, "^Could not remove repository: not found$")
 }
 
+func (s *S) TestRename(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	repository, err := New("freedom", []string{"fss@corp.globo.com", "andrews@corp.globo.com"}, true)
+	c.Check(err, gocheck.IsNil)
+	commandmocker.Remove(tmpdir)
+	tmpdir, err = commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	err = Rename(repository.Name, "free")
+	c.Assert(err, gocheck.IsNil)
+	_, err = Get("freedom")
+	c.Assert(err, gocheck.NotNil)
+	repo, err := Get("free")
+	c.Assert(err, gocheck.IsNil)
+	repository.Name = "free"
+	c.Assert(repo, gocheck.DeepEquals, *repository)
+	params := commandmocker.Parameters(tmpdir)
+	c.Assert(params, gocheck.DeepEquals, []string{"init", path.Join(bareLocation(), "free.git"), "--bare"})
+}
+
+func (s *S) TestRenameNotFound(c *gocheck.C) {
+	err := Rename("something", "free")
+	c.Assert(err, gocheck.NotNil)
+}
+
 func (s *S) TestGitURL(c *gocheck.C) {
 	host, err := config.GetString("host")
 	c.Assert(err, gocheck.IsNil)
