@@ -26,8 +26,8 @@ func (r *Repository) MarshalJSON() ([]byte, error) {
 	data := map[string]interface{}{
 		"name":    r.Name,
 		"public":  r.IsPublic,
-		"ssh_url": r.SshUrl(),
-		"git_url": r.GitUrl(),
+		"ssh_url": r.SshURL(),
+		"git_url": r.GitURL(),
 	}
 	return json.Marshal(&data)
 }
@@ -70,9 +70,9 @@ func Remove(r *Repository) error {
 	return nil
 }
 
-// SshUrl formats the git ssh url and return it. If no remote is configured in
+// SshURL formats the git ssh url and return it. If no remote is configured in
 // gandalf.conf, this method panics.
-func (r *Repository) SshUrl() string {
+func (r *Repository) SshURL() string {
 	host, err := config.GetString("host")
 	if err != nil {
 		panic(err.Error())
@@ -84,9 +84,9 @@ func (r *Repository) SshUrl() string {
 	return fmt.Sprintf("%s@%s:%s", uid, host, formatName(r.Name))
 }
 
-// GitUrl formats the git url and return it. If no host is configured in
+// GitURL formats the git url and return it. If no host is configured in
 // gandalf.conf, this method panics.
-func (r *Repository) GitUrl() string {
+func (r *Repository) GitURL() string {
 	host, err := config.GetString("host")
 	if err != nil {
 		panic(err.Error())

@@ -171,14 +171,14 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 func (s *S) TestGitURL(c *gocheck.C) {
 	host, err := config.GetString("host")
 	c.Assert(err, gocheck.IsNil)
-	remote := (&Repository{Name: "lol"}).GitUrl()
+	remote := (&Repository{Name: "lol"}).GitURL()
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("git://%s/lol.git", host))
 }
 
 func (s *S) TestSshURL(c *gocheck.C) {
 	host, err := config.GetString("host")
 	c.Assert(err, gocheck.IsNil)
-	remote := (&Repository{Name: "lol"}).SshUrl()
+	remote := (&Repository{Name: "lol"}).SshURL()
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("git@%s:lol.git", host))
 }
 
@@ -189,7 +189,7 @@ func (s *S) TestSshURLUseUidFromConfigFile(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	config.Set("uid", "test")
 	defer config.Set("uid", uid)
-	remote := (&Repository{Name: "f#"}).SshUrl()
+	remote := (&Repository{Name: "f#"}).SshURL()
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("test@%s:f#.git", host))
 }
 
@@ -295,8 +295,8 @@ func (s *S) TestMarshalJSON(c *gocheck.C) {
 	expected := map[string]interface{}{
 		"name":    repo.Name,
 		"public":  repo.IsPublic,
-		"ssh_url": repo.SshUrl(),
-		"git_url": repo.GitUrl(),
+		"ssh_url": repo.SshURL(),
+		"git_url": repo.GitURL(),
 	}
 	data, err := json.Marshal(&repo)
 	c.Assert(err, gocheck.IsNil)
