@@ -21,6 +21,7 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
 )
 
 var (
@@ -30,10 +31,11 @@ var (
 )
 
 type Key struct {
-	Name     string
-	Body     string
-	Comment  string
-	UserName string
+	Name      string
+	Body      string
+	Comment   string
+	UserName  string
+	CreatedAt time.Time
 }
 
 func newKey(name, user, raw string) (*Key, error) {
@@ -43,10 +45,11 @@ func newKey(name, user, raw string) (*Key, error) {
 	}
 	body := ssh.MarshalAuthorizedKey(key)
 	k := Key{
-		Name:     name,
-		Body:     string(body),
-		Comment:  comment,
-		UserName: user,
+		Name:      name,
+		Body:      string(body),
+		Comment:   comment,
+		UserName:  user,
+		CreatedAt: time.Now(),
 	}
 	return &k, nil
 }

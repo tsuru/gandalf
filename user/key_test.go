@@ -17,6 +17,7 @@ import (
 	"launchpad.net/gocheck"
 	"os"
 	"path"
+	"time"
 )
 
 type shortWriter struct{}
@@ -50,6 +51,18 @@ func (s *S) TestNewKeyInvalidKey(c *gocheck.C) {
 	k, err := newKey("key1", "me@tsuru.io", raw)
 	c.Assert(k, gocheck.IsNil)
 	c.Assert(err, gocheck.Equals, ErrInvalidKey)
+}
+
+func (s *S) TestNewKeyCreatedAtStoresCurrentTime(c *gocheck.C) {
+	k, err := newKey("key1", "me@tsuru.io", rawKey)
+	c.Assert(err, gocheck.IsNil)
+	gotY, gotM, gotD := k.CreatedAt.Date()
+	y, m, d := time.Now().Date()
+	c.Assert(gotY, gocheck.Equals, y)
+	c.Assert(gotM, gocheck.Equals, m)
+	c.Assert(gotD, gocheck.Equals, d)
+	c.Assert(k.CreatedAt.Hour(), gocheck.Equals, time.Now().Hour())
+	c.Assert(k.CreatedAt.Minute(), gocheck.Equals, time.Now().Minute())
 }
 
 func (s *S) TestKeyString(c *gocheck.C) {
