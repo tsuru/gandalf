@@ -105,21 +105,26 @@ func (s *S) TestNewWritesKeyInAuthorizedKeys(c *gocheck.C) {
 	c.Assert(keys, gocheck.Equals, key.format())
 }
 
-func (s *S) TestIsValidReturnsErrorWhenUserDoesNotHaveAName(c *gocheck.C) {
-	u := User{}
-	v, err := u.isValid()
-	c.Assert(v, gocheck.Equals, false)
-	c.Assert(err, gocheck.NotNil)
-	expected := "Validation Error: user name is not valid"
-	got := err.Error()
-	c.Assert(got, gocheck.Equals, expected)
-}
-
-func (s *S) TestIsValidShouldAcceptEmailsAsUserName(c *gocheck.C) {
-	u := User{Name: "r2d2@gmail.com"}
-	v, err := u.isValid()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(v, gocheck.Equals, true)
+func (s *S) TestIsValid(c *gocheck.C) {
+	var tests = []struct {
+		input    string
+		expected bool
+	}{
+		{"", false},
+		{"r2d2@gmail.com", true},
+		{"r2-d2@gmail.com", true},
+		{"r2d2+tsuru@gmail.com", true},
+		{"r2d2", true},
+		{"gopher", true},
+		{"go-pher", true},
+	}
+	for _, t := range tests {
+		u := User{Name: t.input}
+		v, _ := u.isValid()
+		if v != t.expected {
+			c.Errorf("Is %q valid? Want %v. Got %v.", t.input, t.expected, v)
+		}
+	}
 }
 
 func (s *S) TestRemove(c *gocheck.C) {
