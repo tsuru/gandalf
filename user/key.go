@@ -43,7 +43,7 @@ func newKey(name, user, raw string) (*Key, error) {
 	if !ok {
 		return nil, ErrInvalidKey
 	}
-	body := ssh.MarshalAuthorizedKey(key)
+	body := ssh.MarshalAuthorizedKey(key.(ssh.PublicKey))
 	k := Key{
 		Name:      name,
 		Body:      string(body),
