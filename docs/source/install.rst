@@ -92,7 +92,7 @@ And the git daemon
 
 ::
 
-    $ git daemon --base-path=/var/repositories --syslog --export-all &
+    $ git daemon --base-path=/var/repositories --detach --export-all
 
 Now test if gandalf server is up and running
 
