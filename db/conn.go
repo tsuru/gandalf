@@ -15,25 +15,26 @@ type session struct {
 }
 
 // The global Session that must be used by users.
-var Session = session{}
+var Session session
 
 // Connect uses database:url and database:name settings in config file and
 // connects to the database. If it cannot connect or these settings are not
 // defined, it will panic.
 func Connect() {
-	url, err := config.GetString("database:url")
-	if err != nil {
-		panic(err)
+	url, _ := config.GetString("database:url")
+	if url == "" {
+		url = "localhost:27017"
 	}
-	name, err := config.GetString("database:name")
-	if err != nil {
-		panic(err)
+	name, _ := config.GetString("database:name")
+	if name == "" {
+		name = "gandalf"
 	}
 	s, err := mgo.Dial(url)
 	if err != nil {
 		panic(err)
 	}
 	Session.DB = s.DB(name)
+	Session.DB.Session.LiveServers()
 }
 
 // Repository returns a reference to the "repository" collection in MongoDB.

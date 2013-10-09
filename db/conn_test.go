@@ -62,3 +62,15 @@ func (s *S) TestConnect(c *gocheck.C) {
 	err := Session.DB.Session.Ping()
 	c.Assert(err, gocheck.IsNil)
 }
+
+func (s *S) TestConnectDefaultSettings(c *gocheck.C) {
+	oldURL, _ := config.Get("database:url")
+	defer config.Set("database:url", oldURL)
+	oldName, _ := config.Get("database:name")
+	defer config.Set("database:name", oldName)
+	config.Unset("database:url")
+	config.Unset("database:name")
+	Connect()
+	c.Assert(Session.DB.Name, gocheck.Equals, "gandalf")
+	c.Assert(Session.DB.Session.LiveServers(), gocheck.DeepEquals, []string{"localhost:27017"})
+}
