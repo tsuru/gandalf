@@ -39,11 +39,15 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 	router.Get("/repository/:name", http.HandlerFunc(api.GetRepository))
 	router.Put("/repository/:name", http.HandlerFunc(api.RenameRepository))
 
-	port, err := config.GetString("webserver:port")
+	bind, err := config.GetString("bind")
 	if err != nil {
-		panic(err)
+		var perr error
+		bind, perr = config.GetString("webserver:port")
+		if perr != nil {
+			panic(err)
+		}
 	}
 	if !*dry {
-		log.Fatal(http.ListenAndServe(port, router))
+		log.Fatal(http.ListenAndServe(bind, router))
 	}
 }
