@@ -581,7 +581,7 @@ func (s *S) TestRenameRepositoryNotfound(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
 }
 
-func (s *S) TestHealthcheck(c* gocheck.C) {
+func (s *S) TestHealthcheck(c *gocheck.C) {
 	url := "/healthcheck"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
