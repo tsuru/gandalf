@@ -580,3 +580,13 @@ func (s *S) TestRenameRepositoryNotfound(c *gocheck.C) {
 	RenameRepository(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
 }
+
+func (s *S) TestHealthcheck(c* gocheck.C) {
+	url := "/healthcheck"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	HealthCheck(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "WORKING")
+}

@@ -205,3 +205,7 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 	}
 	return nil
 }
+
+func HealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("WORKING"))
+}
