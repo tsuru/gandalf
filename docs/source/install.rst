@@ -6,9 +6,38 @@ This document describes how to install gandalf using the pre-built binaries.
 
 If you want, you can :doc:`install gandalf from source </install-from-source>` too.
 
-This document assumes that gandalf is being installed on a Ubuntu (12.10) machine. You
-can use equivalent packages for git, MongoDB and other gandalf dependencies. Please make
-sure you satisfy minimal version requirements.
+This document assumes that gandalf is being installed on a Ubuntu (12.10)
+machine. You can use equivalent packages for git, MongoDB and other gandalf
+dependencies. Please make sure you satisfy minimal version requirements.
+
+Easiest mode: PPA
+==================
+
+You can install Gandalf server from `Tsuru PPA
+<https://launchpad.net/~tsuru/+archive/ppa>`_:
+
+.. highlight:: bash
+
+::
+
+    $ sudo apt-add-repository ppa:tsuru/ppa
+    $ sudo apt-get update
+    $ sudo apt-get install gandalf-server
+
+It will install Git automatically, but you'll still need to install MongoDB
+manually. After installing MongoDB, or editing ``/etc/gandalf.conf`` to point
+to an external MongoDB database (see `Configuring`_ for more details), you can
+start Gandalf and git-daemon using upstart:
+
+.. highlight:: bash
+
+::
+
+    $ sudo start git-daemon
+    $ sudo start gandalf-server
+
+Installing from pre-built binaries
+==================================
 
 Dependencies
 ------------
