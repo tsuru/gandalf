@@ -15,7 +15,7 @@ import (
 	"net/http"
 )
 
-const version = "0.1.2"
+const version = "0.2.0"
 
 func main() {
 	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
