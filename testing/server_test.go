@@ -19,6 +19,7 @@ var _ = gocheck.Suite(&S{})
 func (s *S) TestGandalfServerShouldRespondeToCalls(c *gocheck.C) {
 	h := TestHandler{}
 	ts := TestServer(&h)
+	defer ts.Close()
 	_, err := http.Get(ts.URL + "/test-server")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(h.Url, gocheck.Equals, "/test-server")
