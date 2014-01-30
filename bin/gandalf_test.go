@@ -181,6 +181,13 @@ func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitC
 	c.Assert(err, gocheck.IsNil)
 }
 
+func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommandWithDashInName(c *gocheck.C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/my-repo.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	err := validateCmd()
+	c.Assert(err, gocheck.IsNil)
+}
+
 func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermission(c *gocheck.C) {
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
 	c.Check(err, gocheck.IsNil)
