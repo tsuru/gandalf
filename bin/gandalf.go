@@ -159,7 +159,9 @@ func formatCommand() ([]string, error) {
 	repoName += ".git"
 	cmdList := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
 	for i, c := range cmdList {
-		if c == "'"+repoName+"'" {
+		c = strings.Trim(c, "'")
+		c = strings.Trim(c, "/")
+		if c == repoName {
 			cmdList[i] = path.Join(p, repoName)
 			break
 		}

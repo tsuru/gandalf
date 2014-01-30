@@ -249,3 +249,14 @@ func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositor
 	expected := path.Join(p, "myproject.git")
 	c.Assert(cmd, gocheck.DeepEquals, []string{"git-receive-pack", expected})
 }
+
+func (s *S) TestFormatCommandShouldReceiveAGitCommandProjectWithDash(c *gocheck.C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/myproject.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	cmd, err := formatCommand()
+	c.Assert(err, gocheck.IsNil)
+	p, err := config.GetString("git:bare:location")
+	c.Assert(err, gocheck.IsNil)
+	expected := path.Join(p, "myproject.git")
+	c.Assert(cmd, gocheck.DeepEquals, []string{"git-receive-pack", expected})
+}
