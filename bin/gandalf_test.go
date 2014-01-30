@@ -151,6 +151,14 @@ func (s *S) TestRequestedRepositoryName(c *gocheck.C) {
 	c.Assert(name, gocheck.Equals, "foobar")
 }
 
+func (s *S) TestRequestedRepositoryNameWithSlash(c *gocheck.C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/foobar.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	name, err := requestedRepositoryName()
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(name, gocheck.Equals, "foobar")
+}
+
 func (s *S) TestrequestedRepositoryNameShouldReturnErrorWhenTheresNoMatch(c *gocheck.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack foobar")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
