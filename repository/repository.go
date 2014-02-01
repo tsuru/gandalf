@@ -94,6 +94,10 @@ func Rename(oldName, newName string) error {
 // ReadWriteURL formats the git ssh url and return it. If no remote is configured in
 // gandalf.conf, this method panics.
 func (r *Repository) ReadWriteURL() string {
+	var remote string
+	if useSSH, _ := config.GetBool("git:use-ssh"); useSSH {
+		remote = "ssh://"
+	}
 	host, err := config.GetString("host")
 	if err != nil {
 		panic(err.Error())
@@ -102,17 +106,21 @@ func (r *Repository) ReadWriteURL() string {
 	if err != nil {
 		panic(err.Error())
 	}
-	return fmt.Sprintf("%s@%s:%s.git", uid, host, r.Name)
+	return fmt.Sprintf("%s%s@%s:%s.git", remote, uid, host, r.Name)
 }
 
 // ReadOnly formats the git url and return it. If no host is configured in
 // gandalf.conf, this method panics.
 func (r *Repository) ReadOnlyURL() string {
+	var remote string
+	if useSSH, _ := config.GetBool("git:use-ssh"); useSSH {
+		remote = "ssh://"
+	}
 	host, err := config.GetString("host")
 	if err != nil {
 		panic(err.Error())
 	}
-	return fmt.Sprintf("git://%s/%s.git", host, r.Name)
+	return fmt.Sprintf("%sgit://%s/%s.git", remote, host, r.Name)
 }
 
 // Validates a repository

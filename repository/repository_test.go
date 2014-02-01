@@ -201,6 +201,27 @@ func (s *S) TestReadOnlyURL(c *gocheck.C) {
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("git://%s/lol.git", host))
 }
 
+func (s *S) TestReadOnlyURLWithSSH(c *gocheck.C) {
+	config.Set("git:use-ssh", true)
+	defer config.Unset("git:use-ssh")
+	host, err := config.GetString("host")
+	c.Assert(err, gocheck.IsNil)
+	remote := (&Repository{Name: "lol"}).ReadOnlyURL()
+	c.Assert(remote, gocheck.Equals, fmt.Sprintf("ssh://git://%s/lol.git", host))
+}
+
+func (s *S) TestReadWriteURLWithSSH(c *gocheck.C) {
+	config.Set("git:use-ssh", true)
+	defer config.Unset("git:use-ssh")
+	uid, err := config.GetString("uid")
+	c.Assert(err, gocheck.IsNil)
+	host, err := config.GetString("host")
+	c.Assert(err, gocheck.IsNil)
+	remote := (&Repository{Name: "lol"}).ReadWriteURL()
+	expected := fmt.Sprintf("ssh://%s@%s:lol.git", uid, host)
+	c.Assert(remote, gocheck.Equals, expected)
+}
+
 func (s *S) TestReadWriteURL(c *gocheck.C) {
 	host, err := config.GetString("host")
 	c.Assert(err, gocheck.IsNil)
