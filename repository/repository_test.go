@@ -194,28 +194,28 @@ func (s *S) TestRenameNotFound(c *gocheck.C) {
 	c.Assert(err, gocheck.NotNil)
 }
 
-func (s *S) TestGitURL(c *gocheck.C) {
+func (s *S) TestReadOnlyURL(c *gocheck.C) {
 	host, err := config.GetString("host")
 	c.Assert(err, gocheck.IsNil)
-	remote := (&Repository{Name: "lol"}).GitURL()
+	remote := (&Repository{Name: "lol"}).ReadOnlyURL()
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("git://%s/lol.git", host))
 }
 
-func (s *S) TestSshURL(c *gocheck.C) {
+func (s *S) TestReadWriteURL(c *gocheck.C) {
 	host, err := config.GetString("host")
 	c.Assert(err, gocheck.IsNil)
-	remote := (&Repository{Name: "lol"}).SshURL()
+	remote := (&Repository{Name: "lol"}).ReadWriteURL()
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("git@%s:lol.git", host))
 }
 
-func (s *S) TestSshURLUseUidFromConfigFile(c *gocheck.C) {
+func (s *S) TestReadWriteURLUseUidFromConfigFile(c *gocheck.C) {
 	uid, err := config.GetString("uid")
 	c.Assert(err, gocheck.IsNil)
 	host, err := config.GetString("host")
 	c.Assert(err, gocheck.IsNil)
 	config.Set("uid", "test")
 	defer config.Set("uid", uid)
-	remote := (&Repository{Name: "f#"}).SshURL()
+	remote := (&Repository{Name: "f#"}).ReadWriteURL()
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("test@%s:f#.git", host))
 }
 
@@ -321,8 +321,8 @@ func (s *S) TestMarshalJSON(c *gocheck.C) {
 	expected := map[string]interface{}{
 		"name":    repo.Name,
 		"public":  repo.IsPublic,
-		"ssh_url": repo.SshURL(),
-		"git_url": repo.GitURL(),
+		"ssh_url": repo.ReadWriteURL(),
+		"git_url": repo.ReadOnlyURL(),
 	}
 	data, err := json.Marshal(&repo)
 	c.Assert(err, gocheck.IsNil)
