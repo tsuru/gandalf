@@ -1,4 +1,4 @@
-// Copyright 2013 gandalf authors. All rights reserved.
+// Copyright 2014 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/globocom/gandalf/db"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"io"
@@ -207,5 +208,10 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 }
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
+	if err := db.Session.DB.Session.Ping(); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Failed to ping the database: %s\n", err)
+		return
+	}
 	w.Write([]byte("WORKING"))
 }
