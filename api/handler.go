@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/globocom/gandalf/db"
+	"github.com/globocom/gandalf/hook"
 	"github.com/globocom/gandalf/repository"
 	"github.com/globocom/gandalf/user"
 	"io"
@@ -191,6 +192,27 @@ func RenameRepository(w http.ResponseWriter, r *http.Request) {
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func AddHook(w http.ResponseWriter, r *http.Request) {
+	var hookScript hook.JsonHookScript
+	if err := parseBody(r.Body, &hookScript); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if hookScript.Name != "post-receive" &&
+		hookScript.Name != "pre-receive" &&
+		hookScript.Name != "update" {
+		http.Error(w,
+			"Unsupported hook, valid options are: post-receive, pre-receive or update",
+			http.StatusBadRequest)
+		return
+	}
+	if err := hook.Add(hookScript); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Fprint(w, "hook ", hookScript.Name, " successfully created\n")
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {
