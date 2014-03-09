@@ -6,23 +6,28 @@ package hook
 
 import (
 	"github.com/globocom/config"
+	"github.com/globocom/gandalf/fs"
 	"strings"
 	"io"
-	"io/ioutil"
+	"os"
 )
 
 // Adds a hook script.
 func Add(name string, body io.ReadCloser) error {
-	path, _ := config.GetString("git:bare:template")
+	path, err := config.GetString("git:bare:template")
+	if err != nil {
+	  return err
+	}
 	s := []string{path, "hooks", name}
 	scriptPath := strings.Join(s, "/")
-	b, err := ioutil.ReadAll(body)
+	file, err := fs.Filesystem().OpenFile(scriptPath, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
-		return err
+	  return err
 	}
-	err = ioutil.WriteFile(scriptPath, b, 0755)
+	defer file.Close()
+	_, err = io.Copy(file, body)
 	if err != nil {
-		return err
+	  return err
 	}
 	return nil
 }
