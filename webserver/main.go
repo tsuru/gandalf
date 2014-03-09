@@ -48,7 +48,7 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 	router.Get("/repository/:name", http.HandlerFunc(api.GetRepository))
 	router.Put("/repository/:name", http.HandlerFunc(api.RenameRepository))
 	router.Get("/healthcheck/", http.HandlerFunc(api.HealthCheck))
-	router.Post("/hook", http.HandlerFunc(api.AddHook))
+	router.Post("/hook/:name", http.HandlerFunc(api.AddHook))
 
 	bind, err := config.GetString("bind")
 	if err != nil {

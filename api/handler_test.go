@@ -302,8 +302,8 @@ func (s *S) TestAddKey(c *gocheck.C) {
 }
 
 func (s *S) TestAddPostReceiveHook(c *gocheck.C) {
-	b := strings.NewReader("{\"name\":\"post-receive\", \"content\":\"some content\"}")
-	recorder, request := post("/hook", b, c)
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/post-receive?:name=post-receive", b, c)
 	AddHook(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook post-receive successfully created\n"
@@ -312,8 +312,8 @@ func (s *S) TestAddPostReceiveHook(c *gocheck.C) {
 }
 
 func (s *S) TestAddPreReceiveHook(c *gocheck.C) {
-	b := strings.NewReader("{\"name\":\"pre-receive\", \"content\":\"some content\"}")
-	recorder, request := post("/hook", b, c)
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/pre-receive?:name=pre-receive", b, c)
 	AddHook(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook pre-receive successfully created\n"
@@ -322,8 +322,8 @@ func (s *S) TestAddPreReceiveHook(c *gocheck.C) {
 }
 
 func (s *S) TestAddUpdateHook(c *gocheck.C) {
-	b := strings.NewReader("{\"name\":\"update\", \"content\":\"some content\"}")
-	recorder, request := post("/hook", b, c)
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/update?:name=update", b, c)
 	AddHook(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook update successfully created\n"
@@ -332,8 +332,8 @@ func (s *S) TestAddUpdateHook(c *gocheck.C) {
 }
 
 func (s *S) TestAddInvalidHook(c *gocheck.C) {
-	b := strings.NewReader("{\"name\":\"invalid-hook\", \"content\":\"some content\"}")
-	recorder, request := post("/hook", b, c)
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/invalid-hook?:name=invalid-hook", b, c)
 	AddHook(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Unsupported hook, valid options are: post-receive, pre-receive or update\n"

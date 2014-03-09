@@ -6,30 +6,21 @@ package hook
 
 import (
 	"github.com/globocom/config"
-	"github.com/globocom/gandalf/fs"
-	"os"
 	"strings"
-	"syscall"
+	"io"
+	"io/ioutil"
 )
 
-type JsonHookScript struct {
-	Name    string
-	Content string
-}
-
 // Adds a hook script.
-func Add(hookScript JsonHookScript) error {
+func Add(name string, body io.ReadCloser) error {
 	path, _ := config.GetString("git:bare:template")
-	s := []string{path, "hooks", hookScript.Name}
+	s := []string{path, "hooks", name}
 	scriptPath := strings.Join(s, "/")
-	file, err := fs.Filesystem().OpenFile(scriptPath, os.O_WRONLY|os.O_CREATE, 0755)
+	b, err := ioutil.ReadAll(body)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
-	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
-	_, err = file.WriteString(hookScript.Content)
+	err = ioutil.WriteFile(scriptPath, b, 0755)
 	if err != nil {
 		return err
 	}

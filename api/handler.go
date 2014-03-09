@@ -195,24 +195,18 @@ func RenameRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddHook(w http.ResponseWriter, r *http.Request) {
-	var hookScript hook.JsonHookScript
-	if err := parseBody(r.Body, &hookScript); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if hookScript.Name != "post-receive" &&
-		hookScript.Name != "pre-receive" &&
-		hookScript.Name != "update" {
+	name := r.URL.Query().Get(":name")
+	if name != "post-receive" && name != "pre-receive" && name != "update" {
 		http.Error(w,
 			"Unsupported hook, valid options are: post-receive, pre-receive or update",
 			http.StatusBadRequest)
 		return
 	}
-	if err := hook.Add(hookScript); err != nil {
+	if err := hook.Add(name,r.Body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprint(w, "hook ", hookScript.Name, " successfully created\n")
+	fmt.Fprint(w, "hook ", name, " successfully created\n")
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {
