@@ -38,6 +38,8 @@ func (s *S) SetUpSuite(c *gocheck.C) {
 func (s *S) SetUpTest(c *gocheck.C) {
 	s.rfs = &testingfs.RecordingFs{}
 	fs.Fsystem = s.rfs
+	bareTemplate, _ := config.GetString("git:bare:template")
+	fs.Fsystem.MkdirAll(bareTemplate + "/hooks", 0755)
 }
 
 func (s *S) TearDownTest(c *gocheck.C) {

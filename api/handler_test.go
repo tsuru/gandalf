@@ -301,6 +301,46 @@ func (s *S) TestAddKey(c *gocheck.C) {
 	c.Assert(k.Comment, gocheck.Equals, keyComment)
 }
 
+func (s *S) TestAddPostReceiveHook(c *gocheck.C) {
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/post-receive?:name=post-receive", b, c)
+	AddHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "hook post-receive successfully created\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 200)
+}
+
+func (s *S) TestAddPreReceiveHook(c *gocheck.C) {
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/pre-receive?:name=pre-receive", b, c)
+	AddHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "hook pre-receive successfully created\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 200)
+}
+
+func (s *S) TestAddUpdateHook(c *gocheck.C) {
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/update?:name=update", b, c)
+	AddHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "hook update successfully created\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 200)
+}
+
+func (s *S) TestAddInvalidHook(c *gocheck.C) {
+	b := strings.NewReader("some content")
+	recorder, request := post("/hook/invalid-hook?:name=invalid-hook", b, c)
+	AddHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "Unsupported hook, valid options are: post-receive, pre-receive or update\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 400)
+}
+
 func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExists(c *gocheck.C) {
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
