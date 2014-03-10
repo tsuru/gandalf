@@ -202,7 +202,7 @@ func AddHook(w http.ResponseWriter, r *http.Request) {
 			http.StatusBadRequest)
 		return
 	}
-	if err := hook.Add(name,r.Body); err != nil {
+	if err := hook.Add(name, r.Body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
