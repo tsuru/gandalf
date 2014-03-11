@@ -30,7 +30,6 @@ func (s *S) SetUpSuite(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	config.Set("database:url", "127.0.0.1:27017")
 	config.Set("database:name", "gandalf_api_tests")
-	db.Connect()
 	s.tmpdir, err = commandmocker.Add("git", "")
 	c.Assert(err, gocheck.IsNil)
 }
@@ -48,14 +47,20 @@ func (s *S) TearDownTest(c *gocheck.C) {
 
 func (s *S) TearDownSuite(c *gocheck.C) {
 	commandmocker.Remove(s.tmpdir)
-	db.Session.DB.DropDatabase()
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	conn.User().Database.DropDatabase()
 }
 
 func (s *S) TestGetUserOr404(c *gocheck.C) {
 	u := user.User{Name: "umi"}
-	err := db.Session.User().Insert(&u)
+	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": u.Name})
+	defer conn.Close()
+	err = conn.User().Insert(&u)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().Remove(bson.M{"_id": u.Name})
 	rUser, err := getUserOr404("umi")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(rUser.Name, gocheck.Equals, "umi")

@@ -224,7 +224,12 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 }
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	if err := db.Session.DB.Session.Ping(); err != nil {
+	conn, err := db.Conn()
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+	if err := conn.User().Database.Session.Ping(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Failed to ping the database: %s\n", err)
 		return

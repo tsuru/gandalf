@@ -67,8 +67,11 @@ func (s *S) TestNewUser(c *gocheck.C) {
 	b := strings.NewReader(fmt.Sprintf(`{"name": "brain", "keys": {"keyname": %q}}`, rawKey))
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
-	defer db.Session.User().Remove(bson.M{"_id": "brain"})
-	defer db.Session.Key().Remove(bson.M{"username": "brain"})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "brain"})
+	defer conn.Key().Remove(bson.M{"username": "brain"})
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(string(body), gocheck.Equals, "User \"brain\" successfully created\n")
@@ -79,10 +82,13 @@ func (s *S) TestNewUserShouldSaveInDB(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "brain", "keys": {"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
-	defer db.Session.User().Remove(bson.M{"_id": "brain"})
-	defer db.Session.Key().Remove(bson.M{"username": "brain"})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "brain"})
+	defer conn.Key().Remove(bson.M{"username": "brain"})
 	var u user.User
-	err := db.Session.User().Find(bson.M{"_id": "brain"}).One(&u)
+	err = conn.User().Find(bson.M{"_id": "brain"}).One(&u)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(u.Name, gocheck.Equals, "brain")
 }
@@ -111,15 +117,21 @@ func (s *S) TestNewUserWihoutKeys(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "brain"}`)
 	recorder, request := post("/user", b, c)
 	NewUser(recorder, request)
-	defer db.Session.User().Remove(bson.M{"_id": "brain"})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "brain"})
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 }
 
 func (s *S) TestGetRepository(c *gocheck.C) {
 	r := repository.Repository{Name: "onerepo"}
-	err := db.Session.Repository().Insert(&r)
+	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	defer conn.Close()
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	recorder, request := get("/repository/onerepo?:name=onerepo", nil, c)
 	GetRepository(recorder, request)
 	body, err := ioutil.ReadAll(recorder.Body)
@@ -143,7 +155,10 @@ func (s *S) TestGetRepositoryDoesNotExist(c *gocheck.C) {
 }
 
 func (s *S) TestNewRepository(c *gocheck.C) {
-	defer db.Session.Repository().Remove(bson.M{"_id": "some_repository"})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
@@ -156,10 +171,13 @@ func (s *S) TestNewRepositoryShouldSaveInDB(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	collection := db.Session.Repository()
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	collection := conn.Repository()
 	defer collection.Remove(bson.M{"_id": "myRepository"})
 	var p repository.Repository
-	err := collection.Find(bson.M{"_id": "myRepository"}).One(&p)
+	err = collection.Find(bson.M{"_id": "myRepository"}).One(&p)
 	c.Assert(err, gocheck.IsNil)
 }
 
@@ -167,10 +185,13 @@ func (s *S) TestNewRepositoryShouldSaveUserIdInRepository(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2", "brain"]}`)
 	recorder, request := post("/repository", b, c)
 	NewRepository(recorder, request)
-	collection := db.Session.Repository()
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	collection := conn.Repository()
 	defer collection.Remove(bson.M{"_id": "myRepository"})
 	var p repository.Repository
-	err := collection.Find(bson.M{"_id": "myRepository"}).One(&p)
+	err = collection.Find(bson.M{"_id": "myRepository"}).One(&p)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(len(p.Users), gocheck.Not(gocheck.Equals), 0)
 }
@@ -241,21 +262,24 @@ func (s *S) TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(c *gocheck.C) {
 
 func (s *S) TestGrantAccessUpdatesReposDocument(c *gocheck.C) {
 	u, err := user.New("pippin", map[string]string{})
-	defer db.Session.User().Remove(bson.M{"_id": "pippin"})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "pippin"})
 	c.Assert(err, gocheck.IsNil)
 	r := repository.Repository{Name: "onerepo"}
-	err = db.Session.Repository().Insert(&r)
+	err = conn.Repository().Insert(&r)
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	r2 := repository.Repository{Name: "otherepo"}
-	err = db.Session.Repository().Insert(&r2)
+	err = conn.Repository().Insert(&r2)
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
+	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
 	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["%s"]}`, r.Name, r2.Name, u.Name))
 	rec, req := del("/repository/grant", b, c)
 	GrantAccess(rec, req)
 	var repos []repository.Repository
-	err = db.Session.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(rec.Code, gocheck.Equals, 200)
 	for _, repo := range repos {
@@ -265,18 +289,21 @@ func (s *S) TestGrantAccessUpdatesReposDocument(c *gocheck.C) {
 
 func (s *S) TestRevokeAccessUpdatesReposDocument(c *gocheck.C) {
 	r := repository.Repository{Name: "onerepo", Users: []string{"Umi", "Luke"}}
-	err := db.Session.Repository().Insert(&r)
+	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.Repository().Remove(bson.M{"_id": r.Name})
+	defer conn.Close()
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	r2 := repository.Repository{Name: "otherepo", Users: []string{"Umi", "Luke"}}
-	err = db.Session.Repository().Insert(&r2)
+	err = conn.Repository().Insert(&r2)
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.Repository().Remove(bson.M{"_id": r2.Name})
+	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
 	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["Umi"]}`, r.Name, r2.Name))
 	rec, req := del("/repository/revoke", b, c)
 	RevokeAccess(rec, req)
 	var repos []repository.Repository
-	err = db.Session.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
 	c.Assert(err, gocheck.IsNil)
 	for _, repo := range repos {
 		c.Assert(repo.Users, gocheck.DeepEquals, []string{"Luke"})
@@ -295,7 +322,10 @@ func (s *S) TestAddKey(c *gocheck.C) {
 	c.Assert(got, gocheck.Equals, expected)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	var k user.Key
-	err = db.Session.Key().Find(bson.M{"name": "keyname", "username": usr.Name}).One(&k)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	err = conn.Key().Find(bson.M{"name": "keyname", "username": usr.Name}).One(&k)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(k.Body, gocheck.Equals, keyBody)
 	c.Assert(k.Comment, gocheck.Equals, keyComment)
@@ -382,9 +412,12 @@ func (s *S) TestAddKeyShouldNotAcceptRepeatedKeysForDifferentUsers(c *gocheck.C)
 
 func (s *S) TestAddKeyInvalidKey(c *gocheck.C) {
 	u := user.User{Name: "Frodo"}
-	err := db.Session.User().Insert(&u)
+	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
+	defer conn.Close()
+	err = conn.User().Insert(&u)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"keyname":"invalid-rsa"}`)
 	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", u.Name, u.Name), b, c)
 	AddKey(recorder, request)
@@ -396,9 +429,12 @@ func (s *S) TestAddKeyInvalidKey(c *gocheck.C) {
 
 func (s *S) TestAddKeyShouldRequireKey(c *gocheck.C) {
 	u := user.User{Name: "Frodo"}
-	err := db.Session.User().Insert(&u)
+	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.User().Remove(bson.M{"_id": "Frodo"})
+	defer conn.Close()
+	err = conn.User().Insert(&u)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{}`)
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
@@ -410,13 +446,16 @@ func (s *S) TestAddKeyShouldRequireKey(c *gocheck.C) {
 
 func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeysFile(c *gocheck.C) {
 	u := user.User{Name: "Frodo"}
-	err := db.Session.User().Insert(&u)
+	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
-	defer db.Session.User().RemoveId("Frodo")
+	defer conn.Close()
+	err = conn.User().Insert(&u)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().RemoveId("Frodo")
 	b := strings.NewReader(fmt.Sprintf(`{"key": "%s"}`, rawKey))
 	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
 	AddKey(recorder, request)
-	defer db.Session.Key().Remove(bson.M{"name": "key", "username": u.Name})
+	defer conn.Key().Remove(bson.M{"name": "key", "username": u.Name})
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	content := s.authKeysContent(c)
 	c.Assert(strings.HasSuffix(strings.TrimSpace(content), rawKey), gocheck.Equals, true)
@@ -441,7 +480,10 @@ func (s *S) TestRemoveKeyRemovesKeyFromDatabase(c *gocheck.C) {
 	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
 	recorder, request := del(url, nil, c)
 	RemoveKey(recorder, request)
-	count, err := db.Session.Key().Find(bson.M{"name": "keyname", "username": "Gandalf"}).Count()
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	count, err := conn.Key().Find(bson.M{"name": "keyname", "username": "Gandalf"}).Count()
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(count, gocheck.Equals, 0)
 }
@@ -531,7 +573,10 @@ func (s *S) TestRemoveUserShouldRemoveFromDB(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
 	RemoveUser(recorder, request)
-	collection := db.Session.User()
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	collection := conn.User()
 	lenght, err := collection.Find(bson.M{"_id": u.Name}).Count()
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(lenght, gocheck.Equals, 0)
@@ -559,7 +604,10 @@ func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
 	RemoveRepository(recorder, request)
-	err = db.Session.Repository().Find(bson.M{"_id": r.Name}).One(&r)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	err = conn.Repository().Find(bson.M{"_id": r.Name}).One(&r)
 	c.Assert(err, gocheck.ErrorMatches, "^not found$")
 }
 

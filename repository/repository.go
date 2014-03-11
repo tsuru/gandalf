@@ -46,7 +46,12 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	if err := newBare(name); err != nil {
 		return r, err
 	}
-	err := db.Session.Repository().Insert(&r)
+	conn, err := db.Conn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	err = conn.Repository().Insert(&r)
 	if mgo.IsDup(err) {
 		return r, fmt.Errorf("A repository with this name already exists.")
 	}
@@ -56,7 +61,12 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 // Get find a repository by name.
 func Get(name string) (Repository, error) {
 	var r Repository
-	err := db.Session.Repository().FindId(name).One(&r)
+	conn, err := db.Conn()
+	if err != nil {
+		return r, err
+	}
+	defer conn.Close()
+	err = conn.Repository().FindId(name).One(&r)
 	return r, err
 }
 
@@ -66,7 +76,12 @@ func Remove(name string) error {
 	if err := removeBare(name); err != nil {
 		return err
 	}
-	if err := db.Session.Repository().RemoveId(name); err != nil {
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if err := conn.Repository().RemoveId(name); err != nil {
 		return fmt.Errorf("Could not remove repository: %s", err)
 	}
 	return nil
@@ -80,11 +95,16 @@ func Rename(oldName, newName string) error {
 	}
 	newRepo := repo
 	newRepo.Name = newName
-	err = db.Session.Repository().Insert(newRepo)
+	conn, err := db.Conn()
 	if err != nil {
 		return err
 	}
-	err = db.Session.Repository().RemoveId(oldName)
+	defer conn.Close()
+	err = conn.Repository().Insert(newRepo)
+	if err != nil {
+		return err
+	}
+	err = conn.Repository().RemoveId(oldName)
 	if err != nil {
 		return err
 	}
@@ -158,13 +178,23 @@ func (r *Repository) isValid() (bool, error) {
 // GrantAccess gives write permission for users in all specified repositories.
 // If any of the repositories/users do not exists, GrantAccess just skips it.
 func GrantAccess(rNames, uNames []string) error {
-	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
 	return err
 }
 
 // RevokeAccess revokes write permission from users in all specified
 // repositories.
 func RevokeAccess(rNames, uNames []string) error {
-	_, err := db.Session.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
 	return err
 }
