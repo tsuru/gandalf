@@ -20,9 +20,9 @@ type Storage struct {
 	*storage.Storage
 }
 
-// conn reads the tsuru config and calls storage.Open to get a database connection.
+// conn reads the gandalf config and calls storage.Open to get a database connection.
 //
-// Most tsuru packages should probably use this function. storage.Open is intended for
+// Most gandalf packages should probably use this function. storage.Open is intended for
 // use when supporting more than one database.
 func conn() (*storage.Storage, error) {
 	url, _ := config.GetString("database:url")
