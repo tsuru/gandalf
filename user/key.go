@@ -119,7 +119,12 @@ func addKey(name, body, username string) error {
 	if err != nil {
 		return err
 	}
-	err = db.Session.Key().Insert(key)
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	err = conn.Key().Insert(key)
 	if err != nil {
 		if e, ok := err.(*mgo.LastError); ok && e.Code == 11000 {
 			return ErrDuplicateKey
@@ -171,11 +176,16 @@ func remove(k *Key) error {
 func removeUserKeys(username string) error {
 	var keys []Key
 	q := bson.M{"username": username}
-	err := db.Session.Key().Find(q).All(&keys)
+	conn, err := db.Conn()
 	if err != nil {
 		return err
 	}
-	db.Session.Key().RemoveAll(q)
+	defer conn.Close()
+	err = conn.Key().Find(q).All(&keys)
+	if err != nil {
+		return err
+	}
+	conn.Key().RemoveAll(q)
 	for _, k := range keys {
 		remove(&k)
 	}
@@ -185,11 +195,16 @@ func removeUserKeys(username string) error {
 // removes a key from the database and the authorized_keys file.
 func removeKey(name, username string) error {
 	var k Key
-	err := db.Session.Key().Find(bson.M{"name": name, "username": username}).One(&k)
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	err = conn.Key().Find(bson.M{"name": name, "username": username}).One(&k)
 	if err != nil {
 		return ErrKeyNotFound
 	}
-	db.Session.Key().Remove(k)
+	conn.Key().Remove(k)
 	return remove(&k)
 }
 
@@ -207,10 +222,15 @@ func (keys KeyList) MarshalJSON() ([]byte, error) {
 //
 // If the user is not found, returns an error
 func ListKeys(uName string) (KeyList, error) {
-	if n, err := db.Session.User().FindId(uName).Count(); err != nil || n != 1 {
+	conn, err := db.Conn()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	if n, err := conn.User().FindId(uName).Count(); err != nil || n != 1 {
 		return nil, ErrUserNotFound
 	}
 	var keys []Key
-	err := db.Session.Key().Find(bson.M{"username": uName}).All(&keys)
+	err = conn.Key().Find(bson.M{"username": uName}).All(&keys)
 	return KeyList(keys), err
 }
