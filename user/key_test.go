@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/globocom/config"
-	"github.com/globocom/gandalf/db"
+	"github.com/tsuru/gandalf/db"
 	"io"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"

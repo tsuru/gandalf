@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/globocom/gandalf",
+	"ImportPath": "github.com/tsuru/gandalf",
 	"GoVersion": "devel +77d8d214820e Fri Mar 07 20:52:29 2014 +0400",
 	"Packages": [
 		"./..."

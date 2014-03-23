@@ -7,7 +7,7 @@ package repository
 import (
 	"fmt"
 	"github.com/globocom/config"
-	"github.com/globocom/gandalf/fs"
+	"github.com/tsuru/gandalf/fs"
 	"os/exec"
 	"path"
 )

@@ -6,7 +6,7 @@ package hook
 
 import (
 	"github.com/globocom/config"
-	"github.com/globocom/gandalf/fs"
+	"github.com/tsuru/gandalf/fs"
 	"io"
 	"os"
 	"strings"

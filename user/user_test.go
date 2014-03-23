@@ -6,9 +6,9 @@ package user
 
 import (
 	"github.com/globocom/config"
-	"github.com/globocom/gandalf/db"
-	"github.com/globocom/gandalf/fs"
-	"github.com/globocom/gandalf/repository"
+	"github.com/tsuru/gandalf/db"
+	"github.com/tsuru/gandalf/fs"
+	"github.com/tsuru/gandalf/repository"
 	fstesting "github.com/globocom/tsuru/fs/testing"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"

@@ -7,9 +7,9 @@ package api
 import (
 	"github.com/globocom/commandmocker"
 	"github.com/globocom/config"
-	"github.com/globocom/gandalf/db"
-	"github.com/globocom/gandalf/fs"
-	"github.com/globocom/gandalf/user"
+	"github.com/tsuru/gandalf/db"
+	"github.com/tsuru/gandalf/fs"
+	"github.com/tsuru/gandalf/user"
 	testingfs "github.com/globocom/tsuru/fs/testing"
 	"labix.org/v2/mgo/bson"
 	"launchpad.net/gocheck"

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/bmizerany/pat"
 	"github.com/globocom/config"
-	"github.com/globocom/gandalf/api"
+	"github.com/tsuru/gandalf/api"
 	"log"
 	"net/http"
 )
