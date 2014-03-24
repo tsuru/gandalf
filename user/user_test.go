@@ -5,8 +5,8 @@
 package user
 
 import (
-	"github.com/globocom/config"
 	fstesting "github.com/globocom/tsuru/fs/testing"
+	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/repository"

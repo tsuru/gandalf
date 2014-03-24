@@ -8,7 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/bmizerany/pat"
-	"github.com/globocom/config"
+	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/api"
 	"log"
 	"net/http"

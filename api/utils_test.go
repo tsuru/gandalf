@@ -6,8 +6,8 @@ package api
 
 import (
 	"github.com/globocom/commandmocker"
-	"github.com/globocom/config"
 	testingfs "github.com/globocom/tsuru/fs/testing"
+	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/user"

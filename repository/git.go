@@ -6,7 +6,7 @@ package repository
 
 import (
 	"fmt"
-	"github.com/globocom/config"
+	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/fs"
 	"os/exec"
 	"path"

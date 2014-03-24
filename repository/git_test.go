@@ -7,8 +7,8 @@ package repository
 import (
 	"fmt"
 	"github.com/globocom/commandmocker"
-	"github.com/globocom/config"
 	"github.com/globocom/tsuru/fs/testing"
+	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/fs"
 	"launchpad.net/gocheck"
 	"path"
