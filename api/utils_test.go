@@ -5,8 +5,8 @@
 package api
 
 import (
-	"github.com/tsuru/commandmocker"
 	testingfs "github.com/globocom/tsuru/fs/testing"
+	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
