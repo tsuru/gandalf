@@ -6,7 +6,7 @@ package main
 
 import (
 	"bytes"
-	"github.com/globocom/commandmocker"
+	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/repository"

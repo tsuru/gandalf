@@ -15,7 +15,7 @@
 			"Rev": "51b7af73e39f6dc59846b22d56ca886d105ef0c3"
 		},
 		{
-			"ImportPath": "github.com/globocom/commandmocker",
+			"ImportPath": "github.com/tsuru/commandmocker",
 			"Rev": "b758415df160f5ecffca83dd46c8065b1576cf6c"
 		},
 		{
