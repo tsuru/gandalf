@@ -54,6 +54,9 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	barePath := barePath(name)
 	if barePath != "" && isPublic {
 		ioutil.WriteFile(barePath+"/git-daemon-export-ok", []byte(""), 0644)
+		if f, err := fs.Filesystem().Create(barePath + "/git-daemon-export-ok"); err == nil {
+			f.Close()
+		}
 	}
 	conn, err := db.Conn()
 	if err != nil {

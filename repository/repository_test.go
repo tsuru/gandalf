@@ -45,7 +45,7 @@ func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
 	users := []string{"smeagol", "saruman"}
-	r, err := New("myRepo", users, true)
+	r, err := New("myRepo", users, false)
 	c.Assert(err, gocheck.IsNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
@@ -53,10 +53,30 @@ func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	defer conn.Repository().Remove(bson.M{"_id": "myRepo"})
 	c.Assert(r.Name, gocheck.Equals, "myRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, users)
-	c.Assert(r.IsPublic, gocheck.Equals, true)
+	c.Assert(r.IsPublic, gocheck.Equals, false)
 }
 
 func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("someRepo", []string{"smeagol"}, false)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().Remove(bson.M{"_id": "someRepo"})
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().Find(bson.M{"_id": "someRepo"}).One(&r)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(r.Name, gocheck.Equals, "someRepo")
+	c.Assert(r.Users, gocheck.DeepEquals, []string{"smeagol"})
+	c.Assert(r.IsPublic, gocheck.Equals, false)
+}
+
+func (s *S) TestNewPublicRepository(c *gocheck.C) {
+	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	fs.Fsystem = rfs
+	defer func() { fs.Fsystem = nil }()
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
@@ -71,6 +91,8 @@ func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
 	c.Assert(r.Name, gocheck.Equals, "someRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, []string{"smeagol"})
 	c.Assert(r.IsPublic, gocheck.Equals, true)
+	path := barePath("someRepo") + "/git-daemon-export-ok"
+	c.Assert(rfs.HasAction("create "+path), gocheck.Equals, true)
 }
 
 func (s *S) TestNewBreaksOnValidationError(c *gocheck.C) {
