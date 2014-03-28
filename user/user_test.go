@@ -76,6 +76,28 @@ func (s *S) TestNewUserReturnsAStructFilled(c *gocheck.C) {
 	c.Assert(key.UserName, gocheck.Equals, u.Name)
 }
 
+func (s *S) TestNewDuplicateUser(c *gocheck.C) {
+	u, err := New("someuser", map[string]string{"somekey": rawKey})
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().Remove(bson.M{"_id": u.Name})
+	defer conn.Key().Remove(bson.M{"name": "somekey"})
+	u, err := New("someuser", map[string]string{"somekey": rawKey})
+	c.Assert(err, gocheck.ErrorMatches, "Could not create user: user already exists")
+}
+
+func (s *S) TestNewDuplicateUserDifferentKey(c *gocheck.C) {
+	u, err := New("someuser", map[string]string{"somekey": rawKey})
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().Remove(bson.M{"_id": u.Name})
+	defer conn.Key().Remove(bson.M{"name": "somekey"})
+	u, err := New("someuser", map[string]string{"somedifferentkey": rawKey + "fakeKey"})
+	c.Assert(err, gocheck.ErrorMatches, "Could not create user: user already exists")
+}
+
 func (s *S) TestNewUserShouldStoreUserInDatabase(c *gocheck.C) {
 	u, err := New("someuser", map[string]string{"somekey": rawKey})
 	c.Assert(err, gocheck.IsNil)

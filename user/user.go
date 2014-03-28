@@ -39,6 +39,14 @@ func New(name string, keys map[string]string) (*User, error) {
 		return nil, err
 	}
 	defer conn.Close()
+	num, err := conn.User().Find(bson.M{"_id": name}).Count()
+	if err != nil {
+		return nil, err
+	}
+	if num > 0 {
+		log.Errorf("user.New: %s duplicate user")
+		return u, errors.New("Could not create user: user already exists")
+	}
 	if err := conn.User().Insert(&u); err != nil {
 		log.Errorf("user.New: %s", err.Error())
 		return u, err
