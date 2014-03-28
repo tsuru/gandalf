@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/globocom/tsuru/log"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
@@ -39,11 +40,14 @@ func (r *Repository) MarshalJSON() ([]byte, error) {
 // repository using the "bare-dir" setting and saves repository's meta data in
 // the database.
 func New(name string, users []string, isPublic bool) (*Repository, error) {
+	log.Debugf(`Creating repository "%s"`, name)
 	r := &Repository{Name: name, Users: users, IsPublic: isPublic}
 	if v, err := r.isValid(); !v {
+		log.Errorf(`repository.New: Invalid repository "%s": %s`, name, err.Error())
 		return r, err
 	}
 	if err := newBare(name); err != nil {
+		log.Errorf(`repository.New: Error creating bare repository for "%s": %s`, name, err.Error())
 		return r, err
 	}
 	conn, err := db.Conn()
@@ -53,6 +57,7 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	defer conn.Close()
 	err = conn.Repository().Insert(&r)
 	if mgo.IsDup(err) {
+		log.Errorf(`repository.New: Duplicate repository "%s"`, name)
 		return r, fmt.Errorf("A repository with this name already exists.")
 	}
 	return r, err
@@ -73,7 +78,9 @@ func Get(name string) (Repository, error) {
 // Remove deletes the repository from the database and removes it's bare Git
 // repository.
 func Remove(name string) error {
+	log.Debugf(`Removing repository "%s"`, name)
 	if err := removeBare(name); err != nil {
+		log.Errorf(`repository.Remove: Error removing bare repository "%s": %s`, name, err.Error())
 		return err
 	}
 	conn, err := db.Conn()
@@ -82,6 +89,7 @@ func Remove(name string) error {
 	}
 	defer conn.Close()
 	if err := conn.Repository().RemoveId(name); err != nil {
+		log.Errorf(`repository.Remove: Error removing repository "%s" from db: %s`, name, err.Error())
 		return fmt.Errorf("Could not remove repository: %s", err)
 	}
 	return nil
@@ -89,8 +97,10 @@ func Remove(name string) error {
 
 // Rename renames a repository.
 func Rename(oldName, newName string) error {
+	log.Debugf(`Renaming repository "%s" to "%s"`, oldName, newName)
 	repo, err := Get(oldName)
 	if err != nil {
+		log.Errorf(`repository.Rename: Repository "%s" not found: %s`, oldName, err.Error())
 		return err
 	}
 	newRepo := repo
@@ -102,10 +112,12 @@ func Rename(oldName, newName string) error {
 	defer conn.Close()
 	err = conn.Repository().Insert(newRepo)
 	if err != nil {
+		log.Errorf(`repository.Rename: Error adding new repository "%s": %s`, newRepo, err.Error())
 		return err
 	}
 	err = conn.Repository().RemoveId(oldName)
 	if err != nil {
+		log.Errorf(`repository.Rename: Error removing old repository "%s": %s`, oldName, err.Error())
 		return err
 	}
 	return fs.Fsystem.Rename(barePath(oldName), barePath(newName))
