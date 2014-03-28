@@ -42,7 +42,7 @@ func New(name string, keys map[string]string) (*User, error) {
 	defer conn.Close()
 	if err := conn.User().Insert(&u); err != nil {
 		if mgo.IsDup(err) {
-			log.Errorf("user.New: %s duplicate user")
+			log.Errorf("user.New: %q duplicate user", name)
 			return u, errors.New("Could not create user: user already exists")
 		}
 		log.Errorf("user.New: %s", err.Error())

@@ -108,7 +108,7 @@ func Rename(oldName, newName string) error {
 	log.Debugf(`Renaming repository "%s" to "%s"`, oldName, newName)
 	repo, err := Get(oldName)
 	if err != nil {
-		log.Errorf(`repository.Rename: Repository "%s" not found: %s`, oldName, err.Error())
+		log.Errorf(`repository.Rename: Repository "%s" not found: %s`, oldName, err)
 		return err
 	}
 	newRepo := repo
@@ -120,12 +120,12 @@ func Rename(oldName, newName string) error {
 	defer conn.Close()
 	err = conn.Repository().Insert(newRepo)
 	if err != nil {
-		log.Errorf(`repository.Rename: Error adding new repository "%s": %s`, newRepo, err.Error())
+		log.Errorf("repository.Rename: Error adding new repository %q: %s", newName, err)
 		return err
 	}
 	err = conn.Repository().RemoveId(oldName)
 	if err != nil {
-		log.Errorf(`repository.Rename: Error removing old repository "%s": %s`, oldName, err.Error())
+		log.Errorf(`repository.Rename: Error removing old repository "%s": %s`, oldName, err)
 		return err
 	}
 	return fs.Filesystem().Rename(barePath(oldName), barePath(newName))
