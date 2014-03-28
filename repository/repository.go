@@ -11,6 +11,7 @@ import (
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
+	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"regexp"
@@ -45,6 +46,10 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	}
 	if err := newBare(name); err != nil {
 		return r, err
+	}
+	barePath := barePath(name)
+	if barePath != "" && isPublic {
+		ioutil.WriteFile(barePath+"/git-daemon-export-ok", []byte(""), 0644)
 	}
 	conn, err := db.Conn()
 	if err != nil {

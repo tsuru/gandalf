@@ -14,6 +14,7 @@ import (
 	"github.com/tsuru/gandalf/fs"
 	"labix.org/v2/mgo/bson"
 	"launchpad.net/gocheck"
+	"os"
 	"path"
 	"testing"
 )
@@ -31,6 +32,11 @@ func (s *S) SetUpSuite(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	config.Set("database:url", "127.0.0.1:27017")
 	config.Set("database:name", "gandalf_repository_tests")
+}
+
+func PublicFileExists(repositoryName string) bool {
+	_, err := os.Stat(repositoryName)
+	return !os.IsNotExist(err)
 }
 
 func (s *S) TearDownSuite(c *gocheck.C) {
@@ -54,6 +60,7 @@ func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	c.Assert(r.Name, gocheck.Equals, "myRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, users)
 	c.Assert(r.IsPublic, gocheck.Equals, true)
+	c.Assert(PublicFileExists(r.Name), gocheck.Equals, true)
 }
 
 func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
@@ -71,6 +78,7 @@ func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
 	c.Assert(r.Name, gocheck.Equals, "someRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, []string{"smeagol"})
 	c.Assert(r.IsPublic, gocheck.Equals, true)
+	c.Assert(PublicFileExists(r.Name), gocheck.Equals, true)
 }
 
 func (s *S) TestNewBreaksOnValidationError(c *gocheck.C) {
@@ -115,6 +123,7 @@ func (s *S) TestRepositoryShouldBeValidWithoutIsPublic(c *gocheck.C) {
 	r := Repository{Name: "someName", Users: []string{"smeagol"}}
 	v, _ := r.isValid()
 	c.Assert(v, gocheck.Equals, true)
+	c.Assert(PublicFileExists(r.Name), gocheck.Equals, false)
 }
 
 func (s *S) TestNewShouldCreateNewGitBareRepository(c *gocheck.C) {
