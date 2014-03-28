@@ -125,7 +125,7 @@ func Rename(oldName, newName string) error {
 		log.Errorf(`repository.Rename: Error removing old repository "%s": %s`, oldName, err.Error())
 		return err
 	}
-	return fs.Fsystem.Rename(barePath(oldName), barePath(newName))
+	return fs.Filesystem().Rename(barePath(oldName), barePath(newName))
 }
 
 // ReadWriteURL formats the git ssh url and return it. If no remote is configured in
