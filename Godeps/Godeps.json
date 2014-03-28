@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/tsuru/gandalf",
-	"GoVersion": "devel +77d8d214820e Fri Mar 07 20:52:29 2014 +0400",
+	"GoVersion": "devel +70fdb079c44e Fri Mar 28 17:35:00 2014 +1100",
 	"Packages": [
 		"./..."
 	],
@@ -15,31 +15,40 @@
 			"Rev": "51b7af73e39f6dc59846b22d56ca886d105ef0c3"
 		},
 		{
-			"ImportPath": "github.com/tsuru/commandmocker",
-			"Rev": "b758415df160f5ecffca83dd46c8065b1576cf6c"
-		},
-		{
-			"ImportPath": "github.com/tsuru/config",
-			"Rev": "caf5fe2f55dfaf63564a929bda3d722181e6d770"
+			"ImportPath": "github.com/globocom/tsuru/db/storage",
+			"Comment": "0.3.10-39-g4ada4f3",
+			"Rev": "4ada4f3d4091143b773383245522e96131eb9450"
 		},
 		{
 			"ImportPath": "github.com/globocom/tsuru/fs",
-			"Comment": "0.3.6-18-g02155b7",
-			"Rev": "02155b7fc9e8a9e3ea654c8fbf42565c108f00c3"
+			"Comment": "0.3.10-39-g4ada4f3",
+			"Rev": "4ada4f3d4091143b773383245522e96131eb9450"
 		},
 		{
 			"ImportPath": "github.com/globocom/tsuru/log",
-			"Comment": "0.3.6-18-g02155b7",
-			"Rev": "02155b7fc9e8a9e3ea654c8fbf42565c108f00c3"
+			"Comment": "0.3.10-39-g4ada4f3",
+			"Rev": "4ada4f3d4091143b773383245522e96131eb9450"
 		},
 		{
 			"ImportPath": "github.com/globocom/tsuru/safe",
-			"Comment": "0.3.6-18-g02155b7",
-			"Rev": "02155b7fc9e8a9e3ea654c8fbf42565c108f00c3"
+			"Comment": "0.3.10-39-g4ada4f3",
+			"Rev": "4ada4f3d4091143b773383245522e96131eb9450"
 		},
 		{
 			"ImportPath": "github.com/howeyc/fsnotify",
 			"Rev": "5102fde921d31f59c6e45d835aa01f0213aade0f"
+		},
+		{
+			"ImportPath": "github.com/tsuru/commandmocker",
+			"Rev": "aaef171fb7cf6cf5c1be8b0e2aceab1050c9f059"
+		},
+		{
+			"ImportPath": "github.com/tsuru/config",
+			"Rev": "97d4a7511ea73e02a62a1a381d17110b5372cc40"
+		},
+		{
+			"ImportPath": "gopkg.in/v1/yaml",
+			"Rev": "4914593b9558e85597f08346c798aea8f6fb899f"
 		},
 		{
 			"ImportPath": "labix.org/v2/mgo",
@@ -50,11 +59,6 @@
 			"ImportPath": "launchpad.net/gocheck",
 			"Comment": "85",
 			"Rev": "gustavo@niemeyer.net-20130302024745-6ikofwq2c03h7giu"
-		},
-		{
-			"ImportPath": "launchpad.net/goyaml",
-			"Comment": "50",
-			"Rev": "gustavo@niemeyer.net-20130620163049-221erv1tss39x0xe"
 		}
 	]
 }
