@@ -41,14 +41,14 @@ func (r *Repository) MarshalJSON() ([]byte, error) {
 // repository using the "bare-dir" setting and saves repository's meta data in
 // the database.
 func New(name string, users []string, isPublic bool) (*Repository, error) {
-	log.Debugf(`Creating repository "%s"`, name)
+	log.Debugf("Creating repository %q", name)
 	r := &Repository{Name: name, Users: users, IsPublic: isPublic}
 	if v, err := r.isValid(); !v {
-		log.Errorf(`repository.New: Invalid repository "%s": %s`, name, err.Error())
+		log.Errorf("repository.New: Invalid repository %q: %s", name, err)
 		return r, err
 	}
 	if err := newBare(name); err != nil {
-		log.Errorf(`repository.New: Error creating bare repository for "%s": %s`, name, err.Error())
+		log.Errorf("repository.New: Error creating bare repository for %q: %s", name, err)
 		return r, err
 	}
 	barePath := barePath(name)
@@ -65,7 +65,7 @@ func New(name string, users []string, isPublic bool) (*Repository, error) {
 	defer conn.Close()
 	err = conn.Repository().Insert(&r)
 	if mgo.IsDup(err) {
-		log.Errorf(`repository.New: Duplicate repository "%s"`, name)
+		log.Errorf("repository.New: Duplicate repository %q", name)
 		return r, fmt.Errorf("A repository with this name already exists.")
 	}
 	return r, err
@@ -86,9 +86,9 @@ func Get(name string) (Repository, error) {
 // Remove deletes the repository from the database and removes it's bare Git
 // repository.
 func Remove(name string) error {
-	log.Debugf(`Removing repository "%s"`, name)
+	log.Debugf("Removing repository %q", name)
 	if err := removeBare(name); err != nil {
-		log.Errorf(`repository.Remove: Error removing bare repository "%s": %s`, name, err.Error())
+		log.Errorf("repository.Remove: Error removing bare repository %q: %s", name, err)
 		return err
 	}
 	conn, err := db.Conn()
@@ -97,7 +97,7 @@ func Remove(name string) error {
 	}
 	defer conn.Close()
 	if err := conn.Repository().RemoveId(name); err != nil {
-		log.Errorf(`repository.Remove: Error removing repository "%s" from db: %s`, name, err.Error())
+		log.Errorf("repository.Remove: Error removing repository %q from db: %s", name, err)
 		return fmt.Errorf("Could not remove repository: %s", err)
 	}
 	return nil
@@ -105,10 +105,10 @@ func Remove(name string) error {
 
 // Rename renames a repository.
 func Rename(oldName, newName string) error {
-	log.Debugf(`Renaming repository "%s" to "%s"`, oldName, newName)
+	log.Debugf("Renaming repository %q to %q", oldName, newName)
 	repo, err := Get(oldName)
 	if err != nil {
-		log.Errorf(`repository.Rename: Repository "%s" not found: %s`, oldName, err)
+		log.Errorf("repository.Rename: Repository %q not found: %s", oldName, err)
 		return err
 	}
 	newRepo := repo
@@ -125,7 +125,7 @@ func Rename(oldName, newName string) error {
 	}
 	err = conn.Repository().RemoveId(oldName)
 	if err != nil {
-		log.Errorf(`repository.Rename: Error removing old repository "%s": %s`, oldName, err)
+		log.Errorf("repository.Rename: Error removing old repository %q: %s", oldName, err)
 		return err
 	}
 	return fs.Filesystem().Rename(barePath(oldName), barePath(newName))

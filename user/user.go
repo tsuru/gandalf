@@ -45,7 +45,7 @@ func New(name string, keys map[string]string) (*User, error) {
 			log.Errorf("user.New: %q duplicate user", name)
 			return u, errors.New("Could not create user: user already exists")
 		}
-		log.Errorf("user.New: %s", err.Error())
+		log.Errorf("user.New: %s", err)
 		return u, err
 	}
 	return u, addKeys(keys, u.Name)
