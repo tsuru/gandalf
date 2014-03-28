@@ -83,7 +83,7 @@ func (s *S) TestNewDuplicateUser(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
-	u, err := New("someuser", map[string]string{"somekey": rawKey})
+	u, err = New("someuser", map[string]string{"somekey": rawKey})
 	c.Assert(err, gocheck.ErrorMatches, "Could not create user: user already exists")
 }
 
@@ -94,7 +94,7 @@ func (s *S) TestNewDuplicateUserDifferentKey(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
-	u, err := New("someuser", map[string]string{"somedifferentkey": rawKey + "fakeKey"})
+	u, err = New("someuser", map[string]string{"somedifferentkey": rawKey + "fakeKey"})
 	c.Assert(err, gocheck.ErrorMatches, "Could not create user: user already exists")
 }
 
