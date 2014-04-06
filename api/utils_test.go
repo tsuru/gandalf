@@ -5,12 +5,12 @@
 package api
 
 import (
-	testingfs "github.com/globocom/tsuru/fs/testing"
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/user"
+	testingfs "github.com/tsuru/tsuru/fs/testing"
 	"labix.org/v2/mgo/bson"
 	"launchpad.net/gocheck"
 	"testing"

@@ -7,7 +7,7 @@
 package fs
 
 import (
-	"github.com/globocom/tsuru/fs"
+	"github.com/tsuru/tsuru/fs"
 )
 
 var Fsystem fs.Fs

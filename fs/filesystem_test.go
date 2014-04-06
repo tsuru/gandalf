@@ -5,7 +5,7 @@
 package fs
 
 import (
-	tsurufs "github.com/globocom/tsuru/fs"
+	tsurufs "github.com/tsuru/tsuru/fs"
 	"launchpad.net/gocheck"
 	"testing"
 )

@@ -5,11 +5,11 @@
 package user
 
 import (
-	fstesting "github.com/globocom/tsuru/fs/testing"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/repository"
+	fstesting "github.com/tsuru/tsuru/fs/testing"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	"launchpad.net/gocheck"
