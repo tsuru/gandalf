@@ -39,8 +39,8 @@ type Key struct {
 }
 
 func newKey(name, user, raw string) (*Key, error) {
-	key, comment, _, _, ok := ssh.ParseAuthorizedKey([]byte(raw))
-	if !ok {
+	key, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(raw))
+	if err != nil {
 		return nil, ErrInvalidKey
 	}
 	body := ssh.MarshalAuthorizedKey(key.(ssh.PublicKey))
