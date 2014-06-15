@@ -13,7 +13,7 @@ import (
 )
 
 // Adds a hook script.
-func Add(name string, body io.ReadCloser) error {
+func Add(name string, body io.Reader) error {
 	path, err := config.GetString("git:bare:template")
 	if err != nil {
 		return err
