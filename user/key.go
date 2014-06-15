@@ -126,7 +126,7 @@ func addKey(name, body, username string) error {
 	defer conn.Close()
 	err = conn.Key().Insert(key)
 	if err != nil {
-		if e, ok := err.(*mgo.LastError); ok && e.Code == 11000 {
+		if mgo.IsDup(err) {
 			return ErrDuplicateKey
 		}
 		return err
