@@ -678,3 +678,168 @@ func (s *S) TestHealthcheck(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "WORKING")
 }
+
+func (s *S) TestGetFileContents(c *gocheck.C) {
+	url := "/repository/repo/contents/README.txt?:name=repo&:path=README.txt"
+	expected := "result"
+	repository.Retriever = &repository.MockContentRetriever{
+		ResultContents: []byte(expected),
+	}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetFileContents(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "text/plain; charset=utf-8")
+	c.Assert(recorder.Header()["Content-Length"][0], gocheck.Equals, "6")
+}
+
+func (s *S) TestGetFileContentsWithoutExtension(c *gocheck.C) {
+	url := "/repository/repo/contents/README?:name=repo&:path=README"
+	expected := "result"
+	repository.Retriever = &repository.MockContentRetriever{
+		ResultContents: []byte(expected),
+	}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetFileContents(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "text/plain; charset=utf-8")
+	c.Assert(recorder.Header()["Content-Length"][0], gocheck.Equals, "6")
+}
+
+func (s *S) TestGetFileContentsWithRef(c *gocheck.C) {
+	url := "/repository/repo/contents/README?:name=repo&:path=README.txt&ref=other"
+	expected := "result"
+	mockRetriever := repository.MockContentRetriever{
+		ResultContents: []byte(expected),
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetFileContents(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "text/plain; charset=utf-8")
+	c.Assert(recorder.Header()["Content-Length"][0], gocheck.Equals, "6")
+	c.Assert(mockRetriever.LastRef, gocheck.Equals, "other")
+}
+
+func (s *S) TestGetFileContentsWhenCommandFails(c *gocheck.C) {
+	url := "/repository/repo/contents/README?:name=repo&:path=README.txt&ref=other"
+	outputError := fmt.Errorf("command error")
+	repository.Retriever = &repository.MockContentRetriever{
+		OutputError: outputError,
+	}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetFileContents(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "command error\n")
+}
+
+func (s *S) TestGetFileContentsWhenNoRepository(c *gocheck.C) {
+	url := "/repository//contents/README?:name=&:path=README.txt&ref=other"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetFileContents(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	expected := "Error when trying to obtain file README.txt on ref other of repository  (repository and path are required).\n"
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetArchiveWhenNoRef(c *gocheck.C) {
+	url := "/repository/repo/archive/.zip?:name=repo&:ref=&:format=zip"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetArchive(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	expected := "Error when trying to obtain archive for ref '' (format: zip) of repository 'repo' (repository, ref and format are required).\n"
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetArchiveWhenNoRepo(c *gocheck.C) {
+	url := "/repository//archive/master.zip?:name=&:ref=master&:format=zip"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetArchive(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	expected := "Error when trying to obtain archive for ref 'master' (format: zip) of repository '' (repository, ref and format are required).\n"
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetArchiveWhenNoFormat(c *gocheck.C) {
+	url := "/repository/repo/archive/master.?:name=repo&:ref=master&:format="
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetArchive(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	expected := "Error when trying to obtain archive for ref 'master' (format: ) of repository 'repo' (repository, ref and format are required).\n"
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
+	url := "/repository/repo/archive/master.zip?:name=repo&:ref=master&:format=zip"
+	expected := fmt.Errorf("output error")
+	mockRetriever := repository.MockContentRetriever{
+		OutputError: expected,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetArchive(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "output error\n")
+}
+
+func (s *S) TestGetArchive(c *gocheck.C) {
+	url := "/repository/repo/archive/master.zip?:name=repo&:ref=master&:format=zip"
+	expected := "result123"
+	mockRetriever := repository.MockContentRetriever{
+		ResultContents: []byte(expected),
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetArchive(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+	c.Assert(mockRetriever.LastFormat, gocheck.Equals, repository.Zip)
+	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "application/octet-stream")
+	c.Assert(recorder.Header()["Content-Disposition"][0], gocheck.Equals, "attachment; filename=\"repo_master.zip\"")
+	c.Assert(recorder.Header()["Content-Transfer-Encoding"][0], gocheck.Equals, "binary")
+	c.Assert(recorder.Header()["Accept-Ranges"][0], gocheck.Equals, "bytes")
+	c.Assert(recorder.Header()["Content-Length"][0], gocheck.Equals, "9")
+	c.Assert(recorder.Header()["Cache-Control"][0], gocheck.Equals, "private")
+	c.Assert(recorder.Header()["Pragma"][0], gocheck.Equals, "private")
+	c.Assert(recorder.Header()["Expires"][0], gocheck.Equals, "Mon, 26 Jul 1997 05:00:00 GMT")
+}

@@ -14,8 +14,11 @@ import (
 	"github.com/tsuru/gandalf/user"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"reflect"
+	"strconv"
 )
 
 func accessParameters(body io.ReadCloser) (repositories, users []string, err error) {
@@ -241,15 +244,62 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 func GetFileContents(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	path := r.URL.Query().Get(":path")
-	branch := r.URL.Query().Get("branch")
-	if branch == "" {
-		branch = "master"
+	ref := r.URL.Query().Get("ref")
+	if ref == "" {
+		ref = "master"
 	}
-
-	contents, err := repository.GetFileContents(repo, branch, path)
+	if path == "" || repo == "" {
+		err := fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (repository and path are required).", path, ref, repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	contents, err := repository.GetFileContents(repo, ref, path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	w.Write([]byte(contents))
+	extension := filepath.Ext(path)
+	mimeType := mime.TypeByExtension(extension)
+	if mimeType == "" {
+		mimeType = "text/plain; charset=utf-8"
+	}
+	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(contents)))
+	w.Write(contents)
+}
+
+func GetArchive(w http.ResponseWriter, r *http.Request) {
+	repo := r.URL.Query().Get(":name")
+	ref := r.URL.Query().Get(":ref")
+	format := r.URL.Query().Get(":format")
+	if ref == "" || format == "" || repo == "" {
+		err := fmt.Errorf("Error when trying to obtain archive for ref '%s' (format: %s) of repository '%s' (repository, ref and format are required).", ref, format, repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	var archive_format repository.ArchiveFormat
+	switch {
+	case format == "tar":
+		archive_format = repository.Tar
+	case format == "tar.gz":
+		archive_format = repository.TarGz
+	default:
+		archive_format = repository.Zip
+	}
+	contents, err := repository.GetArchive(repo, ref, archive_format)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	// Default headers
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s_%s.%s\"", repo, ref, format))
+	w.Header().Set("Content-Transfer-Encoding", "binary")
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Content-Length", strconv.Itoa(len(contents)))
+	// Prevent Caching of File
+	w.Header().Set("Cache-Control", "private")
+	w.Header().Set("Pragma", "private")
+	w.Header().Set("Expires", "Mon, 26 Jul 1997 05:00:00 GMT")
+	w.Write(contents)
 }

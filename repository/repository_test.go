@@ -434,3 +434,77 @@ func (s *S) TestMarshalJSON(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(result, gocheck.DeepEquals, expected)
 }
+
+func (s *S) TestGetFileContentsWhenContentsAvailable(c *gocheck.C) {
+	expected := []byte("something")
+	Retriever = &MockContentRetriever{
+		ResultContents: expected,
+	}
+	defer func() {
+		Retriever = nil
+	}()
+	contents, err := GetFileContents("repo", "ref", "path")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(contents), gocheck.Equals, string(expected))
+}
+
+func (s *S) TestGetFileContentsWhenGitNotFound(c *gocheck.C) {
+	lookpathError := fmt.Errorf("mock lookpath error")
+	Retriever = &MockContentRetriever{
+		LookPathError: lookpathError,
+	}
+	defer func() {
+		Retriever = nil
+	}()
+	_, err := GetFileContents("repo", "ref", "path")
+	c.Assert(err.Error(), gocheck.Equals, "mock lookpath error")
+}
+
+func (s *S) TestGetFileContentsWhenCommandFails(c *gocheck.C) {
+	outputError := fmt.Errorf("mock output error")
+	Retriever = &MockContentRetriever{
+		OutputError: outputError,
+	}
+	defer func() {
+		Retriever = nil
+	}()
+	_, err := GetFileContents("repo", "ref", "path")
+	c.Assert(err.Error(), gocheck.Equals, "mock output error")
+}
+
+func (s *S) TestGetArchive(c *gocheck.C) {
+	expected := []byte("something")
+	Retriever = &MockContentRetriever{
+		ResultContents: expected,
+	}
+	defer func() {
+		Retriever = nil
+	}()
+	contents, err := GetArchive("repo", "ref", Zip)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(contents), gocheck.Equals, string(expected))
+}
+
+func (s *S) TestGetArchiveWhenGitNotFound(c *gocheck.C) {
+	lookpathError := fmt.Errorf("mock lookpath error")
+	Retriever = &MockContentRetriever{
+		LookPathError: lookpathError,
+	}
+	defer func() {
+		Retriever = nil
+	}()
+	_, err := GetArchive("repo", "ref", Zip)
+	c.Assert(err.Error(), gocheck.Equals, "mock lookpath error")
+}
+
+func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
+	outputError := fmt.Errorf("mock output error")
+	Retriever = &MockContentRetriever{
+		OutputError: outputError,
+	}
+	defer func() {
+		Retriever = nil
+	}()
+	_, err := GetArchive("repo", "ref", Zip)
+	c.Assert(err.Error(), gocheck.Equals, "mock output error")
+}
