@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"os/exec"
 	"regexp"
 )
 
@@ -217,4 +218,24 @@ func RevokeAccess(rNames, uNames []string) error {
 	defer conn.Close()
 	_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
 	return err
+}
+
+// GetFileContents returns the contents for a given file
+// in a given branch for the specified repository
+func GetFileContents(repo, branch, path string) (string, error) {
+	git_path, err := exec.LookPath("git")
+	if err != nil {
+		return "", err
+	}
+
+	cwd := barePath(repo)
+	cmd := exec.Command(git_path, "show", fmt.Sprintf("%s:%s", branch, path))
+	cmd.Dir = cwd
+
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("Error when trying to obtain file %s on branch %s of repository %s.", path, branch, repo)
+	}
+
+	return string(out), nil
 }

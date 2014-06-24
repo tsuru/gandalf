@@ -237,3 +237,19 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte("WORKING"))
 }
+
+func GetFileContents(w http.ResponseWriter, r *http.Request) {
+	repo := r.URL.Query().Get(":name")
+	path := r.URL.Query().Get(":path")
+	branch := r.URL.Query().Get("branch")
+	if branch == "" {
+		branch = "master"
+	}
+
+	contents, err := repository.GetFileContents(repo, branch, path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	w.Write([]byte(contents))
+}
