@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"os/exec"
 	"regexp"
 )
 
@@ -217,4 +218,80 @@ func RevokeAccess(rNames, uNames []string) error {
 	defer conn.Close()
 	_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
 	return err
+}
+
+type ArchiveFormat int
+
+const (
+	Zip ArchiveFormat = iota
+	Tar
+	TarGz
+)
+
+type ContentRetriever interface {
+	GetContents(repo, ref, path string) ([]byte, error)
+	GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error)
+}
+
+var Retriever ContentRetriever
+
+type GitContentRetriever struct{}
+
+func (*GitContentRetriever) GetContents(repo, ref, path string) ([]byte, error) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (%s).", path, ref, repo, err)
+	}
+	cwd := barePath(repo)
+	cmd := exec.Command(gitPath, "show", fmt.Sprintf("%s:%s", ref, path))
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (%s).", path, ref, repo, err)
+	}
+	return out, nil
+}
+
+func (*GitContentRetriever) GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain archive for ref %s of repository %s (%s).", ref, repo, err)
+	}
+	var archiveFormat string
+	switch format {
+	case Tar:
+		archiveFormat = "--format=tar"
+	case TarGz:
+		archiveFormat = "--format=tar.gz"
+	default:
+		archiveFormat = "--format=zip"
+	}
+	prefix := fmt.Sprintf("--prefix=%s-%s/", repo, ref)
+	cwd := barePath(repo)
+	cmd := exec.Command(gitPath, "archive", ref, prefix, archiveFormat)
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain archive for ref %s of repository %s (%s).", ref, repo, err)
+	}
+	return out, nil
+}
+
+func retriever() ContentRetriever {
+	if Retriever == nil {
+		Retriever = &GitContentRetriever{}
+	}
+	return Retriever
+}
+
+// GetFileContents returns the contents for a given file
+// in a given ref for the specified repository
+func GetFileContents(repo, ref, path string) ([]byte, error) {
+	return retriever().GetContents(repo, ref, path)
+}
+
+// GetArchive returns the contents for a given file
+// in a given ref for the specified repository
+func GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error) {
+	return retriever().GetArchive(repo, ref, format)
 }

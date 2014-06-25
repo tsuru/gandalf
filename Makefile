@@ -25,3 +25,6 @@ test:
 
 doc:
 	@cd docs && make html
+
+run:
+	@godep go run webserver/main.go -config ./etc/gandalf.conf

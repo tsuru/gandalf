@@ -49,3 +49,33 @@ Access revoke in repository
 ---------------------------
 
 Revokes an user read and write access from a repository.
+
+Get file contents
+-----------------
+
+Returns the contents for a `path` in the specified `repository` with the given `ref` (commit, tag or branch).
+
+* Method: GET
+* URI: /repository/`:name`/contents/`:path`?ref=:ref
+* Format: binary
+
+Where:
+
+* `:name` is the name of the repository;
+* `:path` is the file path in the repository file system;
+* `:ref` is the repository ref (commit, tag or branch). **This is optional**. If not passed this is assumed to be "master".
+
+Get archive
+-----------
+
+Returns the compressed archive for the specified `repository` with the given `ref` (commit, tag or branch).
+
+* Method: GET
+* URI: /repository/`:name`/archive/`:ref.:format`
+* Format: binary
+
+Where:
+
+* `:name` is the name of the repository;
+* `:ref` is the repository ref (commit, tag or branch);
+* `:format` is the format to return the archive. This can be zip, tar or tar.gz.
