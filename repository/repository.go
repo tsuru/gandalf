@@ -258,11 +258,11 @@ func (*GitContentRetriever) GetArchive(repo, ref string, format ArchiveFormat) (
 		return nil, fmt.Errorf("Error when trying to obtain archive for ref %s of repository %s (%s).", ref, repo, err)
 	}
 	var archiveFormat string
-	switch {
-	case format == Tar:
-		archiveFormat = "--format=tar.gz"
-	case format == TarGz:
+	switch format {
+	case Tar:
 		archiveFormat = "--format=tar"
+	case TarGz:
+		archiveFormat = "--format=tar.gz"
 	default:
 		archiveFormat = "--format=zip"
 	}

@@ -277,16 +277,16 @@ func GetArchive(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	var archive_format repository.ArchiveFormat
+	var archiveFormat repository.ArchiveFormat
 	switch {
 	case format == "tar":
-		archive_format = repository.Tar
+		archiveFormat = repository.Tar
 	case format == "tar.gz":
-		archive_format = repository.TarGz
+		archiveFormat = repository.TarGz
 	default:
-		archive_format = repository.Zip
+		archiveFormat = repository.Zip
 	}
-	contents, err := repository.GetArchive(repo, ref, archive_format)
+	contents, err := repository.GetArchive(repo, ref, archiveFormat)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
