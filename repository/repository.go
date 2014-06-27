@@ -171,9 +171,12 @@ func (r *Repository) ReadOnlyURL() string {
 			remote = "ssh://" + uid + "@%s/%s.git"
 		}
 	}
-	host, err := config.GetString("host")
+	host, err := config.GetString("readonly-host")
 	if err != nil {
-		panic(err.Error())
+		host, err = config.GetString("host")
+		if err != nil {
+			panic(err)
+		}
 	}
 	return fmt.Sprintf(remote, host, r.Name)
 }
