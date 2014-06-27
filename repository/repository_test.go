@@ -260,6 +260,13 @@ func (s *S) TestReadOnlyURLWithSSHAndPort(c *gocheck.C) {
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("ssh://git@%s:49022/lol.git", host))
 }
 
+func (s *S) TestReadOnlyURLWithReadOnlyHost(c *gocheck.C) {
+	config.Set("readonly-host", "something-private")
+	defer config.Unset("readonly-host")
+	remote := (&Repository{Name: "lol"}).ReadOnlyURL()
+	c.Assert(remote, gocheck.Equals, "git://something-private/lol.git")
+}
+
 func (s *S) TestReadWriteURLWithSSH(c *gocheck.C) {
 	config.Set("git:ssh:use", true)
 	defer config.Unset("git:ssh:use")
