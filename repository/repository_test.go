@@ -515,3 +515,21 @@ func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
 	_, err := GetArchive("repo", "ref", Zip)
 	c.Assert(err.Error(), gocheck.Equals, "mock output error")
 }
+
+func (s *S) TestGetFileContentIntegration(c *gocheck.C) {
+	old_bare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp := CreateTestRepository(bare, repo, file, content)
+
+	defer func() {
+		cleanUp()
+		bare = old_bare
+	}()
+
+	contents, err := GetFileContents(repo, "master", file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(contents), gocheck.Equals, content)
+}
