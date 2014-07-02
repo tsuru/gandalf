@@ -866,7 +866,7 @@ func (s *S) TestGetTreeWithDefaultValues(c *gocheck.C) {
 	GetTree(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []map[string]string
-	json.Unmarshal([]byte(recorder.Body.String()), &obj)
+	json.Unmarshal(recorder.Body.Bytes(), &obj)
 	c.Assert(len(obj), gocheck.Equals, 1)
 	c.Assert(obj[0]["permission"], gocheck.Equals, tree[0]["permission"])
 	c.Assert(obj[0]["filetype"], gocheck.Equals, tree[0]["filetype"])
@@ -899,7 +899,7 @@ func (s *S) TestGetTreeWithSpecificPath(c *gocheck.C) {
 	GetTree(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []map[string]string
-	json.Unmarshal([]byte(recorder.Body.String()), &obj)
+	json.Unmarshal(recorder.Body.Bytes(), &obj)
 	c.Assert(len(obj), gocheck.Equals, 1)
 	c.Assert(obj[0]["permission"], gocheck.Equals, tree[0]["permission"])
 	c.Assert(obj[0]["filetype"], gocheck.Equals, tree[0]["filetype"])
@@ -932,7 +932,7 @@ func (s *S) TestGetTreeWithSpecificRef(c *gocheck.C) {
 	GetTree(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []map[string]string
-	json.Unmarshal([]byte(recorder.Body.String()), &obj)
+	json.Unmarshal(recorder.Body.Bytes(), &obj)
 	c.Assert(len(obj), gocheck.Equals, 1)
 	c.Assert(obj[0]["permission"], gocheck.Equals, tree[0]["permission"])
 	c.Assert(obj[0]["filetype"], gocheck.Equals, tree[0]["filetype"])
