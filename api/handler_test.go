@@ -680,7 +680,7 @@ func (s *S) TestHealthcheck(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContents(c *gocheck.C) {
-	url := "/repository/repo/contents/README.txt?:name=repo&:path=README.txt"
+	url := "/repository/repo/contents?:name=repo&path=README.txt"
 	expected := "result"
 	repository.Retriever = &repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -699,7 +699,7 @@ func (s *S) TestGetFileContents(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentsWithoutExtension(c *gocheck.C) {
-	url := "/repository/repo/contents/README?:name=repo&:path=README"
+	url := "/repository/repo/contents?:name=repo&path=README"
 	expected := "result"
 	repository.Retriever = &repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -718,7 +718,7 @@ func (s *S) TestGetFileContentsWithoutExtension(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentsWithRef(c *gocheck.C) {
-	url := "/repository/repo/contents/README?:name=repo&:path=README.txt&ref=other"
+	url := "/repository/repo/contents?:name=repo&path=README.txt&ref=other"
 	expected := "result"
 	mockRetriever := repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -739,7 +739,7 @@ func (s *S) TestGetFileContentsWithRef(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentsWhenCommandFails(c *gocheck.C) {
-	url := "/repository/repo/contents/README?:name=repo&:path=README.txt&ref=other"
+	url := "/repository/repo/contents?:name=repo&path=README.txt&ref=other"
 	outputError := fmt.Errorf("command error")
 	repository.Retriever = &repository.MockContentRetriever{
 		OutputError: outputError,
@@ -756,7 +756,7 @@ func (s *S) TestGetFileContentsWhenCommandFails(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentsWhenNoRepository(c *gocheck.C) {
-	url := "/repository//contents/README?:name=&:path=README.txt&ref=other"
+	url := "/repository//contents?:name=&path=README.txt&ref=other"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
@@ -842,4 +842,132 @@ func (s *S) TestGetArchive(c *gocheck.C) {
 	c.Assert(recorder.Header()["Cache-Control"][0], gocheck.Equals, "private")
 	c.Assert(recorder.Header()["Pragma"][0], gocheck.Equals, "private")
 	c.Assert(recorder.Header()["Expires"][0], gocheck.Equals, "Mon, 26 Jul 1997 05:00:00 GMT")
+}
+
+func (s *S) TestGetTreeWithDefaultValues(c *gocheck.C) {
+	url := "/repository/repo/tree?:name=repo"
+	tree := make([]map[string]string, 1)
+	tree[0] = make(map[string]string)
+	tree[0]["permission"] = "333"
+	tree[0]["filetype"] = "blob"
+	tree[0]["hash"] = "123456"
+	tree[0]["path"] = "filename.txt"
+	tree[0]["rawPath"] = "raw/filename.txt"
+	mockRetriever := repository.MockContentRetriever{
+		Tree: tree,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetTree(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	var obj []map[string]string
+	json.Unmarshal([]byte(recorder.Body.String()), &obj)
+	c.Assert(len(obj), gocheck.Equals, 1)
+	c.Assert(obj[0]["permission"], gocheck.Equals, tree[0]["permission"])
+	c.Assert(obj[0]["filetype"], gocheck.Equals, tree[0]["filetype"])
+	c.Assert(obj[0]["hash"], gocheck.Equals, tree[0]["hash"])
+	c.Assert(obj[0]["path"], gocheck.Equals, tree[0]["path"])
+	c.Assert(obj[0]["rawPath"], gocheck.Equals, tree[0]["rawPath"])
+	c.Assert(mockRetriever.LastRef, gocheck.Equals, "master")
+	c.Assert(mockRetriever.LastPath, gocheck.Equals, ".")
+}
+
+func (s *S) TestGetTreeWithSpecificPath(c *gocheck.C) {
+	url := "/repository/repo/tree?:name=repo&path=/test"
+	tree := make([]map[string]string, 1)
+	tree[0] = make(map[string]string)
+	tree[0]["permission"] = "333"
+	tree[0]["filetype"] = "blob"
+	tree[0]["hash"] = "123456"
+	tree[0]["path"] = "/test/filename.txt"
+	tree[0]["rawPath"] = "/test/raw/filename.txt"
+	mockRetriever := repository.MockContentRetriever{
+		Tree: tree,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetTree(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	var obj []map[string]string
+	json.Unmarshal([]byte(recorder.Body.String()), &obj)
+	c.Assert(len(obj), gocheck.Equals, 1)
+	c.Assert(obj[0]["permission"], gocheck.Equals, tree[0]["permission"])
+	c.Assert(obj[0]["filetype"], gocheck.Equals, tree[0]["filetype"])
+	c.Assert(obj[0]["hash"], gocheck.Equals, tree[0]["hash"])
+	c.Assert(obj[0]["path"], gocheck.Equals, tree[0]["path"])
+	c.Assert(obj[0]["rawPath"], gocheck.Equals, tree[0]["rawPath"])
+	c.Assert(mockRetriever.LastRef, gocheck.Equals, "master")
+	c.Assert(mockRetriever.LastPath, gocheck.Equals, "/test")
+}
+
+func (s *S) TestGetTreeWithSpecificRef(c *gocheck.C) {
+	url := "/repository/repo/tree?:name=repo&path=/test&ref=1.1.1"
+	tree := make([]map[string]string, 1)
+	tree[0] = make(map[string]string)
+	tree[0]["permission"] = "333"
+	tree[0]["filetype"] = "blob"
+	tree[0]["hash"] = "123456"
+	tree[0]["path"] = "/test/filename.txt"
+	tree[0]["rawPath"] = "/test/raw/filename.txt"
+	mockRetriever := repository.MockContentRetriever{
+		Tree: tree,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetTree(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	var obj []map[string]string
+	json.Unmarshal([]byte(recorder.Body.String()), &obj)
+	c.Assert(len(obj), gocheck.Equals, 1)
+	c.Assert(obj[0]["permission"], gocheck.Equals, tree[0]["permission"])
+	c.Assert(obj[0]["filetype"], gocheck.Equals, tree[0]["filetype"])
+	c.Assert(obj[0]["hash"], gocheck.Equals, tree[0]["hash"])
+	c.Assert(obj[0]["path"], gocheck.Equals, tree[0]["path"])
+	c.Assert(obj[0]["rawPath"], gocheck.Equals, tree[0]["rawPath"])
+	c.Assert(mockRetriever.LastRef, gocheck.Equals, "1.1.1")
+	c.Assert(mockRetriever.LastPath, gocheck.Equals, "/test")
+}
+
+func (s *S) TestGetTreeWhenNoRepo(c *gocheck.C) {
+	url := "/repository//tree?:name="
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetTree(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	expected := "Error when trying to obtain tree for path . on ref master of repository  (repository is required).\n"
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetTreeWhenCommandFails(c *gocheck.C) {
+	url := "/repository/repo/tree/?:name=repo&ref=master&path=/test"
+	expected := fmt.Errorf("output error")
+	mockRetriever := repository.MockContentRetriever{
+		OutputError: expected,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetTree(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "Error when trying to obtain tree for path /test on ref master of repository repo (output error).\n")
 }

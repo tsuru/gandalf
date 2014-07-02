@@ -46,7 +46,9 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 	router.Get("/repository/:name", http.HandlerFunc(api.GetRepository))
 	router.Put("/repository/:name", http.HandlerFunc(api.RenameRepository))
 	router.Get("/repository/:name/archive/:ref.:format", http.HandlerFunc(api.GetArchive))
-	router.Get("/repository/:name/contents/:path", http.HandlerFunc(api.GetFileContents))
+	router.Get("/repository/:name/contents", http.HandlerFunc(api.GetFileContents))
+	router.Get("/repository/:name/tree/:path", http.HandlerFunc(api.GetTree))
+	router.Get("/repository/:name/tree", http.HandlerFunc(api.GetTree))
 	router.Get("/healthcheck/", http.HandlerFunc(api.HealthCheck))
 	router.Post("/hook/:name", http.HandlerFunc(api.AddHook))
 
