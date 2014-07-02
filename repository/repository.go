@@ -17,6 +17,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"os/exec"
 	"regexp"
+	"strings"
 )
 
 // Repository represents a Git repository. A Git repository is a record in the
@@ -234,6 +235,7 @@ const (
 type ContentRetriever interface {
 	GetContents(repo, ref, path string) ([]byte, error)
 	GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error)
+	GetTree(repo, ref, path string) ([]map[string]string, error)
 }
 
 var Retriever ContentRetriever
@@ -280,6 +282,48 @@ func (*GitContentRetriever) GetArchive(repo, ref string, format ArchiveFormat) (
 	return out, nil
 }
 
+func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string, error) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (%s).", path, ref, repo, err)
+	}
+	cwd := barePath(repo)
+	cmd := exec.Command(gitPath, "ls-tree", "-r", ref, path)
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain tree %s on ref %s of repository %s (%s).", path, ref, repo, err)
+	}
+	lines := strings.Split(string(out), "\n")
+	objectCount := 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		objectCount++
+	}
+	objects := make([]map[string]string, objectCount)
+	objectCount = 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		tabbed := strings.Split(line, "\t")
+		meta, filepath := tabbed[0], tabbed[1]
+		meta_parts := strings.Split(meta, " ")
+		permission, filetype, hash := meta_parts[0], meta_parts[1], meta_parts[2]
+		object := make(map[string]string)
+		object["permission"] = permission
+		object["filetype"] = filetype
+		object["hash"] = hash
+		object["path"] = strings.TrimSpace(strings.Trim(filepath, "\""))
+		object["rawPath"] = filepath
+		objects[objectCount] = object
+		objectCount++
+	}
+	return objects, nil
+}
+
 func retriever() ContentRetriever {
 	if Retriever == nil {
 		Retriever = &GitContentRetriever{}
@@ -297,4 +341,8 @@ func GetFileContents(repo, ref, path string) ([]byte, error) {
 // in a given ref for the specified repository
 func GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error) {
 	return retriever().GetArchive(repo, ref, format)
+}
+
+func GetTree(repo, ref, path string) ([]map[string]string, error) {
+	return retriever().GetTree(repo, ref, path)
 }
