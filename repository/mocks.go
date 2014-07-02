@@ -45,29 +45,49 @@ func (r *MockContentRetriever) GetArchive(repo, ref string, format ArchiveFormat
 	return r.ResultContents, nil
 }
 
-func CreateTestRepository(tmp_path string, repo string, file string, content string) func() {
-	gitPath, _ := exec.LookPath("git")
+func CreateTestRepository(tmp_path string, repo string, file string, content string) (func(), error) {
 	testPath := path.Join(tmp_path, repo+".git")
-	exec.Command("mkdir", "-p", testPath).Output()
-
-	cmd := exec.Command(gitPath, "init")
-	cmd.Dir = testPath
-	cmd.Output()
-
-	err := ioutil.WriteFile(path.Join(testPath, file), []byte(content), 0644)
-	if err != nil {
-		panic(err)
-	}
-
-	cmd = exec.Command(gitPath, "add", ".")
-	cmd.Dir = testPath
-	cmd.Output()
-
-	cmd = exec.Command(gitPath, "commit", "-m", content)
-	cmd.Dir = testPath
-	cmd.Output()
-
-	return func() {
+	cleanup := func() {
 		exec.Command("rm", "-rf", testPath).Output()
 	}
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return cleanup, err
+	}
+	out, err := exec.Command("mkdir", "-p", testPath).Output()
+	if err != nil {
+		return cleanup, err
+	}
+	cmd := exec.Command(gitPath, "init")
+	cmd.Dir = testPath
+	out, err = cmd.Output()
+	if err != nil {
+		return cleanup, err
+	}
+	err = ioutil.WriteFile(path.Join(testPath, file), []byte(content), 0644)
+	if err != nil {
+		return cleanup, err
+	}
+	cmd = exec.Command(gitPath, "add", file)
+	cmd.Dir = testPath
+	out, err = cmd.Output()
+	if err != nil {
+		return cleanup, err
+	}
+	cmd = exec.Command(gitPath, "config", "user.email", "much@email.com")
+	cmd.Dir = testPath
+	out, err = cmd.Output()
+	if err != nil {
+		return cleanup, err
+	}
+	cmd = exec.Command(gitPath, "config", "user.name", "doge")
+	cmd.Dir = testPath
+	out, err = cmd.Output()
+	if err != nil {
+		return cleanup, err
+	}
+	cmd = exec.Command(gitPath, "commit", "-m", content)
+	cmd.Dir = testPath
+	out, err = cmd.Output()
+	return cleanup, err
 }

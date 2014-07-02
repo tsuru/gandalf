@@ -517,18 +517,17 @@ func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentIntegration(c *gocheck.C) {
-	old_bare := bare
+	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
 	file := "README"
 	content := "much WOW"
-	cleanUp := CreateTestRepository(bare, repo, file, content)
-
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
 	defer func() {
 		cleanUp()
-		bare = old_bare
+		bare = oldBare
 	}()
-
+	c.Assert(errCreate, gocheck.IsNil)
 	contents, err := GetFileContents(repo, "master", file)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(string(contents), gocheck.Equals, content)
