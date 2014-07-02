@@ -308,36 +308,28 @@ func GetTree(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	path := r.URL.Query().Get("path")
 	ref := r.URL.Query().Get("ref")
-
 	if ref == "" {
 		ref = "master"
 	}
-
 	if path == "" {
 		path = "."
 	}
-
 	if repo == "" {
 		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (repository is required).", path, ref, repo)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	tree, err := repository.GetTree(repo, ref, path)
-
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	b, err := json.Marshal(tree)
-
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	w.Write(b)
 }
