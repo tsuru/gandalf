@@ -13,7 +13,9 @@ import (
 type MockContentRetriever struct {
 	LastFormat     ArchiveFormat
 	LastRef        string
+	LastPath       string
 	ResultContents []byte
+	Tree           []map[string]string
 	LookPathError  error
 	OutputError    error
 }
@@ -54,13 +56,13 @@ func CreateTestRepository(tmp_path string, repo string, file string, content str
 	if err != nil {
 		return cleanup, err
 	}
-	out, err := exec.Command("mkdir", "-p", testPath).Output()
+	_, err = exec.Command("mkdir", "-p", testPath).Output()
 	if err != nil {
 		return cleanup, err
 	}
 	cmd := exec.Command(gitPath, "init")
 	cmd.Dir = testPath
-	out, err = cmd.Output()
+	_, err = cmd.Output()
 	if err != nil {
 		return cleanup, err
 	}
@@ -70,24 +72,38 @@ func CreateTestRepository(tmp_path string, repo string, file string, content str
 	}
 	cmd = exec.Command(gitPath, "add", file)
 	cmd.Dir = testPath
-	out, err = cmd.Output()
+	_, err = cmd.Output()
 	if err != nil {
 		return cleanup, err
 	}
 	cmd = exec.Command(gitPath, "config", "user.email", "much@email.com")
 	cmd.Dir = testPath
-	out, err = cmd.Output()
+	_, err = cmd.Output()
 	if err != nil {
 		return cleanup, err
 	}
 	cmd = exec.Command(gitPath, "config", "user.name", "doge")
 	cmd.Dir = testPath
-	out, err = cmd.Output()
+	_, err = cmd.Output()
 	if err != nil {
 		return cleanup, err
 	}
 	cmd = exec.Command(gitPath, "commit", "-m", content)
 	cmd.Dir = testPath
-	out, err = cmd.Output()
+	_, err = cmd.Output()
 	return cleanup, err
+}
+
+func (r *MockContentRetriever) GetTree(repo, ref, path string) ([]map[string]string, error) {
+	if r.LookPathError != nil {
+		return nil, r.LookPathError
+	}
+
+	if r.OutputError != nil {
+		return nil, r.OutputError
+	}
+
+	r.LastRef = ref
+	r.LastPath = path
+	return r.Tree, nil
 }
