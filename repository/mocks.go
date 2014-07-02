@@ -6,6 +6,7 @@ package repository
 
 import (
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
 )
@@ -50,19 +51,19 @@ func (r *MockContentRetriever) GetArchive(repo, ref string, format ArchiveFormat
 func CreateTestRepository(tmp_path string, repo string, file string, content string) (func(), error) {
 	testPath := path.Join(tmp_path, repo+".git")
 	cleanup := func() {
-		exec.Command("rm", "-rf", testPath).Output()
+		os.RemoveAll(testPath)
 	}
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return cleanup, err
 	}
-	_, err = exec.Command("mkdir", "-p", testPath).Output()
+	err = os.MkdirAll(testPath, 0777)
 	if err != nil {
 		return cleanup, err
 	}
 	cmd := exec.Command(gitPath, "init")
 	cmd.Dir = testPath
-	_, err = cmd.Output()
+	err = cmd.Run()
 	if err != nil {
 		return cleanup, err
 	}
@@ -72,25 +73,25 @@ func CreateTestRepository(tmp_path string, repo string, file string, content str
 	}
 	cmd = exec.Command(gitPath, "add", file)
 	cmd.Dir = testPath
-	_, err = cmd.Output()
+	err = cmd.Run()
 	if err != nil {
 		return cleanup, err
 	}
 	cmd = exec.Command(gitPath, "config", "user.email", "much@email.com")
 	cmd.Dir = testPath
-	_, err = cmd.Output()
+	err = cmd.Run()
 	if err != nil {
 		return cleanup, err
 	}
 	cmd = exec.Command(gitPath, "config", "user.name", "doge")
 	cmd.Dir = testPath
-	_, err = cmd.Output()
+	err = cmd.Run()
 	if err != nil {
 		return cleanup, err
 	}
 	cmd = exec.Command(gitPath, "commit", "-m", content)
 	cmd.Dir = testPath
-	_, err = cmd.Output()
+	err = cmd.Run()
 	return cleanup, err
 }
 
