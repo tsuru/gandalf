@@ -532,3 +532,35 @@ func (s *S) TestGetFileContentIntegration(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(string(contents), gocheck.Equals, content)
 }
+
+func (s *S) TestGetFileContentWhenRefIsInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	_, err := GetFileContents(repo, "MuchMissing", file)
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain file README on ref MuchMissing of repository gandalf-test-repo (exit status 128).")
+}
+
+func (s *S) TestGetFileContentWhenFileIsInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	_, err := GetFileContents(repo, "master", "Such file")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain file Such file on ref master of repository gandalf-test-repo (exit status 128).")
+}
