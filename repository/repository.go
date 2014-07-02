@@ -302,7 +302,7 @@ func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string
 		}
 		objectCount++
 	}
-	objects := make([]map[string]string, len(lines)-1)
+	objects := make([]map[string]string, objectCount)
 	objectCount = 0
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
