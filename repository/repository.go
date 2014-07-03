@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -26,6 +27,18 @@ type Repository struct {
 	Name     string `bson:"_id"`
 	Users    []string
 	IsPublic bool
+}
+
+// exists returns whether the given file or directory exists or not
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 // MarshalJSON marshals the Repository in json format.
@@ -248,6 +261,10 @@ func (*GitContentRetriever) GetContents(repo, ref, path string) ([]byte, error) 
 		return nil, fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (%s).", path, ref, repo, err)
 	}
 	cwd := barePath(repo)
+	repoExists, err := exists(cwd)
+	if err != nil || !repoExists {
+		return nil, fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (Repository does not exist).", path, ref, repo)
+	}
 	cmd := exec.Command(gitPath, "show", fmt.Sprintf("%s:%s", ref, path))
 	cmd.Dir = cwd
 	out, err := cmd.Output()
@@ -273,6 +290,10 @@ func (*GitContentRetriever) GetArchive(repo, ref string, format ArchiveFormat) (
 	}
 	prefix := fmt.Sprintf("--prefix=%s-%s/", repo, ref)
 	cwd := barePath(repo)
+	repoExists, err := exists(cwd)
+	if err != nil || !repoExists {
+		return nil, fmt.Errorf("Error when trying to obtain archive for ref %s of repository %s (Repository does not exist).", ref, repo)
+	}
 	cmd := exec.Command(gitPath, "archive", ref, prefix, archiveFormat)
 	cmd.Dir = cwd
 	out, err := cmd.Output()
@@ -285,9 +306,13 @@ func (*GitContentRetriever) GetArchive(repo, ref string, format ArchiveFormat) (
 func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string, error) {
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
-		return nil, fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (%s).", path, ref, repo, err)
+		return nil, fmt.Errorf("Error when trying to obtain tree %s on ref %s of repository %s (%s).", path, ref, repo, err)
 	}
 	cwd := barePath(repo)
+	repoExists, err := exists(cwd)
+	if err != nil || !repoExists {
+		return nil, fmt.Errorf("Error when trying to obtain tree %s on ref %s of repository %s (Repository does not exist).", path, ref, repo)
+	}
 	cmd := exec.Command(gitPath, "ls-tree", "-r", ref, path)
 	cmd.Dir = cwd
 	out, err := cmd.Output()
