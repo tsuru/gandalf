@@ -5,6 +5,9 @@
 package repository
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/tsuru/commandmocker"
@@ -12,6 +15,8 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	fstesting "github.com/tsuru/tsuru/fs/testing"
+	"io"
+	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	"launchpad.net/gocheck"
 	"path"
@@ -617,4 +622,116 @@ func (s *S) TestGetTreeIntegrationWithFileNameWithSpace(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(tree[0]["path"], gocheck.Equals, "much/much README")
 	c.Assert(tree[0]["rawPath"], gocheck.Equals, "much/much README")
+}
+
+func (s *S) TestGetArchiveIntegrationWhenZip(c *gocheck.C) {
+	expected := make(map[string]string)
+	expected["gandalf-test-repo-master/README"] = "much WOW"
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	zipContents, err := GetArchive(repo, "master", Zip)
+	reader := bytes.NewReader(zipContents)
+	zipReader, err := zip.NewReader(reader, int64(len(zipContents)))
+	c.Assert(err, gocheck.IsNil)
+	for _, f := range zipReader.File {
+		//fmt.Printf("Contents of %s:\n", f.Name)
+		rc, err := f.Open()
+		c.Assert(err, gocheck.IsNil)
+		defer rc.Close()
+		contents, err := ioutil.ReadAll(rc)
+		c.Assert(err, gocheck.IsNil)
+		c.Assert(string(contents), gocheck.Equals, expected[f.Name])
+	}
+}
+
+func (s *S) TestGetArchiveIntegrationWhenTar(c *gocheck.C) {
+	expected := make(map[string]string)
+	expected["gandalf-test-repo-master/README"] = "much WOW"
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tarContents, err := GetArchive(repo, "master", Tar)
+	c.Assert(err, gocheck.IsNil)
+	reader := bytes.NewReader(tarContents)
+	tarReader := tar.NewReader(reader)
+	c.Assert(err, gocheck.IsNil)
+	for {
+		hdr, err := tarReader.Next()
+		if err == io.EOF {
+			// end of tar archive
+			break
+		}
+		c.Assert(err, gocheck.IsNil)
+		path := hdr.Name
+		_, ok := expected[path]
+		if !ok {
+			continue
+		}
+		buffer := new(bytes.Buffer)
+		_, err = io.Copy(buffer, tarReader)
+		c.Assert(err, gocheck.IsNil)
+		c.Assert(buffer.String(), gocheck.Equals, expected[path])
+	}
+}
+
+func (s *S) TestGetArchiveIntegrationWhenInvalidFormat(c *gocheck.C) {
+	expected := make(map[string]string)
+	expected["gandalf-test-repo-master/README"] = "much WOW"
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	zipContents, err := GetArchive(repo, "master", 99)
+	reader := bytes.NewReader(zipContents)
+	zipReader, err := zip.NewReader(reader, int64(len(zipContents)))
+	c.Assert(err, gocheck.IsNil)
+	for _, f := range zipReader.File {
+		//fmt.Printf("Contents of %s:\n", f.Name)
+		rc, err := f.Open()
+		c.Assert(err, gocheck.IsNil)
+		defer rc.Close()
+		contents, err := ioutil.ReadAll(rc)
+		c.Assert(err, gocheck.IsNil)
+		c.Assert(string(contents), gocheck.Equals, expected[f.Name])
+	}
+}
+
+func (s *S) TestGetArchiveIntegrationWhenInvalidRepo(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	_, err := GetArchive("invalid-repo", "master", Zip)
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain archive for ref master of repository invalid-repo (Repository does not exist).")
 }
