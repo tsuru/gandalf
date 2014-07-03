@@ -735,3 +735,36 @@ func (s *S) TestGetArchiveIntegrationWhenInvalidRepo(c *gocheck.C) {
 	_, err := GetArchive("invalid-repo", "master", Zip)
 	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain archive for ref master of repository invalid-repo (Repository does not exist).")
 }
+
+func (s *S) TestGetTreeIntegrationWithMissingFile(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "very WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tree, err := GetTree(repo, "master", "very missing")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(tree, gocheck.HasLen, 0)
+}
+
+func (s *S) TestGetTreeIntegrationWithInvalidRef(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "very WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	_, err := GetTree(repo, "VeryInvalid", "very missing")
+	c.Assert(err, gocheck.ErrorMatches, "^Error when trying to obtain tree very missing on ref VeryInvalid of repository gandalf-test-repo \\(exit status 128\\)\\.$")
+}
