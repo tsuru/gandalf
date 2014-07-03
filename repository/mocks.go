@@ -48,7 +48,7 @@ func (r *MockContentRetriever) GetArchive(repo, ref string, format ArchiveFormat
 	return r.ResultContents, nil
 }
 
-func CreateTestRepository(tmp_path string, repo string, file string, content string) (func(), error) {
+func CreateTestRepository(tmp_path string, repo string, file string, content string, folders ...string) (func(), error) {
 	testPath := path.Join(tmp_path, repo+".git")
 	cleanup := func() {
 		os.RemoveAll(testPath)
@@ -71,7 +71,18 @@ func CreateTestRepository(tmp_path string, repo string, file string, content str
 	if err != nil {
 		return cleanup, err
 	}
-	cmd = exec.Command(gitPath, "add", file)
+	for _, folder := range folders {
+		folderPath := path.Join(testPath, folder)
+		err = os.MkdirAll(folderPath, 0777)
+		if err != nil {
+			return cleanup, err
+		}
+		err = ioutil.WriteFile(path.Join(folderPath, file), []byte(content), 0644)
+		if err != nil {
+			return cleanup, err
+		}
+	}
+	cmd = exec.Command(gitPath, "add", ".")
 	cmd.Dir = testPath
 	err = cmd.Run()
 	if err != nil {
