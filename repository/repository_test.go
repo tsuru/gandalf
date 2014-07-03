@@ -566,7 +566,6 @@ func (s *S) TestGetFileContentWhenFileIsInvalid(c *gocheck.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
-
 	_, err := GetFileContents(repo, "master", "Such file")
 	c.Assert(err, gocheck.ErrorMatches, "^Error when trying to obtain file Such file on ref master of repository gandalf-test-repo \\(exit status 128\\)\\.$")
 }
@@ -628,7 +627,6 @@ func (s *S) TestGetTreeIntegrationWithFileNameWithSpace(c *gocheck.C) {
 func (s *S) TestGetArchiveIntegrationWhenZip(c *gocheck.C) {
 	expected := make(map[string]string)
 	expected["gandalf-test-repo-master/README"] = "much WOW"
-
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -658,7 +656,6 @@ func (s *S) TestGetArchiveIntegrationWhenZip(c *gocheck.C) {
 func (s *S) TestGetArchiveIntegrationWhenTar(c *gocheck.C) {
 	expected := make(map[string]string)
 	expected["gandalf-test-repo-master/README"] = "much WOW"
-
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -697,7 +694,6 @@ func (s *S) TestGetArchiveIntegrationWhenTar(c *gocheck.C) {
 func (s *S) TestGetArchiveIntegrationWhenInvalidFormat(c *gocheck.C) {
 	expected := make(map[string]string)
 	expected["gandalf-test-repo-master/README"] = "much WOW"
-
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
