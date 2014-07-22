@@ -803,3 +803,76 @@ func (s *S) TestGetTreeIntegrationWithInvalidRef(c *gocheck.C) {
 	_, err := GetTree(repo, "VeryInvalid", "very missing")
 	c.Assert(err, gocheck.ErrorMatches, "^Error when trying to obtain tree very missing on ref VeryInvalid of repository gandalf-test-repo \\(exit status 128\\)\\.$")
 }
+
+func (s *S) TestGetBranchIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "will bark"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, file, content, "doge_bites", "doge_barks")
+	c.Assert(errCreateBranches, gocheck.IsNil)
+	branches, err := GetBranch(repo)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(len(branches), gocheck.Equals, 3)
+	c.Assert(branches[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(branches[0]["name"], gocheck.Equals, "doge_barks")
+	c.Assert(branches[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(branches[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[0]["subject"], gocheck.Equals, "will bark on doge_barks")
+	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(branches[1]["name"], gocheck.Equals, "doge_bites")
+	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(branches[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[1]["subject"], gocheck.Equals, "will bark on doge_bites")
+	c.Assert(branches[2]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(branches[2]["name"], gocheck.Equals, "master")
+	c.Assert(branches[2]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(branches[2]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[2]["authorName"], gocheck.Equals, "doge")
+	c.Assert(branches[2]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[2]["subject"], gocheck.Equals, "will bark")
+}
+
+func (s *S) TestGetBranchIntegrationEmptySubject(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := ""
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, file, content, "doge_howls")
+	c.Assert(errCreateBranches, gocheck.IsNil)
+	branches, err := GetBranch(repo)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(len(branches), gocheck.Equals, 2)
+	c.Assert(branches[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(branches[0]["name"], gocheck.Equals, "doge_howls")
+	c.Assert(branches[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(branches[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[0]["subject"], gocheck.Equals, "")
+	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(branches[1]["name"], gocheck.Equals, "master")
+	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(branches[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[1]["subject"], gocheck.Equals, "")
+}
