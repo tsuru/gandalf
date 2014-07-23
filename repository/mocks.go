@@ -25,11 +25,9 @@ func (r *MockContentRetriever) GetContents(repo, ref, path string) ([]byte, erro
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
-
 	if r.OutputError != nil {
 		return nil, r.OutputError
 	}
-
 	r.LastRef = ref
 	return r.ResultContents, nil
 }
@@ -38,11 +36,9 @@ func (r *MockContentRetriever) GetArchive(repo, ref string, format ArchiveFormat
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
-
 	if r.OutputError != nil {
 		return nil, r.OutputError
 	}
-
 	r.LastRef = ref
 	r.LastFormat = format
 	return r.ResultContents, nil
@@ -110,11 +106,9 @@ func (r *MockContentRetriever) GetTree(repo, ref, path string) ([]map[string]str
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
-
 	if r.OutputError != nil {
 		return nil, r.OutputError
 	}
-
 	r.LastRef = ref
 	r.LastPath = path
 	return r.Tree, nil
