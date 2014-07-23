@@ -538,6 +538,23 @@ func (s *S) TestGetFileContentIntegration(c *gocheck.C) {
 	c.Assert(string(contents), gocheck.Equals, content)
 }
 
+func (s *S) TestGetFileContentIntegrationEmptyContent(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := ""
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	contents, err := GetFileContents(repo, "master", file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(contents), gocheck.Equals, content)
+}
+
 func (s *S) TestGetFileContentWhenRefIsInvalid(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
@@ -576,7 +593,25 @@ func (s *S) TestGetTreeIntegration(c *gocheck.C) {
 	repo := "gandalf-test-repo"
 	file := "README"
 	content := "much WOW"
-	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, []string{"such", "folder", "much", "magic"}...)
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, "such", "folder", "much", "magic")
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tree, err := GetTree(repo, "master", "much/README")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(tree[0]["path"], gocheck.Equals, "much/README")
+	c.Assert(tree[0]["rawPath"], gocheck.Equals, "much/README")
+}
+
+func (s *S) TestGetTreeIntegrationEmptyContent(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := ""
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, "such", "folder", "much", "magic")
 	defer func() {
 		cleanUp()
 		bare = oldBare
@@ -594,7 +629,7 @@ func (s *S) TestGetTreeIntegrationWithEscapedFileName(c *gocheck.C) {
 	repo := "gandalf-test-repo"
 	file := "such\tREADME"
 	content := "much WOW"
-	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, []string{"such", "folder", "much", "magic"}...)
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, "such", "folder", "much", "magic")
 	defer func() {
 		cleanUp()
 		bare = oldBare
@@ -612,7 +647,7 @@ func (s *S) TestGetTreeIntegrationWithFileNameWithSpace(c *gocheck.C) {
 	repo := "gandalf-test-repo"
 	file := "much README"
 	content := "much WOW"
-	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, []string{"such", "folder", "much", "magic"}...)
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, "such", "folder", "much", "magic")
 	defer func() {
 		cleanUp()
 		bare = oldBare
