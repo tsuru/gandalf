@@ -576,7 +576,7 @@ func (s *S) TestGetTreeIntegration(c *gocheck.C) {
 	repo := "gandalf-test-repo"
 	file := "README"
 	content := "much WOW"
-	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, []string{"such", "folder", "much", "magic"}...)
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, "such", "folder", "much", "magic")
 	defer func() {
 		cleanUp()
 		bare = oldBare
@@ -594,7 +594,7 @@ func (s *S) TestGetTreeIntegrationWithEscapedFileName(c *gocheck.C) {
 	repo := "gandalf-test-repo"
 	file := "such\tREADME"
 	content := "much WOW"
-	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, []string{"such", "folder", "much", "magic"}...)
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, "such", "folder", "much", "magic")
 	defer func() {
 		cleanUp()
 		bare = oldBare
@@ -612,7 +612,7 @@ func (s *S) TestGetTreeIntegrationWithFileNameWithSpace(c *gocheck.C) {
 	repo := "gandalf-test-repo"
 	file := "much README"
 	content := "much WOW"
-	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, []string{"such", "folder", "much", "magic"}...)
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content, "such", "folder", "much", "magic")
 	defer func() {
 		cleanUp()
 		bare = oldBare
