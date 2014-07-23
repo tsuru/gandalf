@@ -362,7 +362,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 	if err != nil || !repoExists {
 		return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (Repository does not exist).", repo)
 	}
-	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", "%(objectname)%09%(refname)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)", pattern)
+	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", "%(objectname)%09%(refname:short)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)", pattern)
 	cmd.Dir = cwd
 	out, err := cmd.Output()
 	if err != nil {
@@ -379,7 +379,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 		fields := strings.Split(line, "\t")
 		if len(fields) > 4 { // let there be commits with empty subject
 			ref = fields[0]
-			name = strings.Replace(fields[1], pattern, "", 1)
+			name = fields[1]
 			commiterName = fields[2]
 			commiterEmail = fields[3]
 			commiterDate = fields[4]
