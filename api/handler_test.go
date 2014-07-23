@@ -1046,3 +1046,38 @@ func (s *S) TestGetBranchWhenCommandFails(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Error when trying to obtain the branches of repository repo (output error).\n")
 }
+
+func (s *S) TestGetTag(c *gocheck.C) {
+	url := "/repository/repo/tag?:name=repo"
+	tags := make([]map[string]string, 1)
+	tags[0] = make(map[string]string)
+	tags[0]["ref"] = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
+	tags[0]["name"] = "0.1"
+	tags[0]["commiterName"] = "doge"
+	tags[0]["commiterEmail"] = "<much@email.com>"
+	tags[0]["authorName"] = "doge"
+	tags[0]["authorEmail"] = "<much@email.com>"
+	tags[0]["subject"] = "will bark"
+	mockRetriever := repository.MockContentRetriever{
+		Refs: tags,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetTag(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	var obj []map[string]string
+	json.Unmarshal(recorder.Body.Bytes(), &obj)
+	c.Assert(len(obj), gocheck.Equals, 1)
+	c.Assert(obj[0]["ref"], gocheck.Equals, tags[0]["ref"])
+	c.Assert(obj[0]["name"], gocheck.Equals, tags[0]["name"])
+	c.Assert(obj[0]["commiterName"], gocheck.Equals, tags[0]["commiterName"])
+	c.Assert(obj[0]["commiterEmail"], gocheck.Equals, tags[0]["commiterEmail"])
+	c.Assert(obj[0]["authorName"], gocheck.Equals, tags[0]["authorName"])
+	c.Assert(obj[0]["authorEmail"], gocheck.Equals, tags[0]["authorEmail"])
+	c.Assert(obj[0]["subject"], gocheck.Equals, tags[0]["subject"])
+}

@@ -252,6 +252,7 @@ type ContentRetriever interface {
 	GetForEachRef(repo, pattern string) ([]map[string]string, error)
 	GetBranch(repo string) ([]map[string]string, error)
 	GetDiff(repo, lastCommit, previousCommit string) ([]byte, error)
+	GetTag(repo string) ([]map[string]string, error)
 }
 
 var Retriever ContentRetriever
@@ -435,6 +436,11 @@ func (*GitContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]
 	return out, nil
 }
 
+func (*GitContentRetriever) GetTag(repo string) ([]map[string]string, error) {
+	tags, err := retriever().GetForEachRef(repo, "refs/tags/")
+	return tags, err
+}
+
 func retriever() ContentRetriever {
 	if Retriever == nil {
 		Retriever = &GitContentRetriever{}
@@ -468,4 +474,8 @@ func GetBranch(repo string) ([]map[string]string, error) {
 
 func GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
 	return retriever().GetDiff(repo, previousCommit, lastCommit)
+}
+
+func GetTag(repo string) ([]map[string]string, error) {
+	return retriever().GetTag(repo)
 }

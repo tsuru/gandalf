@@ -229,6 +229,16 @@ func CreateBranchesOnTestRepository(tmpPath string, repo string, branches ...str
 	return err
 }
 
+func CreateTag(testPath, tagname string) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(gitPath, "tag", tagname)
+	cmd.Dir = testPath
+	return cmd.Run()
+}
+
 func (r *MockContentRetriever) GetTree(repo, ref, path string) ([]map[string]string, error) {
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
@@ -269,4 +279,14 @@ func (r *MockContentRetriever) GetDiff(repo, previousCommit, lastCommit string) 
 		return nil, r.OutputError
 	}
 	return r.ResultContents, nil
+}
+
+func (r *MockContentRetriever) GetTag(repo string) ([]map[string]string, error) {
+	if r.LookPathError != nil {
+		return nil, r.LookPathError
+	}
+	if r.OutputError != nil {
+		return nil, r.OutputError
+	}
+	return r.Refs, nil
 }

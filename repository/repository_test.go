@@ -1065,3 +1065,40 @@ func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
 	_, err = GetDiff(repo, "12beu23eu23923ey32eiyeg2ye", string(firstHashCommit))
 	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstHashCommit, repo))
 }
+
+func (s *S) TestGetTagIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-tags"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	testPath := path.Join(bare, repo+".git")
+	errCreateTag := CreateTag(testPath, "0.1")
+	c.Assert(errCreateTag, gocheck.IsNil)
+	errCreateCommit := CreateCommit(bare, repo, "", "")
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	errCreateTag = CreateTag(testPath, "0.2")
+	c.Assert(errCreateTag, gocheck.IsNil)
+	tags, err := GetTag(repo)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(tags[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(tags[0]["name"], gocheck.Equals, "0.1")
+	c.Assert(tags[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(tags[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(tags[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(tags[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(tags[0]["subject"], gocheck.Equals, "much WOW")
+	c.Assert(tags[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(tags[1]["name"], gocheck.Equals, "0.2")
+	c.Assert(tags[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(tags[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(tags[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(tags[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(tags[1]["subject"], gocheck.Equals, "")
+}
