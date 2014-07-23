@@ -249,6 +249,8 @@ type ContentRetriever interface {
 	GetContents(repo, ref, path string) ([]byte, error)
 	GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error)
 	GetTree(repo, ref, path string) ([]map[string]string, error)
+	GetForEachRef(repo, pattern string) ([]map[string]string, error)
+	GetBranch(repo string) ([]map[string]string, error)
 }
 
 var Retriever ContentRetriever
@@ -349,6 +351,66 @@ func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string
 	return objects, nil
 }
 
+func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]string, error) {
+	var ref, name, commiterName, commiterEmail, commiterDate, authorName, authorEmail, authorDate, subject string
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+	}
+	cwd := barePath(repo)
+	repoExists, err := exists(cwd)
+	if err != nil || !repoExists {
+		return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (Repository does not exist).", repo)
+	}
+	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", "%(objectname)%09%(refname)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)", pattern)
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	objectCount := len(lines)
+	objects := make([]map[string]string, objectCount)
+	objectCount = 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		fields := strings.Split(line, "\t")
+		if len(fields) > 4 { // let there be commits with empty subject
+			ref = fields[0]
+			name = strings.Replace(fields[1], pattern, "", 1)
+			commiterName = fields[2]
+			commiterEmail = fields[3]
+			commiterDate = fields[4]
+			authorName = fields[5]
+			authorEmail = fields[6]
+			authorDate = fields[7]
+			subject = strings.Join(fields[8:], "\t") // let there be subjects with \t
+		} else {
+			return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (Invalid git for-each-ref output [%s]).", repo, out)
+		}
+		object := make(map[string]string)
+		object["ref"] = ref
+		object["name"] = name
+		object["commiterName"] = commiterName
+		object["commiterEmail"] = commiterEmail
+		object["commiterDate"] = commiterDate
+		object["authorName"] = authorName
+		object["authorEmail"] = authorEmail
+		object["authorDate"] = authorDate
+		object["subject"] = subject
+		objects[objectCount] = object
+		objectCount++
+	}
+	return objects, nil
+}
+
+func (*GitContentRetriever) GetBranch(repo string) ([]map[string]string, error) {
+	branches, err := retriever().GetForEachRef(repo, "refs/heads/")
+	return branches, err
+}
+
 func retriever() ContentRetriever {
 	if Retriever == nil {
 		Retriever = &GitContentRetriever{}
@@ -370,4 +432,12 @@ func GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error) {
 
 func GetTree(repo, ref, path string) ([]map[string]string, error) {
 	return retriever().GetTree(repo, ref, path)
+}
+
+func GetForEachRef(repo, pattern string) ([]map[string]string, error) {
+	return retriever().GetForEachRef(repo, pattern)
+}
+
+func GetBranch(repo string) ([]map[string]string, error) {
+	return retriever().GetBranch(repo)
 }
