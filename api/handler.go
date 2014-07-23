@@ -333,3 +333,25 @@ func GetTree(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(b)
 }
+
+func GetBranch(w http.ResponseWriter, r *http.Request) {
+	repo := r.URL.Query().Get(":name")
+	if repo == "" {
+		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (repository is required).", repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	branches, err := repository.GetBranch(repo)
+	if err != nil {
+		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	b, err := json.Marshal(branches)
+	if err != nil {
+		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Write(b)
+}
