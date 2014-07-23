@@ -100,7 +100,7 @@ func CreateTestRepository(tmp_path string, repo string, file string, content str
 	if err != nil {
 		return cleanup, err
 	}
-	cmd = exec.Command(gitPath, "commit", "-m", content)
+	cmd = exec.Command(gitPath, "commit", "-m", content, "--allow-empty-message")
 	cmd.Dir = testPath
 	err = cmd.Run()
 	return cleanup, err
