@@ -103,7 +103,7 @@ func CreateTestRepository(tmp_path string, repo string, file string, content str
 	return cleanup, err
 }
 
-func CreateBranchesOnTestRepository(tmp_path string, repo string, file string, content string, branches ...string) error {
+func CreateBranchesOnTestRepository(tmp_path string, repo string, branches ...string) error {
 	testPath := path.Join(tmp_path, repo+".git")
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
@@ -116,32 +116,7 @@ func CreateBranchesOnTestRepository(tmp_path string, repo string, file string, c
 		return err
 	}
 	for _, branch := range branches {
-		fp, err := os.OpenFile(path.Join(testPath, file), os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return err
-		}
-		defer fp.Close()
-		_, err = fp.WriteString("such string")
-		if err != nil {
-			return err
-		}
 		cmd = exec.Command(gitPath, "checkout", "-b", branch)
-		cmd.Dir = testPath
-		err = cmd.Run()
-		if err != nil {
-			return err
-		}
-		cmd = exec.Command(gitPath, "add", ".")
-		cmd.Dir = testPath
-		err = cmd.Run()
-		if err != nil {
-			return err
-		}
-		if len(content) > 0 {
-			cmd = exec.Command(gitPath, "commit", "-m", content+" on "+branch)
-		} else {
-			cmd = exec.Command(gitPath, "commit", "-m", "", "--allow-empty-message")
-		}
 		cmd.Dir = testPath
 		err = cmd.Run()
 		if err != nil {
