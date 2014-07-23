@@ -876,3 +876,36 @@ func (s *S) TestGetBranchIntegrationEmptySubject(c *gocheck.C) {
 	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(branches[1]["subject"], gocheck.Equals, "")
 }
+
+func (s *S) TestGetBranchIntegrationSubjectWithTab(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "will\tbark"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_howls")
+	c.Assert(errCreateBranches, gocheck.IsNil)
+	branches, err := GetBranch(repo)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(len(branches), gocheck.Equals, 2)
+	c.Assert(branches[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(branches[0]["name"], gocheck.Equals, "doge_howls")
+	c.Assert(branches[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(branches[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[0]["subject"], gocheck.Equals, "will\tbark")
+	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(branches[1]["name"], gocheck.Equals, "master")
+	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(branches[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(branches[1]["subject"], gocheck.Equals, "will\tbark")
+}
