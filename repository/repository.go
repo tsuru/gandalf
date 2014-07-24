@@ -369,6 +369,11 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (%s).", repo, err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	// When the separator does not separate the string, Split returns an array
+	// with one element: the string itself. (golang.org/pkg/strings/#Split)
+	if len(lines) == 1 && len(lines[0]) == 0 {
+		return nil, nil
+	}
 	objectCount := len(lines)
 	objects := make([]map[string]string, objectCount)
 	objectCount = 0

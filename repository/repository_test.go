@@ -909,3 +909,37 @@ func (s *S) TestGetForEachRefIntegrationSubjectWithTab(c *gocheck.C) {
 	c.Assert(refs[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(refs[1]["subject"], gocheck.Equals, "will\tbark")
 }
+
+func (s *S) TestGetForEachRefIntegrationWhenPatternEmpty(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	refs, err := GetForEachRef("gandalf-test-repo", "")
+	c.Assert(refs, gocheck.IsNil)
+	c.Assert(err, gocheck.IsNil)
+}
+
+func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	refs, err := GetForEachRef("gandalf-test-repo", "invalid_pattern")
+	c.Assert(refs, gocheck.IsNil)
+	c.Assert(err, gocheck.IsNil)
+}
