@@ -922,9 +922,11 @@ func (s *S) TestGetForEachRefIntegrationWhenPatternEmpty(c *gocheck.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_howls")
+	c.Assert(errCreateBranches, gocheck.IsNil)
 	refs, err := GetForEachRef("gandalf-test-repo", "")
-	c.Assert(refs, gocheck.IsNil)
 	c.Assert(err, gocheck.IsNil)
+	c.Assert(len(refs), gocheck.Equals, 2)
 }
 
 func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *gocheck.C) {
@@ -940,6 +942,6 @@ func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *gocheck.C) {
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
 	refs, err := GetForEachRef("gandalf-test-repo", "invalid_pattern")
-	c.Assert(refs, gocheck.IsNil)
 	c.Assert(err, gocheck.IsNil)
+	c.Assert(len(refs), gocheck.Equals, 1)
 }

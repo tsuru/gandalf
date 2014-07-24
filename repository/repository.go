@@ -362,18 +362,17 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 	if err != nil || !repoExists {
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Repository does not exist).", repo)
 	}
-	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", "%(objectname)%09%(refname:short)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)", pattern)
+	format := "%(objectname)%09%(refname:short)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)"
+	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", format)
+	if len(pattern) > 0 {
+		cmd.Args = append(cmd.Args, pattern)
+	}
 	cmd.Dir = cwd
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (%s).", repo, err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	// When the separator does not separate the string, Split returns an array
-	// with one element: the string itself. (golang.org/pkg/strings/#Split)
-	if len(lines) == 1 && len(lines[0]) == 0 {
-		return nil, nil
-	}
 	objectCount := len(lines)
 	objects := make([]map[string]string, objectCount)
 	objectCount = 0
