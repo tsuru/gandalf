@@ -844,7 +844,7 @@ func (s *S) TestGetBranchIntegration(c *gocheck.C) {
 	c.Assert(branches[2]["subject"], gocheck.Equals, "will bark")
 }
 
-func (s *S) TestGetBranchIntegrationEmptySubject(c *gocheck.C) {
+func (s *S) TestGetForEachRefIntegrationEmptySubject(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -858,26 +858,26 @@ func (s *S) TestGetBranchIntegrationEmptySubject(c *gocheck.C) {
 	c.Assert(errCreate, gocheck.IsNil)
 	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_howls")
 	c.Assert(errCreateBranches, gocheck.IsNil)
-	branches, err := GetBranch(repo)
+	refs, err := GetForEachRef(repo, "refs/")
 	c.Assert(err, gocheck.IsNil)
-	c.Assert(len(branches), gocheck.Equals, 2)
-	c.Assert(branches[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
-	c.Assert(branches[0]["name"], gocheck.Equals, "doge_howls")
-	c.Assert(branches[0]["commiterName"], gocheck.Equals, "doge")
-	c.Assert(branches[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
-	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[0]["subject"], gocheck.Equals, "")
-	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
-	c.Assert(branches[1]["name"], gocheck.Equals, "master")
-	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
-	c.Assert(branches[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
-	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[1]["subject"], gocheck.Equals, "")
+	c.Assert(len(refs), gocheck.Equals, 2)
+	c.Assert(refs[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[0]["name"], gocheck.Equals, "doge_howls")
+	c.Assert(refs[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["subject"], gocheck.Equals, "")
+	c.Assert(refs[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[1]["name"], gocheck.Equals, "master")
+	c.Assert(refs[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["subject"], gocheck.Equals, "")
 }
 
-func (s *S) TestGetBranchIntegrationSubjectWithTab(c *gocheck.C) {
+func (s *S) TestGetForEachRefIntegrationSubjectWithTab(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -891,21 +891,21 @@ func (s *S) TestGetBranchIntegrationSubjectWithTab(c *gocheck.C) {
 	c.Assert(errCreate, gocheck.IsNil)
 	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_howls")
 	c.Assert(errCreateBranches, gocheck.IsNil)
-	branches, err := GetBranch(repo)
+	refs, err := GetForEachRef(repo, "refs/")
 	c.Assert(err, gocheck.IsNil)
-	c.Assert(len(branches), gocheck.Equals, 2)
-	c.Assert(branches[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
-	c.Assert(branches[0]["name"], gocheck.Equals, "doge_howls")
-	c.Assert(branches[0]["commiterName"], gocheck.Equals, "doge")
-	c.Assert(branches[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
-	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[0]["subject"], gocheck.Equals, "will\tbark")
-	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
-	c.Assert(branches[1]["name"], gocheck.Equals, "master")
-	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
-	c.Assert(branches[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
-	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[1]["subject"], gocheck.Equals, "will\tbark")
+	c.Assert(len(refs), gocheck.Equals, 2)
+	c.Assert(refs[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[0]["name"], gocheck.Equals, "doge_howls")
+	c.Assert(refs[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["subject"], gocheck.Equals, "will\tbark")
+	c.Assert(refs[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[1]["name"], gocheck.Equals, "master")
+	c.Assert(refs[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["subject"], gocheck.Equals, "will\tbark")
 }
