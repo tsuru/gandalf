@@ -544,12 +544,17 @@ func (s *S) TestGetFileContentIntegrationEmptyContent(c *gocheck.C) {
 	repo := "gandalf-test-repo"
 	file := "README"
 	content := ""
-	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	cleanUp, errCreate := CreateEmptyTestRepository(bare, repo)
 	defer func() {
 		cleanUp()
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
+	err := CreateEmptyFile(bare, repo, file)
+	c.Assert(err, gocheck.IsNil)
+	testPath := path.Join(bare, repo+".git")
+	err = MakeCommit(testPath, "empty file content")
+	c.Assert(err, gocheck.IsNil)
 	contents, err := GetFileContents(repo, "master", file)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(string(contents), gocheck.Equals, content)
