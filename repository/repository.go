@@ -381,7 +381,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 			continue
 		}
 		fields := strings.Split(line, "\t")
-		if len(fields) > 4 { // let there be commits with empty subject
+		if len(fields) > 7 { // let there be commits with empty subject
 			ref = fields[0]
 			name = fields[1]
 			commiterName = fields[2]
