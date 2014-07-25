@@ -1006,11 +1006,15 @@ func (s *S) TestGetDiffIntegration(c *gocheck.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
-	firstCommit, err := CreateCommitOnTestRepository(bare, repo, file, object1)
+	errCreateCommit := CreateCommit(bare, repo, file, object1)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	firstHashCommit, err := GetLastHashCommit(bare, repo)
 	c.Assert(err, gocheck.IsNil)
-	secondCommit, err := CreateCommitOnTestRepository(bare, repo, file, object2)
+	errCreateCommit = CreateCommit(bare, repo, file, object2)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	secondHashCommit, err := GetLastHashCommit(bare, repo)
 	c.Assert(err, gocheck.IsNil)
-	diff, err := GetDiff(repo, string(firstCommit), string(secondCommit))
+	diff, err := GetDiff(repo, string(firstHashCommit), string(secondHashCommit))
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(string(diff), gocheck.Matches, `(?s).*-You should read this README.*\+Seriously, read this file!.*`)
 }
@@ -1029,12 +1033,16 @@ func (s *S) TestGetDiffIntegrationWhenInvalidRepo(c *gocheck.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
-	firstCommit, err := CreateCommitOnTestRepository(bare, repo, file, object1)
+	errCreateCommit := CreateCommit(bare, repo, file, object1)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	firstHashCommit, err := GetLastHashCommit(bare, repo)
 	c.Assert(err, gocheck.IsNil)
-	secondCommit, err := CreateCommitOnTestRepository(bare, repo, file, object2)
+	errCreateCommit = CreateCommit(bare, repo, file, object2)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	secondHashCommit, err := GetLastHashCommit(bare, repo)
 	c.Assert(err, gocheck.IsNil)
-	_, err = GetDiff("invalid-repo", string(firstCommit), string(secondCommit))
-	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and %s of repository invalid-repo (Repository does not exist).", secondCommit, firstCommit))
+	_, err = GetDiff("invalid-repo", string(firstHashCommit), string(secondHashCommit))
+	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and %s of repository invalid-repo (Repository does not exist).", secondHashCommit, firstHashCommit))
 }
 
 func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
@@ -1050,8 +1058,10 @@ func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
-	firstCommit, err := CreateCommitOnTestRepository(bare, repo, file, object1)
+	errCreateCommit := CreateCommit(bare, repo, file, object1)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	firstHashCommit, err := GetLastHashCommit(bare, repo)
 	c.Assert(err, gocheck.IsNil)
-	_, err = GetDiff(repo, "12beu23eu23923ey32eiyeg2ye", string(firstCommit))
-	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstCommit, repo))
+	_, err = GetDiff(repo, "12beu23eu23923ey32eiyeg2ye", string(firstHashCommit))
+	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstHashCommit, repo))
 }

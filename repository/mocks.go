@@ -189,29 +189,13 @@ func CreateTestRepository(tmpPath, repo, file, content string, folders ...string
 	return cleanup, err
 }
 
-func CreateCommitOnTestRepository(tmpPath, repo, file, content string) ([]byte, error) {
+func GetLastHashCommit(tmpPath, repo string) ([]byte, error) {
 	testPath := path.Join(tmpPath, repo+".git")
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return nil, err
 	}
-	err = ioutil.WriteFile(path.Join(testPath, file), []byte(content), 0644)
-	if err != nil {
-		return nil, err
-	}
-	cmd := exec.Command(gitPath, "add", ".")
-	cmd.Dir = testPath
-	err = cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-	cmd = exec.Command(gitPath, "commit", "-m", content, "--allow-empty-message")
-	cmd.Dir = testPath
-	err = cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-	cmd = exec.Command(gitPath, "log", "--pretty=format:%H", "-1")
+	cmd := exec.Command(gitPath, "log", "--pretty=format:%H", "-1")
 	cmd.Dir = testPath
 	out, err := cmd.Output()
 	if err !=nil {
