@@ -251,6 +251,7 @@ type ContentRetriever interface {
 	GetTree(repo, ref, path string) ([]map[string]string, error)
 	GetForEachRef(repo, pattern string) ([]map[string]string, error)
 	GetBranch(repo string) ([]map[string]string, error)
+	GetDiff(repo, lastCommit, previousCommit string) ([]byte, error)
 }
 
 var Retriever ContentRetriever
@@ -411,6 +412,25 @@ func (*GitContentRetriever) GetBranch(repo string) ([]map[string]string, error) 
 	return branches, err
 }
 
+func (*GitContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain diff with commits %s and %s of repository %s (%s).", lastCommit, previousCommit, repo, err)
+	}
+	cwd := barePath(repo)
+	repoExists, err := exists(cwd)
+	if err != nil || !repoExists {
+		return nil, fmt.Errorf("Error when trying to obtain diff with commits %s and %s of repository %s (Repository does not exist).", lastCommit, previousCommit, repo)
+	}
+	cmd := exec.Command(gitPath, "diff", previousCommit, lastCommit)
+	cmd.Dir = cwd
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain diff with commits %s and %s of repository %s (%s).", lastCommit, previousCommit, repo, err)
+	}
+	return out, nil
+}
+
 func retriever() ContentRetriever {
 	if Retriever == nil {
 		Retriever = &GitContentRetriever{}
@@ -440,4 +460,8 @@ func GetForEachRef(repo, pattern string) ([]map[string]string, error) {
 
 func GetBranch(repo string) ([]map[string]string, error) {
 	return retriever().GetBranch(repo)
+}
+
+func GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
+	return retriever().GetDiff(repo, previousCommit, lastCommit)
 }

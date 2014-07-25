@@ -876,3 +876,67 @@ func (s *S) TestGetBranchIntegrationEmptySubject(c *gocheck.C) {
 	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(branches[1]["subject"], gocheck.Equals, "")
 }
+
+func (s *S) TestGetDiffIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "Just a regular readme."
+	object1 := "You should read this README"
+	object2 := "Seriously, read this file!"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	firstCommit, err := CreateCommitOnTestRepository(bare, repo, file, object1)
+	c.Assert(err, gocheck.IsNil)
+	secondCommit, err := CreateCommitOnTestRepository(bare, repo, file, object2)
+	c.Assert(err, gocheck.IsNil)
+	diff, err := GetDiff(repo, string(firstCommit), string(secondCommit))
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(diff), gocheck.Matches, `(?s).*-You should read this README.*\+Seriously, read this file!.*`)
+}
+
+func (s *S) TestGetDiffIntegrationWhenInvalidRepo(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "Just a regular readme."
+	object1 := "You should read this README"
+	object2 := "Seriously, read this file!"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	firstCommit, err := CreateCommitOnTestRepository(bare, repo, file, object1)
+	c.Assert(err, gocheck.IsNil)
+	secondCommit, err := CreateCommitOnTestRepository(bare, repo, file, object2)
+	c.Assert(err, gocheck.IsNil)
+	_, err = GetDiff("invalid-repo", string(firstCommit), string(secondCommit))
+	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and %s of repository invalid-repo (Repository does not exist).", secondCommit, firstCommit))
+}
+
+func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "Just a regular readme."
+	object1 := "You should read this README"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	firstCommit, err := CreateCommitOnTestRepository(bare, repo, file, object1)
+	c.Assert(err, gocheck.IsNil)
+	_, err = GetDiff(repo, "12beu23eu23923ey32eiyeg2ye", string(firstCommit))
+	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstCommit, repo))
+}

@@ -103,6 +103,37 @@ func CreateTestRepository(tmp_path string, repo string, file string, content str
 	return cleanup, err
 }
 
+func CreateCommitOnTestRepository(tmpPath string, repo string, file string, content string) ([]byte, error) {
+	testPath := path.Join(tmpPath, repo+".git")
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(path.Join(testPath, file), []byte(content), 0644)
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command(gitPath, "add", ".")
+	cmd.Dir = testPath
+	err = cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+	cmd = exec.Command(gitPath, "commit", "-m", content, "--allow-empty-message")
+	cmd.Dir = testPath
+	err = cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+	cmd = exec.Command(gitPath, "log", "--pretty=format:%H", "-1")
+	cmd.Dir = testPath
+	out, err := cmd.Output()
+	if err !=nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func CreateBranchesOnTestRepository(tmp_path string, repo string, file string, content string, branches ...string) error {
 	testPath := path.Join(tmp_path, repo+".git")
 	gitPath, err := exec.LookPath("git")
@@ -181,4 +212,14 @@ func (r *MockContentRetriever) GetBranch(repo string) ([]map[string]string, erro
 		return nil, r.OutputError
 	}
 	return r.Refs, nil
+}
+
+func (r *MockContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
+	if r.LookPathError != nil {
+		return nil, r.LookPathError
+	}
+	if r.OutputError != nil {
+		return nil, r.OutputError
+	}
+	return r.ResultContents, nil
 }
