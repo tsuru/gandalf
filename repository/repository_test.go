@@ -816,25 +816,25 @@ func (s *S) TestGetBranchIntegration(c *gocheck.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
-	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, file, content, "doge_bites", "doge_barks")
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_bites", "doge_barks")
 	c.Assert(errCreateBranches, gocheck.IsNil)
 	branches, err := GetBranch(repo)
 	c.Assert(err, gocheck.IsNil)
-	c.Assert(len(branches), gocheck.Equals, 3)
+	c.Assert(branches, gocheck.HasLen, 3)
 	c.Assert(branches[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(branches[0]["name"], gocheck.Equals, "doge_barks")
 	c.Assert(branches[0]["commiterName"], gocheck.Equals, "doge")
 	c.Assert(branches[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
 	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[0]["subject"], gocheck.Equals, "will bark on doge_barks")
+	c.Assert(branches[0]["subject"], gocheck.Equals, "will bark")
 	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(branches[1]["name"], gocheck.Equals, "doge_bites")
 	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
 	c.Assert(branches[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
 	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[1]["subject"], gocheck.Equals, "will bark on doge_bites")
+	c.Assert(branches[1]["subject"], gocheck.Equals, "will bark")
 	c.Assert(branches[2]["ref"], gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(branches[2]["name"], gocheck.Equals, "master")
 	c.Assert(branches[2]["commiterName"], gocheck.Equals, "doge")
@@ -844,7 +844,7 @@ func (s *S) TestGetBranchIntegration(c *gocheck.C) {
 	c.Assert(branches[2]["subject"], gocheck.Equals, "will bark")
 }
 
-func (s *S) TestGetBranchIntegrationEmptySubject(c *gocheck.C) {
+func (s *S) TestGetForEachRefIntegrationWithSubjectEmpty(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -856,25 +856,135 @@ func (s *S) TestGetBranchIntegrationEmptySubject(c *gocheck.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, gocheck.IsNil)
-	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, file, content, "doge_howls")
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_howls")
 	c.Assert(errCreateBranches, gocheck.IsNil)
-	branches, err := GetBranch(repo)
+	refs, err := GetForEachRef(repo, "refs/")
 	c.Assert(err, gocheck.IsNil)
-	c.Assert(len(branches), gocheck.Equals, 2)
-	c.Assert(branches[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
-	c.Assert(branches[0]["name"], gocheck.Equals, "doge_howls")
-	c.Assert(branches[0]["commiterName"], gocheck.Equals, "doge")
-	c.Assert(branches[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
-	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[0]["subject"], gocheck.Equals, "")
-	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
-	c.Assert(branches[1]["name"], gocheck.Equals, "master")
-	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
-	c.Assert(branches[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
-	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
-	c.Assert(branches[1]["subject"], gocheck.Equals, "")
+	c.Assert(refs, gocheck.HasLen, 2)
+	c.Assert(refs[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[0]["name"], gocheck.Equals, "doge_howls")
+	c.Assert(refs[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["subject"], gocheck.Equals, "")
+	c.Assert(refs[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[1]["name"], gocheck.Equals, "master")
+	c.Assert(refs[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["subject"], gocheck.Equals, "")
+}
+
+func (s *S) TestGetForEachRefIntegrationWithSubjectTabbed(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "will\tbark"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_howls")
+	c.Assert(errCreateBranches, gocheck.IsNil)
+	refs, err := GetForEachRef(repo, "refs/")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(refs, gocheck.HasLen, 2)
+	c.Assert(refs[0]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[0]["name"], gocheck.Equals, "doge_howls")
+	c.Assert(refs[0]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[0]["subject"], gocheck.Equals, "will\tbark")
+	c.Assert(refs[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(refs[1]["name"], gocheck.Equals, "master")
+	c.Assert(refs[1]["commiterName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["commiterEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["authorName"], gocheck.Equals, "doge")
+	c.Assert(refs[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
+	c.Assert(refs[1]["subject"], gocheck.Equals, "will\tbark")
+}
+
+func (s *S) TestGetForEachRefIntegrationWhenPatternEmpty(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	refs, err := GetForEachRef("gandalf-test-repo", "")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(refs, gocheck.HasLen, 1)
+	c.Assert(refs[0], gocheck.HasLen, 9)
+}
+
+func (s *S) TestGetForEachRefIntegrationWhenPatternNonExistent(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	refs, err := GetForEachRef("gandalf-test-repo", "non_existent_pattern")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(refs, gocheck.HasLen, 1)
+	c.Assert(refs[0], gocheck.HasLen, 0)
+}
+
+func (s *S) TestGetForEachRefIntegrationWhenInvalidRepo(c *gocheck.C) {
+	_, err := GetForEachRef("invalid-repo", "refs/")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the refs of repository invalid-repo (Repository does not exist).")
+}
+
+func (s *S) TestGetForEachRefIntegrationWhenPatternSpaced(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_howls")
+	c.Assert(errCreateBranches, gocheck.IsNil)
+	refs, err := GetForEachRef("gandalf-test-repo", "much bark")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(refs, gocheck.HasLen, 1)
+	c.Assert(refs[0], gocheck.HasLen, 0)
+}
+
+func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	_, err := GetForEachRef("gandalf-test-repo", "--format")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (exit status 129).")
 }
 
 func (s *S) TestGetDiffIntegration(c *gocheck.C) {

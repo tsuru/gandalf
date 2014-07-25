@@ -129,3 +129,20 @@ Example URLs (http://gandalf-server omitted for clarity)::
     $ curl /repository/myrepository/archive/master.zip        # gets master and zip format
     $ curl /repository/myrepository/archive/master.tar.gz     # gets master and tar.gz format
     $ curl /repository/myrepository/archive/0.1.0.zip         # gets 0.1.0 tag and zip format
+
+Get branch
+-----------
+
+Returns a list of all the branches of the specified `repository`.
+
+* Method: GET
+* URI: /repository/`:name`/branch
+* Format: JSON
+
+Where:
+
+* `:name` is the name of the repository.
+
+Example URL (http://gandalf-server omitted for clarity)::
+
+    $ curl /repository/myrepository/branch                    # gets list of branches

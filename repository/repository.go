@@ -356,18 +356,22 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 	var ref, name, commiterName, commiterEmail, commiterDate, authorName, authorEmail, authorDate, subject string
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
-		return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (%s).", repo, err)
 	}
 	cwd := barePath(repo)
 	repoExists, err := exists(cwd)
 	if err != nil || !repoExists {
-		return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (Repository does not exist).", repo)
+		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Repository does not exist).", repo)
 	}
-	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", "%(objectname)%09%(refname)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)", pattern)
+	format := "%(objectname)%09%(refname:short)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)"
+	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", format)
+	if len(pattern) > 0 {
+		cmd.Args = append(cmd.Args, pattern)
+	}
 	cmd.Dir = cwd
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (%s).", repo, err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	objectCount := len(lines)
@@ -378,9 +382,9 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 			continue
 		}
 		fields := strings.Split(line, "\t")
-		if len(fields) > 4 { // let there be commits with empty subject
+		if len(fields) > 7 { // let there be commits with empty subject
 			ref = fields[0]
-			name = strings.Replace(fields[1], pattern, "", 1)
+			name = fields[1]
 			commiterName = fields[2]
 			commiterEmail = fields[3]
 			commiterDate = fields[4]
@@ -389,7 +393,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 			authorDate = fields[7]
 			subject = strings.Join(fields[8:], "\t") // let there be subjects with \t
 		} else {
-			return nil, fmt.Errorf("Error when trying to obtain the branches of repository %s (Invalid git for-each-ref output [%s]).", repo, out)
+			return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Invalid git for-each-ref output [%s]).", repo, out)
 		}
 		object := make(map[string]string)
 		object["ref"] = ref

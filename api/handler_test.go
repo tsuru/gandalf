@@ -971,3 +971,78 @@ func (s *S) TestGetTreeWhenCommandFails(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Error when trying to obtain tree for path /test on ref master of repository repo (output error).\n")
 }
+
+func (s *S) TestGetBranch(c *gocheck.C) {
+	url := "/repository/repo/branch?:name=repo"
+	refs := make([]map[string]string, 1)
+	refs[0] = make(map[string]string)
+	refs[0]["ref"] = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
+	refs[0]["name"] = "doge_barks"
+	refs[0]["commiterName"] = "doge"
+	refs[0]["commiterEmail"] = "<much@email.com>"
+	refs[0]["authorName"] = "doge"
+	refs[0]["authorEmail"] = "<much@email.com>"
+	refs[0]["subject"] = "will bark"
+	mockRetriever := repository.MockContentRetriever{
+		Refs: refs,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetBranch(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	var obj []map[string]string
+	json.Unmarshal(recorder.Body.Bytes(), &obj)
+	c.Assert(len(obj), gocheck.Equals, 1)
+	c.Assert(obj[0]["ref"], gocheck.Equals, refs[0]["ref"])
+	c.Assert(obj[0]["name"], gocheck.Equals, refs[0]["name"])
+	c.Assert(obj[0]["commiterName"], gocheck.Equals, refs[0]["commiterName"])
+	c.Assert(obj[0]["commiterEmail"], gocheck.Equals, refs[0]["commiterEmail"])
+	c.Assert(obj[0]["authorName"], gocheck.Equals, refs[0]["authorName"])
+	c.Assert(obj[0]["authorEmail"], gocheck.Equals, refs[0]["authorEmail"])
+	c.Assert(obj[0]["subject"], gocheck.Equals, refs[0]["subject"])
+}
+
+func (s *S) TestGetBranchWhenRepoNotSupplied(c *gocheck.C) {
+	url := "/repository//branch?:name="
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetBranch(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	expected := "Error when trying to obtain the branches of repository  (repository is required).\n"
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetBranchWhenRepoNonExistent(c *gocheck.C) {
+	url := "/repository/repo/branch?:name=repo"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetBranch(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	expected := "Error when trying to obtain the branches of repository repo (Error when trying to obtain the refs of repository repo (Repository does not exist).).\n"
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetBranchWhenCommandFails(c *gocheck.C) {
+	url := "/repository/repo/branch/?:name=repo"
+	expected := fmt.Errorf("output error")
+	mockRetriever := repository.MockContentRetriever{
+		OutputError: expected,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetBranch(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "Error when trying to obtain the branches of repository repo (output error).\n")
+}
