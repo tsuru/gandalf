@@ -189,6 +189,21 @@ func CreateTestRepository(tmpPath, repo, file, content string, folders ...string
 	return cleanup, err
 }
 
+func GetLastHashCommit(tmpPath, repo string) ([]byte, error) {
+	testPath := path.Join(tmpPath, repo+".git")
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command(gitPath, "log", "--pretty=format:%H", "-1")
+	cmd.Dir = testPath
+	out, err := cmd.Output()
+	if err !=nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func StatusRepository(testPath string) error {
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
@@ -244,4 +259,14 @@ func (r *MockContentRetriever) GetBranch(repo string) ([]map[string]string, erro
 		return nil, r.OutputError
 	}
 	return r.Refs, nil
+}
+
+func (r *MockContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
+	if r.LookPathError != nil {
+		return nil, r.LookPathError
+	}
+	if r.OutputError != nil {
+		return nil, r.OutputError
+	}
+	return r.ResultContents, nil
 }

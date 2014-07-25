@@ -991,3 +991,77 @@ func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *gocheck.C) {
 	_, err := GetForEachRef("gandalf-test-repo", "--format")
 	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (exit status 129).")
 }
+
+func (s *S) TestGetDiffIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "Just a regular readme."
+	object1 := "You should read this README"
+	object2 := "Seriously, read this file!"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateCommit := CreateCommit(bare, repo, file, object1)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	firstHashCommit, err := GetLastHashCommit(bare, repo)
+	c.Assert(err, gocheck.IsNil)
+	errCreateCommit = CreateCommit(bare, repo, file, object2)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	secondHashCommit, err := GetLastHashCommit(bare, repo)
+	c.Assert(err, gocheck.IsNil)
+	diff, err := GetDiff(repo, string(firstHashCommit), string(secondHashCommit))
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(diff), gocheck.Matches, `(?s).*-You should read this README.*\+Seriously, read this file!.*`)
+}
+
+func (s *S) TestGetDiffIntegrationWhenInvalidRepo(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "Just a regular readme."
+	object1 := "You should read this README"
+	object2 := "Seriously, read this file!"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateCommit := CreateCommit(bare, repo, file, object1)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	firstHashCommit, err := GetLastHashCommit(bare, repo)
+	c.Assert(err, gocheck.IsNil)
+	errCreateCommit = CreateCommit(bare, repo, file, object2)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	secondHashCommit, err := GetLastHashCommit(bare, repo)
+	c.Assert(err, gocheck.IsNil)
+	_, err = GetDiff("invalid-repo", string(firstHashCommit), string(secondHashCommit))
+	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and %s of repository invalid-repo (Repository does not exist).", secondHashCommit, firstHashCommit))
+}
+
+func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "Just a regular readme."
+	object1 := "You should read this README"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateCommit := CreateCommit(bare, repo, file, object1)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	firstHashCommit, err := GetLastHashCommit(bare, repo)
+	c.Assert(err, gocheck.IsNil)
+	_, err = GetDiff(repo, "12beu23eu23923ey32eiyeg2ye", string(firstHashCommit))
+	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstHashCommit, repo))
+}
