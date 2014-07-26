@@ -6,6 +6,8 @@ go:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install mercurial bzr -qq
+  - find . -type f -iname *json -exec sed -r -i "s|\"github.com/tsuru/gandalf(/[a-z]+)?\"|\"github.com/$TRAVIS_REPO_SLUG\1\"|" {} + -print
+  - find . -type f -iname *go -exec sed -r -i "s|\"github.com/tsuru/gandalf(/[a-z]+)?\"|\"github.com/$TRAVIS_REPO_SLUG\1\"|" {} + -print
 install:
   - export PATH="$HOME/gopath/bin:$PATH"
   - make get
