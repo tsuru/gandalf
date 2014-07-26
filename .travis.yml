@@ -11,6 +11,8 @@ before_install:
 install:
   - export PATH="$HOME/gopath/bin:$PATH"
   - make get
+before_script:
+  - if [ "$TRAVIS_REPO_SLUG" != "tsuru/gandalf" ]; then cd ..; mv gandalf ../tsuru; cd ../tsuru/gandalf; fi
 script:
   - make test
   - ./check-fmt.sh
