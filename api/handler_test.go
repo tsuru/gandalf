@@ -1046,3 +1046,59 @@ func (s *S) TestGetBranchWhenCommandFails(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Error when trying to obtain the branches of repository repo (output error).\n")
 }
+
+func (s *S) TestGetDiff(c *gocheck.C) {
+	url := "/repository/repo/diff/commits?:name=repo&previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
+	expected := "test_diff"
+	repository.Retriever = &repository.MockContentRetriever{
+		ResultContents: []byte(expected),
+	}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetDiff(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetDiffWhenCommandFails(c *gocheck.C) {
+	url := "/repository/repo/diff/commits?:name=repo&previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
+	outputError := fmt.Errorf("command error")
+	repository.Retriever = &repository.MockContentRetriever{
+		OutputError: outputError,
+	}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetDiff(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "command error\n")
+}
+
+func (s *S) TestGetDiffWhenNoRepository(c *gocheck.C) {
+	url := "/repository//diff/commits?:name=&previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetDiff(recorder, request)
+	expected := "Error when trying to obtain diff between hash commits of repository  (repository is required).\n"
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestGetDiffWhenNoCommits(c *gocheck.C) {
+	url := "/repository/repo/diff/commits?:name=repo&previous_commit=&last_commit="
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetDiff(recorder, request)
+	expected := "Error when trying to obtain diff between hash commits of repository repo (Hash Commit(s) are required).\n"
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
