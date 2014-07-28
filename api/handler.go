@@ -355,3 +355,26 @@ func GetBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(b)
 }
+
+func GetTag(w http.ResponseWriter, r *http.Request) {
+	repo := r.URL.Query().Get(":name")
+	ref := r.URL.Query().Get("ref")
+	if repo == "" {
+		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (repository is required).", ref, repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	tags, err := repository.GetTag(repo)
+	if err != nil {
+		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	b, err := json.Marshal(tags)
+	if err != nil {
+		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Write(b)
+}
