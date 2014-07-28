@@ -198,7 +198,7 @@ func GetLastHashCommit(tmpPath, repo string) ([]byte, error) {
 	cmd := exec.Command(gitPath, "log", "--pretty=format:%H", "-1")
 	cmd.Dir = testPath
 	out, err := cmd.Output()
-	if err !=nil {
+	if err != nil {
 		return nil, err
 	}
 	return out, nil
