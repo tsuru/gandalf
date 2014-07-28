@@ -51,6 +51,7 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 	router.Get("/repository/:name/tree", http.HandlerFunc(api.GetTree))
 	router.Get("/repository/:name/branch", http.HandlerFunc(api.GetBranch))
 	router.Get("/repository/:name/tag", http.HandlerFunc(api.GetTag))
+	router.Get("/repository/:name/diff/commits", http.HandlerFunc(api.GetDiff))
 	router.Get("/healthcheck/", http.HandlerFunc(api.HealthCheck))
 	router.Post("/hook/:name", http.HandlerFunc(api.AddHook))
 
