@@ -833,6 +833,9 @@ func (s *S) TestGetBranchIntegration(c *gocheck.C) {
 	c.Assert(branches[0]["authorName"], gocheck.Equals, "doge")
 	c.Assert(branches[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(branches[0]["subject"], gocheck.Equals, "will bark")
+	links := branches[0]["_links"].(map[string]string)
+	c.Assert(links["zipArchive"], gocheck.Equals, GetArchiveUrl(repo, "doge_barks", "zip"))
+	c.Assert(links["tarArchive"], gocheck.Equals, GetArchiveUrl(repo, "doge_barks", "tar.gz"))
 	c.Assert(branches[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(branches[1]["name"], gocheck.Equals, "doge_bites")
 	c.Assert(branches[1]["commiterName"], gocheck.Equals, "doge")
@@ -840,6 +843,9 @@ func (s *S) TestGetBranchIntegration(c *gocheck.C) {
 	c.Assert(branches[1]["authorName"], gocheck.Equals, "doge")
 	c.Assert(branches[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(branches[1]["subject"], gocheck.Equals, "will bark")
+	links = branches[1]["_links"].(map[string]string)
+	c.Assert(links["zipArchive"], gocheck.Equals, GetArchiveUrl(repo, "doge_bites", "zip"))
+	c.Assert(links["tarArchive"], gocheck.Equals, GetArchiveUrl(repo, "doge_bites", "tar.gz"))
 	c.Assert(branches[2]["ref"], gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(branches[2]["name"], gocheck.Equals, "master")
 	c.Assert(branches[2]["commiterName"], gocheck.Equals, "doge")
@@ -847,6 +853,9 @@ func (s *S) TestGetBranchIntegration(c *gocheck.C) {
 	c.Assert(branches[2]["authorName"], gocheck.Equals, "doge")
 	c.Assert(branches[2]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(branches[2]["subject"], gocheck.Equals, "will bark")
+	links = branches[2]["_links"].(map[string]string)
+	c.Assert(links["zipArchive"], gocheck.Equals, GetArchiveUrl(repo, "master", "zip"))
+	c.Assert(links["tarArchive"], gocheck.Equals, GetArchiveUrl(repo, "master", "tar.gz"))
 }
 
 func (s *S) TestGetForEachRefIntegrationWithSubjectEmpty(c *gocheck.C) {
@@ -930,7 +939,8 @@ func (s *S) TestGetForEachRefIntegrationWhenPatternEmpty(c *gocheck.C) {
 	refs, err := GetForEachRef("gandalf-test-repo", "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(refs, gocheck.HasLen, 1)
-	c.Assert(refs[0], gocheck.HasLen, 9)
+	c.Assert(refs[0], gocheck.HasLen, 10)
+	c.Assert(refs[0]["_links"], gocheck.HasLen, 2)
 }
 
 func (s *S) TestGetForEachRefIntegrationWhenPatternNonExistent(c *gocheck.C) {
@@ -1094,6 +1104,9 @@ func (s *S) TestGetTagIntegration(c *gocheck.C) {
 	c.Assert(tags[0]["authorName"], gocheck.Equals, "doge")
 	c.Assert(tags[0]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(tags[0]["subject"], gocheck.Equals, "much WOW")
+	links := tags[0]["_links"].(map[string]string)
+	c.Assert(links["zipArchive"], gocheck.Equals, GetArchiveUrl(repo, "0.1", "zip"))
+	c.Assert(links["tarArchive"], gocheck.Equals, GetArchiveUrl(repo, "0.1", "tar.gz"))
 	c.Assert(tags[1]["ref"], gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(tags[1]["name"], gocheck.Equals, "0.2")
 	c.Assert(tags[1]["commiterName"], gocheck.Equals, "doge")
@@ -1101,4 +1114,12 @@ func (s *S) TestGetTagIntegration(c *gocheck.C) {
 	c.Assert(tags[1]["authorName"], gocheck.Equals, "doge")
 	c.Assert(tags[1]["authorEmail"], gocheck.Equals, "<much@email.com>")
 	c.Assert(tags[1]["subject"], gocheck.Equals, "")
+	links = tags[1]["_links"].(map[string]string)
+	c.Assert(links["zipArchive"], gocheck.Equals, GetArchiveUrl(repo, "0.2", "zip"))
+	c.Assert(links["tarArchive"], gocheck.Equals, GetArchiveUrl(repo, "0.2", "tar.gz"))
+}
+
+func (s *S) TestGetArchiveUrl(c *gocheck.C) {
+	url := GetArchiveUrl("repo", "ref", "zip")
+	c.Assert(url, gocheck.Equals, fmt.Sprintf("/repository/%s/archive/%s.%s", "repo", "ref", "zip"))
 }
