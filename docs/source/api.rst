@@ -143,6 +143,69 @@ Where:
 
 * `:name` is the name of the repository.
 
+Example result::
+
+    [{
+        ref: "6767b5de5943632e47cb6f8bf5b2147bc0be5cf8",
+        name: "master",
+        subject: "much WOW",
+        createdAt: "Mon Jul 28 10:13:27 2014 -0300"
+        author: {
+            name: "Author name",
+            email: "author@email.com",
+            date: "Mon Jul 28 10:13:27 2014 -0300""
+        },
+        committer: {
+            name: "Committer name",
+            email: "committer@email.com",
+            date: "Tue Jul 29 13:43:57 2014 -0300"
+        },
+        _links: {
+            zipArchive: "/repository/myrepository/branch/archive/master.zip",
+            tarArchive: "/repository/myrepository/branch/archive/master.tar.gz"
+        }
+    }]
+
 Example URL (http://gandalf-server omitted for clarity)::
 
     $ curl /repository/myrepository/branch                    # gets list of branches
+
+Get tag
+-------
+
+Returns a list of all the tags of the specified `repository`.
+
+* Method: GET
+* URI: /repository/`:name`/tag
+* Format: JSON
+
+Where:
+
+* `:name` is the name of the repository.
+
+Example result::
+
+    [{
+        ref: "6767b5de5943632e47cb6f8bf5b2147bc0be5cf8",
+        name: "0.1",
+        subject: "much WOW",
+        createdAt: "Mon Jul 28 10:13:27 2014 -0300"
+        author: {
+            name: "Author name",
+            email: "author@email.com",
+            date: "Mon Jul 28 10:13:27 2014 -0300""
+        },
+        committer: {
+            name: "Committer name",
+            email: "committer@email.com",
+            date: "Tue Jul 29 13:43:57 2014 -0300"
+        },
+        _links: {
+            zipArchive: "/repository/myrepository/branch/archive/0.1.zip",
+            tarArchive: "/repository/myrepository/branch/archive/0.1.tar.gz"
+        }
+    }]
+
+Example URL (http://gandalf-server omitted for clarity)::
+
+    $ curl /repository/myrepository/tag                    # gets list of tags

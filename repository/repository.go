@@ -254,10 +254,10 @@ type ContentRetriever interface {
 	GetContents(repo, ref, path string) ([]byte, error)
 	GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error)
 	GetTree(repo, ref, path string) ([]map[string]string, error)
-	GetForEachRef(repo, pattern string) ([]map[string]interface{}, error)
-	GetBranch(repo string) ([]map[string]interface{}, error)
+	GetForEachRef(repo, pattern string) ([]Ref, error)
+	GetBranch(repo string) ([]Ref, error)
 	GetDiff(repo, lastCommit, previousCommit string) ([]byte, error)
-	GetTag(repo string) ([]map[string]interface{}, error)
+	GetTag(repo string) ([]Ref, error)
 }
 
 var Retriever ContentRetriever
@@ -358,8 +358,29 @@ func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string
 	return objects, nil
 }
 
-func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]interface{}, error) {
-	var ref, name, commiterName, commiterEmail, commiterDate, authorName, authorEmail, authorDate, subject string
+type Links struct {
+	TarArchive string `json:"tarArchive"`
+	ZipArchive string `json:"zipArchive"`
+}
+
+type GitUser struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Date  string `json:"date"`
+}
+
+type Ref struct {
+	Ref       string   `json:"ref"`
+	Name      string   `json:"name"`
+	Author    *GitUser `json:"author"`
+	Committer *GitUser `json:"committer"`
+	Links     *Links   `json:"_links"`
+	Subject   string   `json:"subject"`
+	CreatedAt string   `json:"createdAt"`
+}
+
+func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
+	var ref, name, committerName, committerEmail, committerDate, authorName, authorEmail, authorDate, subject string
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (%s).", repo, err)
@@ -381,7 +402,10 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]in
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	objectCount := len(lines)
-	objects := make([]map[string]interface{}, objectCount)
+	if len(lines) == 1 && len(lines[0]) == 0 {
+		objectCount = 0
+	}
+	objects := make([]Ref, objectCount)
 	objectCount = 0
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
@@ -391,9 +415,9 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]in
 		if len(fields) > 7 { // let there be commits with empty subject
 			ref = fields[0]
 			name = fields[1]
-			commiterName = fields[2]
-			commiterEmail = fields[3]
-			commiterDate = fields[4]
+			committerName = fields[2]
+			committerEmail = fields[3]
+			committerDate = fields[4]
 			authorName = fields[5]
 			authorEmail = fields[6]
 			authorDate = fields[7]
@@ -401,27 +425,32 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]in
 		} else {
 			return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Invalid git for-each-ref output [%s]).", repo, out)
 		}
-		object := map[string]interface{}{}
-		object["ref"] = ref
-		object["name"] = name
-		object["commiterName"] = commiterName
-		object["commiterEmail"] = commiterEmail
-		object["commiterDate"] = commiterDate
-		object["authorName"] = authorName
-		object["authorEmail"] = authorEmail
-		object["authorDate"] = authorDate
-		object["subject"] = subject
-		links := map[string]string{}
-		links["zipArchive"] = GetArchiveUrl(repo, name, "zip")
-		links["tarArchive"] = GetArchiveUrl(repo, name, "tar.gz")
-		object["_links"] = links
+		object := Ref{}
+		object.Ref = ref
+		object.Name = name
+		object.Subject = subject
+		object.CreatedAt = authorDate
+		object.Committer = &GitUser{
+			Name:  committerName,
+			Email: committerEmail,
+			Date:  committerDate,
+		}
+		object.Author = &GitUser{
+			Name:  authorName,
+			Email: authorEmail,
+			Date:  authorDate,
+		}
+		object.Links = &Links{
+			ZipArchive: GetArchiveUrl(repo, name, "zip"),
+			TarArchive: GetArchiveUrl(repo, name, "tar.gz"),
+		}
 		objects[objectCount] = object
 		objectCount++
 	}
 	return objects, nil
 }
 
-func (*GitContentRetriever) GetBranch(repo string) ([]map[string]interface{}, error) {
+func (*GitContentRetriever) GetBranch(repo string) ([]Ref, error) {
 	branches, err := retriever().GetForEachRef(repo, "refs/heads/")
 	return branches, err
 }
@@ -445,7 +474,7 @@ func (*GitContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]
 	return out, nil
 }
 
-func (*GitContentRetriever) GetTag(repo string) ([]map[string]interface{}, error) {
+func (*GitContentRetriever) GetTag(repo string) ([]Ref, error) {
 	tags, err := retriever().GetForEachRef(repo, "refs/tags/")
 	return tags, err
 }
@@ -473,11 +502,11 @@ func GetTree(repo, ref, path string) ([]map[string]string, error) {
 	return retriever().GetTree(repo, ref, path)
 }
 
-func GetForEachRef(repo, pattern string) ([]map[string]interface{}, error) {
+func GetForEachRef(repo, pattern string) ([]Ref, error) {
 	return retriever().GetForEachRef(repo, pattern)
 }
 
-func GetBranch(repo string) ([]map[string]interface{}, error) {
+func GetBranch(repo string) ([]Ref, error) {
 	return retriever().GetBranch(repo)
 }
 
@@ -485,6 +514,6 @@ func GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
 	return retriever().GetDiff(repo, previousCommit, lastCommit)
 }
 
-func GetTag(repo string) ([]map[string]interface{}, error) {
+func GetTag(repo string) ([]Ref, error) {
 	return retriever().GetTag(repo)
 }

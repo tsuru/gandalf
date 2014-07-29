@@ -974,19 +974,25 @@ func (s *S) TestGetTreeWhenCommandFails(c *gocheck.C) {
 
 func (s *S) TestGetBranch(c *gocheck.C) {
 	url := "/repository/repo/branch?:name=repo"
-	refs := make([]map[string]interface{}, 1)
-	refs[0] = map[string]interface{}{}
-	refs[0]["ref"] = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
-	refs[0]["name"] = "doge_barks"
-	refs[0]["commiterName"] = "doge"
-	refs[0]["commiterEmail"] = "<much@email.com>"
-	refs[0]["authorName"] = "doge"
-	refs[0]["authorEmail"] = "<much@email.com>"
-	refs[0]["subject"] = "will bark"
-	links := map[string]string{}
-	links["zipArchive"] = repository.GetArchiveUrl("repo", "doge_barks", "zip")
-	links["tarArchive"] = repository.GetArchiveUrl("repo", "doge_barks", "tar.gz")
-	refs[0]["_links"] = links
+	refs := make([]repository.Ref, 1)
+	refs[0] = repository.Ref{
+		Ref:       "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9",
+		Name:      "doge_barks",
+		CreatedAt: "Mon Jul 28 10:13:27 2014 -0300",
+		Committer: &repository.GitUser{
+			Name:  "doge",
+			Email: "<much@email.com>",
+		},
+		Author: &repository.GitUser{
+			Name:  "doge",
+			Email: "<much@email.com>",
+		},
+		Subject: "will bark",
+		Links: &repository.Links{
+			ZipArchive: repository.GetArchiveUrl("repo", "doge_barks", "zip"),
+			TarArchive: repository.GetArchiveUrl("repo", "doge_barks", "tar.gz"),
+		},
+	}
 	mockRetriever := repository.MockContentRetriever{
 		Refs: refs,
 	}
@@ -999,19 +1005,10 @@ func (s *S) TestGetBranch(c *gocheck.C) {
 	recorder := httptest.NewRecorder()
 	GetBranch(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	var obj []map[string]interface{}
+	var obj []repository.Ref
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
-	c.Assert(len(obj), gocheck.Equals, 1)
-	c.Assert(obj[0]["ref"], gocheck.Equals, refs[0]["ref"])
-	c.Assert(obj[0]["name"], gocheck.Equals, refs[0]["name"])
-	c.Assert(obj[0]["commiterName"], gocheck.Equals, refs[0]["commiterName"])
-	c.Assert(obj[0]["commiterEmail"], gocheck.Equals, refs[0]["commiterEmail"])
-	c.Assert(obj[0]["authorName"], gocheck.Equals, refs[0]["authorName"])
-	c.Assert(obj[0]["authorEmail"], gocheck.Equals, refs[0]["authorEmail"])
-	c.Assert(obj[0]["subject"], gocheck.Equals, refs[0]["subject"])
-	objLinks := obj[0]["_links"].(map[string]interface{})
-	c.Assert(objLinks["zipArchive"], gocheck.Equals, links["zipArchive"])
-	c.Assert(objLinks["tarArchive"], gocheck.Equals, links["tarArchive"])
+	c.Assert(obj, gocheck.HasLen, 1)
+	c.Assert(obj[0], gocheck.DeepEquals, refs[0])
 }
 
 func (s *S) TestGetBranchWhenRepoNotSupplied(c *gocheck.C) {
@@ -1056,21 +1053,27 @@ func (s *S) TestGetBranchWhenCommandFails(c *gocheck.C) {
 
 func (s *S) TestGetTag(c *gocheck.C) {
 	url := "/repository/repo/tag?:name=repo"
-	tags := make([]map[string]interface{}, 1)
-	tags[0] = map[string]interface{}{}
-	tags[0]["ref"] = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
-	tags[0]["name"] = "0.1"
-	tags[0]["commiterName"] = "doge"
-	tags[0]["commiterEmail"] = "<much@email.com>"
-	tags[0]["authorName"] = "doge"
-	tags[0]["authorEmail"] = "<much@email.com>"
-	tags[0]["subject"] = "will bark"
-	links := map[string]string{}
-	links["zipArchive"] = repository.GetArchiveUrl("repo", "0.1", "zip")
-	links["tarArchive"] = repository.GetArchiveUrl("repo", "0.1", "tar.gz")
-	tags[0]["_links"] = links
+	refs := make([]repository.Ref, 1)
+	refs[0] = repository.Ref{
+		Ref:       "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9",
+		Name:      "doge_barks",
+		CreatedAt: "Mon Jul 28 10:13:27 2014 -0300",
+		Committer: &repository.GitUser{
+			Name:  "doge",
+			Email: "<much@email.com>",
+		},
+		Author: &repository.GitUser{
+			Name:  "doge",
+			Email: "<much@email.com>",
+		},
+		Subject: "will bark",
+		Links: &repository.Links{
+			ZipArchive: repository.GetArchiveUrl("repo", "doge_barks", "zip"),
+			TarArchive: repository.GetArchiveUrl("repo", "doge_barks", "tar.gz"),
+		},
+	}
 	mockRetriever := repository.MockContentRetriever{
-		Refs: tags,
+		Refs: refs,
 	}
 	repository.Retriever = &mockRetriever
 	defer func() {
@@ -1081,19 +1084,10 @@ func (s *S) TestGetTag(c *gocheck.C) {
 	recorder := httptest.NewRecorder()
 	GetTag(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	var obj []map[string]interface{}
+	var obj []repository.Ref
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
-	c.Assert(len(obj), gocheck.Equals, 1)
-	c.Assert(obj[0]["ref"], gocheck.Equals, tags[0]["ref"])
-	c.Assert(obj[0]["name"], gocheck.Equals, tags[0]["name"])
-	c.Assert(obj[0]["commiterName"], gocheck.Equals, tags[0]["commiterName"])
-	c.Assert(obj[0]["commiterEmail"], gocheck.Equals, tags[0]["commiterEmail"])
-	c.Assert(obj[0]["authorName"], gocheck.Equals, tags[0]["authorName"])
-	c.Assert(obj[0]["authorEmail"], gocheck.Equals, tags[0]["authorEmail"])
-	c.Assert(obj[0]["subject"], gocheck.Equals, tags[0]["subject"])
-	objLinks := obj[0]["_links"].(map[string]interface{})
-	c.Assert(objLinks["zipArchive"], gocheck.Equals, links["zipArchive"])
-	c.Assert(objLinks["tarArchive"], gocheck.Equals, links["tarArchive"])
+	c.Assert(obj, gocheck.HasLen, 1)
+	c.Assert(obj[0], gocheck.DeepEquals, refs[0])
 }
 
 func (s *S) TestGetDiff(c *gocheck.C) {

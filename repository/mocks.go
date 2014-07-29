@@ -19,7 +19,7 @@ type MockContentRetriever struct {
 	LastPath       string
 	ResultContents []byte
 	Tree           []map[string]string
-	Refs           []map[string]interface{}
+	Refs           []Ref
 	LookPathError  error
 	OutputError    error
 }
@@ -251,7 +251,7 @@ func (r *MockContentRetriever) GetTree(repo, ref, path string) ([]map[string]str
 	return r.Tree, nil
 }
 
-func (r *MockContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]interface{}, error) {
+func (r *MockContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
@@ -261,7 +261,7 @@ func (r *MockContentRetriever) GetForEachRef(repo, pattern string) ([]map[string
 	return r.Refs, nil
 }
 
-func (r *MockContentRetriever) GetBranch(repo string) ([]map[string]interface{}, error) {
+func (r *MockContentRetriever) GetBranch(repo string) ([]Ref, error) {
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
@@ -281,7 +281,7 @@ func (r *MockContentRetriever) GetDiff(repo, previousCommit, lastCommit string) 
 	return r.ResultContents, nil
 }
 
-func (r *MockContentRetriever) GetTag(repo string) ([]map[string]interface{}, error) {
+func (r *MockContentRetriever) GetTag(repo string) ([]Ref, error) {
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
