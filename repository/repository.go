@@ -237,6 +237,11 @@ func RevokeAccess(rNames, uNames []string) error {
 	return err
 }
 
+func GetArchiveUrl(repo, ref, format string) string {
+	url := "/repository/%s/archive/%s.%s"
+	return fmt.Sprintf(url, repo, ref, format)
+}
+
 type ArchiveFormat int
 
 const (
@@ -249,10 +254,10 @@ type ContentRetriever interface {
 	GetContents(repo, ref, path string) ([]byte, error)
 	GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error)
 	GetTree(repo, ref, path string) ([]map[string]string, error)
-	GetForEachRef(repo, pattern string) ([]map[string]string, error)
-	GetBranch(repo string) ([]map[string]string, error)
+	GetForEachRef(repo, pattern string) ([]map[string]interface{}, error)
+	GetBranch(repo string) ([]map[string]interface{}, error)
 	GetDiff(repo, lastCommit, previousCommit string) ([]byte, error)
-	GetTag(repo string) ([]map[string]string, error)
+	GetTag(repo string) ([]map[string]interface{}, error)
 }
 
 var Retriever ContentRetriever
@@ -353,7 +358,7 @@ func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string
 	return objects, nil
 }
 
-func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]string, error) {
+func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]interface{}, error) {
 	var ref, name, commiterName, commiterEmail, commiterDate, authorName, authorEmail, authorDate, subject string
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
@@ -376,7 +381,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 	objectCount := len(lines)
-	objects := make([]map[string]string, objectCount)
+	objects := make([]map[string]interface{}, objectCount)
 	objectCount = 0
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
@@ -396,7 +401,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 		} else {
 			return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Invalid git for-each-ref output [%s]).", repo, out)
 		}
-		object := make(map[string]string)
+		object := map[string]interface{}{}
 		object["ref"] = ref
 		object["name"] = name
 		object["commiterName"] = commiterName
@@ -406,13 +411,17 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]map[string]st
 		object["authorEmail"] = authorEmail
 		object["authorDate"] = authorDate
 		object["subject"] = subject
+		links := map[string]string{}
+		links["zipArchive"] = GetArchiveUrl(repo, name, "zip")
+		links["tarArchive"] = GetArchiveUrl(repo, name, "tar.gz")
+		object["_links"] = links
 		objects[objectCount] = object
 		objectCount++
 	}
 	return objects, nil
 }
 
-func (*GitContentRetriever) GetBranch(repo string) ([]map[string]string, error) {
+func (*GitContentRetriever) GetBranch(repo string) ([]map[string]interface{}, error) {
 	branches, err := retriever().GetForEachRef(repo, "refs/heads/")
 	return branches, err
 }
@@ -436,7 +445,7 @@ func (*GitContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]
 	return out, nil
 }
 
-func (*GitContentRetriever) GetTag(repo string) ([]map[string]string, error) {
+func (*GitContentRetriever) GetTag(repo string) ([]map[string]interface{}, error) {
 	tags, err := retriever().GetForEachRef(repo, "refs/tags/")
 	return tags, err
 }
@@ -464,11 +473,11 @@ func GetTree(repo, ref, path string) ([]map[string]string, error) {
 	return retriever().GetTree(repo, ref, path)
 }
 
-func GetForEachRef(repo, pattern string) ([]map[string]string, error) {
+func GetForEachRef(repo, pattern string) ([]map[string]interface{}, error) {
 	return retriever().GetForEachRef(repo, pattern)
 }
 
-func GetBranch(repo string) ([]map[string]string, error) {
+func GetBranch(repo string) ([]map[string]interface{}, error) {
 	return retriever().GetBranch(repo)
 }
 
@@ -476,6 +485,6 @@ func GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
 	return retriever().GetDiff(repo, previousCommit, lastCommit)
 }
 
-func GetTag(repo string) ([]map[string]string, error) {
+func GetTag(repo string) ([]map[string]interface{}, error) {
 	return retriever().GetTag(repo)
 }

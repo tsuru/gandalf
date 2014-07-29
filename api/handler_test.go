@@ -974,8 +974,8 @@ func (s *S) TestGetTreeWhenCommandFails(c *gocheck.C) {
 
 func (s *S) TestGetBranch(c *gocheck.C) {
 	url := "/repository/repo/branch?:name=repo"
-	refs := make([]map[string]string, 1)
-	refs[0] = make(map[string]string)
+	refs := make([]map[string]interface{}, 1)
+	refs[0] = map[string]interface{}{}
 	refs[0]["ref"] = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
 	refs[0]["name"] = "doge_barks"
 	refs[0]["commiterName"] = "doge"
@@ -983,6 +983,10 @@ func (s *S) TestGetBranch(c *gocheck.C) {
 	refs[0]["authorName"] = "doge"
 	refs[0]["authorEmail"] = "<much@email.com>"
 	refs[0]["subject"] = "will bark"
+	links := map[string]string{}
+	links["zipArchive"] = repository.GetArchiveUrl("repo", "doge_barks", "zip")
+	links["tarArchive"] = repository.GetArchiveUrl("repo", "doge_barks", "tar.gz")
+	refs[0]["_links"] = links
 	mockRetriever := repository.MockContentRetriever{
 		Refs: refs,
 	}
@@ -995,7 +999,7 @@ func (s *S) TestGetBranch(c *gocheck.C) {
 	recorder := httptest.NewRecorder()
 	GetBranch(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	var obj []map[string]string
+	var obj []map[string]interface{}
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
 	c.Assert(len(obj), gocheck.Equals, 1)
 	c.Assert(obj[0]["ref"], gocheck.Equals, refs[0]["ref"])
@@ -1005,6 +1009,9 @@ func (s *S) TestGetBranch(c *gocheck.C) {
 	c.Assert(obj[0]["authorName"], gocheck.Equals, refs[0]["authorName"])
 	c.Assert(obj[0]["authorEmail"], gocheck.Equals, refs[0]["authorEmail"])
 	c.Assert(obj[0]["subject"], gocheck.Equals, refs[0]["subject"])
+	objLinks := obj[0]["_links"].(map[string]interface{})
+	c.Assert(objLinks["zipArchive"], gocheck.Equals, links["zipArchive"])
+	c.Assert(objLinks["tarArchive"], gocheck.Equals, links["tarArchive"])
 }
 
 func (s *S) TestGetBranchWhenRepoNotSupplied(c *gocheck.C) {
@@ -1049,8 +1056,8 @@ func (s *S) TestGetBranchWhenCommandFails(c *gocheck.C) {
 
 func (s *S) TestGetTag(c *gocheck.C) {
 	url := "/repository/repo/tag?:name=repo"
-	tags := make([]map[string]string, 1)
-	tags[0] = make(map[string]string)
+	tags := make([]map[string]interface{}, 1)
+	tags[0] = map[string]interface{}{}
 	tags[0]["ref"] = "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
 	tags[0]["name"] = "0.1"
 	tags[0]["commiterName"] = "doge"
@@ -1058,6 +1065,10 @@ func (s *S) TestGetTag(c *gocheck.C) {
 	tags[0]["authorName"] = "doge"
 	tags[0]["authorEmail"] = "<much@email.com>"
 	tags[0]["subject"] = "will bark"
+	links := map[string]string{}
+	links["zipArchive"] = repository.GetArchiveUrl("repo", "0.1", "zip")
+	links["tarArchive"] = repository.GetArchiveUrl("repo", "0.1", "tar.gz")
+	tags[0]["_links"] = links
 	mockRetriever := repository.MockContentRetriever{
 		Refs: tags,
 	}
@@ -1070,7 +1081,7 @@ func (s *S) TestGetTag(c *gocheck.C) {
 	recorder := httptest.NewRecorder()
 	GetTag(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	var obj []map[string]string
+	var obj []map[string]interface{}
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
 	c.Assert(len(obj), gocheck.Equals, 1)
 	c.Assert(obj[0]["ref"], gocheck.Equals, tags[0]["ref"])
@@ -1080,4 +1091,7 @@ func (s *S) TestGetTag(c *gocheck.C) {
 	c.Assert(obj[0]["authorName"], gocheck.Equals, tags[0]["authorName"])
 	c.Assert(obj[0]["authorEmail"], gocheck.Equals, tags[0]["authorEmail"])
 	c.Assert(obj[0]["subject"], gocheck.Equals, tags[0]["subject"])
+	objLinks := obj[0]["_links"].(map[string]interface{})
+	c.Assert(objLinks["zipArchive"], gocheck.Equals, links["zipArchive"])
+	c.Assert(objLinks["tarArchive"], gocheck.Equals, links["tarArchive"])
 }
