@@ -378,3 +378,26 @@ func GetTag(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(b)
 }
+
+func GetDiff(w http.ResponseWriter, r *http.Request) {
+	repo := r.URL.Query().Get(":name")
+	previousCommit := r.URL.Query().Get("previous_commit")
+	lastCommit := r.URL.Query().Get("last_commit")
+	if repo == "" {
+		err := fmt.Errorf("Error when trying to obtain diff between hash commits of repository %s (repository is required).", repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if previousCommit == "" || lastCommit == "" {
+		err := fmt.Errorf("Error when trying to obtain diff between hash commits of repository %s (Hash Commit(s) are required).", repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	diff, err := repository.GetDiff(repo, previousCommit, lastCommit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(diff)))
+	w.Write(diff)
+}
