@@ -767,7 +767,7 @@ func (s *S) TestGetFileContentsWhenNoRepository(c *gocheck.C) {
 }
 
 func (s *S) TestGetArchiveWhenNoRef(c *gocheck.C) {
-	url := "/repository/repo/archive/.zip?:name=repo&:ref=&:format=zip"
+	url := "/repository/repo/archive?:name=repo&ref=&format=zip"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
@@ -778,7 +778,7 @@ func (s *S) TestGetArchiveWhenNoRef(c *gocheck.C) {
 }
 
 func (s *S) TestGetArchiveWhenNoRepo(c *gocheck.C) {
-	url := "/repository//archive/master.zip?:name=&:ref=master&:format=zip"
+	url := "/repository//archive?:name=&ref=master&format=zip"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
@@ -789,7 +789,7 @@ func (s *S) TestGetArchiveWhenNoRepo(c *gocheck.C) {
 }
 
 func (s *S) TestGetArchiveWhenNoFormat(c *gocheck.C) {
-	url := "/repository/repo/archive/master.?:name=repo&:ref=master&:format="
+	url := "/repository/repo/archive?:name=repo&ref=master&format="
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
@@ -800,7 +800,7 @@ func (s *S) TestGetArchiveWhenNoFormat(c *gocheck.C) {
 }
 
 func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
-	url := "/repository/repo/archive/master.zip?:name=repo&:ref=master&:format=zip"
+	url := "/repository/repo/archive?:name=repo&ref=master&format=zip"
 	expected := fmt.Errorf("output error")
 	mockRetriever := repository.MockContentRetriever{
 		OutputError: expected,
@@ -818,7 +818,7 @@ func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
 }
 
 func (s *S) TestGetArchive(c *gocheck.C) {
-	url := "/repository/repo/archive/master.zip?:name=repo&:ref=master&:format=zip"
+	url := "/repository/repo/archive?:name=repo&ref=master&format=zip"
 	expected := "result123"
 	mockRetriever := repository.MockContentRetriever{
 		ResultContents: []byte(expected),

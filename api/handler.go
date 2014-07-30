@@ -270,8 +270,8 @@ func GetFileContents(w http.ResponseWriter, r *http.Request) {
 
 func GetArchive(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
-	ref := r.URL.Query().Get(":ref")
-	format := r.URL.Query().Get(":format")
+	ref := r.URL.Query().Get("ref")
+	format := r.URL.Query().Get("format")
 	if ref == "" || format == "" || repo == "" {
 		err := fmt.Errorf("Error when trying to obtain archive for ref '%s' (format: %s) of repository '%s' (repository, ref and format are required).", ref, format, repo)
 		http.Error(w, err.Error(), http.StatusBadRequest)
