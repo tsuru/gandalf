@@ -255,9 +255,9 @@ type ContentRetriever interface {
 	GetArchive(repo, ref string, format ArchiveFormat) ([]byte, error)
 	GetTree(repo, ref, path string) ([]map[string]string, error)
 	GetForEachRef(repo, pattern string) ([]Ref, error)
-	GetBranch(repo string) ([]Ref, error)
+	GetBranches(repo string) ([]Ref, error)
 	GetDiff(repo, lastCommit, previousCommit string) ([]byte, error)
-	GetTag(repo string) ([]Ref, error)
+	GetTags(repo string) ([]Ref, error)
 }
 
 var Retriever ContentRetriever
@@ -450,7 +450,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 	return objects, nil
 }
 
-func (*GitContentRetriever) GetBranch(repo string) ([]Ref, error) {
+func (*GitContentRetriever) GetBranches(repo string) ([]Ref, error) {
 	branches, err := retriever().GetForEachRef(repo, "refs/heads/")
 	return branches, err
 }
@@ -474,7 +474,7 @@ func (*GitContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]
 	return out, nil
 }
 
-func (*GitContentRetriever) GetTag(repo string) ([]Ref, error) {
+func (*GitContentRetriever) GetTags(repo string) ([]Ref, error) {
 	tags, err := retriever().GetForEachRef(repo, "refs/tags/")
 	return tags, err
 }
@@ -506,14 +506,14 @@ func GetForEachRef(repo, pattern string) ([]Ref, error) {
 	return retriever().GetForEachRef(repo, pattern)
 }
 
-func GetBranch(repo string) ([]Ref, error) {
-	return retriever().GetBranch(repo)
+func GetBranches(repo string) ([]Ref, error) {
+	return retriever().GetBranches(repo)
 }
 
 func GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
 	return retriever().GetDiff(repo, previousCommit, lastCommit)
 }
 
-func GetTag(repo string) ([]Ref, error) {
-	return retriever().GetTag(repo)
+func GetTags(repo string) ([]Ref, error) {
+	return retriever().GetTags(repo)
 }
