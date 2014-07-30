@@ -261,7 +261,7 @@ func (r *MockContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error
 	return r.Refs, nil
 }
 
-func (r *MockContentRetriever) GetBranch(repo string) ([]Ref, error) {
+func (r *MockContentRetriever) GetBranches(repo string) ([]Ref, error) {
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
@@ -281,7 +281,7 @@ func (r *MockContentRetriever) GetDiff(repo, previousCommit, lastCommit string) 
 	return r.ResultContents, nil
 }
 
-func (r *MockContentRetriever) GetTag(repo string) ([]Ref, error) {
+func (r *MockContentRetriever) GetTags(repo string) ([]Ref, error) {
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}

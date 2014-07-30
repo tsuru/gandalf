@@ -334,14 +334,14 @@ func GetTree(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func GetBranch(w http.ResponseWriter, r *http.Request) {
+func GetBranches(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	if repo == "" {
 		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (repository is required).", repo)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	branches, err := repository.GetBranch(repo)
+	branches, err := repository.GetBranches(repo)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -356,7 +356,7 @@ func GetBranch(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func GetTag(w http.ResponseWriter, r *http.Request) {
+func GetTags(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	if repo == "" {
@@ -364,7 +364,7 @@ func GetTag(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	tags, err := repository.GetTag(repo)
+	tags, err := repository.GetTags(repo)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

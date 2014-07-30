@@ -136,7 +136,7 @@ Get branch
 Returns a list of all the branches of the specified `repository`.
 
 * Method: GET
-* URI: /repository/`:name`/branch
+* URI: /repository/`:name`/branches
 * Format: JSON
 
 Where:
@@ -168,7 +168,7 @@ Example result::
 
 Example URL (http://gandalf-server omitted for clarity)::
 
-    $ curl /repository/myrepository/branch                    # gets list of branches
+    $ curl /repository/myrepository/branches                  # gets list of branches
 
 Get tag
 -------
@@ -176,7 +176,7 @@ Get tag
 Returns a list of all the tags of the specified `repository`.
 
 * Method: GET
-* URI: /repository/`:name`/tag
+* URI: /repository/`:name`/tags
 * Format: JSON
 
 Where:
@@ -208,4 +208,4 @@ Example result::
 
 Example URL (http://gandalf-server omitted for clarity)::
 
-    $ curl /repository/myrepository/tag                    # gets list of tags
+    $ curl /repository/myrepository/tags                      # gets list of tags

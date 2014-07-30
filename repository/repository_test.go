@@ -809,7 +809,7 @@ func (s *S) TestGetTreeIntegrationWithInvalidRef(c *gocheck.C) {
 	c.Assert(err, gocheck.ErrorMatches, "^Error when trying to obtain tree very missing on ref VeryInvalid of repository gandalf-test-repo \\(exit status 128\\)\\.$")
 }
 
-func (s *S) TestGetBranchIntegration(c *gocheck.C) {
+func (s *S) TestGetBranchesIntegration(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -823,7 +823,7 @@ func (s *S) TestGetBranchIntegration(c *gocheck.C) {
 	c.Assert(errCreate, gocheck.IsNil)
 	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_bites", "doge_barks")
 	c.Assert(errCreateBranches, gocheck.IsNil)
-	branches, err := GetBranch(repo)
+	branches, err := GetBranches(repo)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(branches, gocheck.HasLen, 3)
 	c.Assert(branches[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1078,7 +1078,7 @@ func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
 	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstHashCommit, repo))
 }
 
-func (s *S) TestGetTagIntegration(c *gocheck.C) {
+func (s *S) TestGetTagsIntegration(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo-tags"
@@ -1097,7 +1097,7 @@ func (s *S) TestGetTagIntegration(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	errCreateTag = CreateTag(testPath, "0.2")
 	c.Assert(errCreateTag, gocheck.IsNil)
-	tags, err := GetTag(repo)
+	tags, err := GetTags(repo)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(tags[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(tags[0].Name, gocheck.Equals, "0.1")
