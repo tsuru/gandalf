@@ -115,7 +115,7 @@ Get archive
 Returns the compressed archive for the specified `repository` with the given `ref` (commit, tag or branch).
 
 * Method: GET
-* URI: /repository/`:name`/archive/`:ref.:format`
+* URI: /repository/`:name`/archive?ref=:ref&format=:format
 * Format: binary
 
 Where:
@@ -126,9 +126,9 @@ Where:
 
 Example URLs (http://gandalf-server omitted for clarity)::
 
-    $ curl /repository/myrepository/archive/master.zip        # gets master and zip format
-    $ curl /repository/myrepository/archive/master.tar.gz     # gets master and tar.gz format
-    $ curl /repository/myrepository/archive/0.1.0.zip         # gets 0.1.0 tag and zip format
+    $ curl /repository/myrepository/archive?ref=master&format=zip        # gets master and zip format
+    $ curl /repository/myrepository/archive?ref=master&format=tar.gz     # gets master and tar.gz format
+    $ curl /repository/myrepository/archive?ref=0.1.0&format=zip         # gets 0.1.0 tag and zip format
 
 Get branch
 -----------
@@ -161,8 +161,8 @@ Example result::
             date: "Tue Jul 29 13:43:57 2014 -0300"
         },
         _links: {
-            zipArchive: "/repository/myrepository/branch/archive/master.zip",
-            tarArchive: "/repository/myrepository/branch/archive/master.tar.gz"
+            zipArchive: "/repository/myrepository/branch/archive?ref=master&format=zip",
+            tarArchive: "/repository/myrepository/branch/archive?ref=master&format=tar.gz"
         }
     }]
 
@@ -201,8 +201,8 @@ Example result::
             date: "Tue Jul 29 13:43:57 2014 -0300"
         },
         _links: {
-            zipArchive: "/repository/myrepository/branch/archive/0.1.zip",
-            tarArchive: "/repository/myrepository/branch/archive/0.1.tar.gz"
+            zipArchive: "/repository/myrepository/branch/archive?ref=0.1&format=zip",
+            tarArchive: "/repository/myrepository/branch/archive?ref=0.1&format=tar.gz"
         }
     }]
 
