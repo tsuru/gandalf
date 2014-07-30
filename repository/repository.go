@@ -238,7 +238,7 @@ func RevokeAccess(rNames, uNames []string) error {
 }
 
 func GetArchiveUrl(repo, ref, format string) string {
-	url := "/repository/%s/archive/%s.%s"
+	url := "/repository/%s/archive?ref=%s&format=%s"
 	return fmt.Sprintf(url, repo, ref, format)
 }
 

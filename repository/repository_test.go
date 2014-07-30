@@ -1123,5 +1123,5 @@ func (s *S) TestGetTagIntegration(c *gocheck.C) {
 
 func (s *S) TestGetArchiveUrl(c *gocheck.C) {
 	url := GetArchiveUrl("repo", "ref", "zip")
-	c.Assert(url, gocheck.Equals, fmt.Sprintf("/repository/%s/archive/%s.%s", "repo", "ref", "zip"))
+	c.Assert(url, gocheck.Equals, fmt.Sprintf("/repository/%s/archive?ref=%s&format=%s", "repo", "ref", "zip"))
 }
