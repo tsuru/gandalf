@@ -1,27 +1,15 @@
-get: get-test get-prod godep
+get: get-code godep
 
-get-test:
-	@/bin/echo "Installing test dependencies... "
-	@go list -f '{{range .TestImports}}{{.}} {{end}}' ./... | tr ' ' '\n' |\
-		grep '^.*\..*/.*$$' | grep -v 'github.com/tsuru/gandalf' |\
-		sort | uniq | xargs go get -u >/dev/null 2>&1
-	@/bin/echo "ok"
-
-get-prod:
-	@/bin/echo "Installing production dependencies... "
-	@go list -f '{{range .Imports}}{{.}} {{end}}' ./... | tr ' ' '\n' |\
-		grep '^.*\..*/.*$$' | grep -v 'github.com/tsuru/gandalf' |\
-		sort | uniq | xargs go get -u >/dev/null 2>&1
-	@/bin/echo "ok"
+get-code:
+	go get $(GO_EXTRAFLAGS) -u -d -t ./...
 
 godep:
-	go get github.com/tools/godep
+	go get $(GO_EXTRAFLAGS) github.com/tools/godep
 	godep restore ./...
-	godep go clean ./...
 
 test:
-	@go test -i ./...
-	@go test ./...
+	go clean $(GO_EXTRAFLAGS) ./...
+	go test $(GO_EXTRAFLAGS) ./...
 
 doc:
 	@cd docs && make html
