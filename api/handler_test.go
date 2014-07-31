@@ -8,8 +8,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
+	"github.com/tsuru/gandalf/multipartzip"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
 	"gopkg.in/mgo.v2/bson"
@@ -61,6 +63,18 @@ func (s *S) authKeysContent(c *gocheck.C) string {
 	c.Assert(err, gocheck.IsNil)
 	content, err := ioutil.ReadAll(f)
 	return string(content)
+}
+
+func (s *S) TestMaxMemoryValueShouldComeFromGandalfConf(c *gocheck.C) {
+	config.Set("api:request:maxMemory", 1024)
+	maxMemory = 0
+	c.Assert(maxMemoryValue(), gocheck.Equals, 1024)
+}
+
+func (s *S) TestMaxMemoryValueDontResetMaxMemory(c *gocheck.C) {
+	config.Set("api:request:maxMemory", 1024)
+	maxMemory = 359
+	c.Assert(maxMemoryValue(), gocheck.Equals, 359)
 }
 
 func (s *S) TestNewUser(c *gocheck.C) {
@@ -1269,4 +1283,35 @@ func (s *S) TestGetDiffWhenNoCommits(c *gocheck.C) {
 	expected := "Error when trying to obtain diff between hash commits of repository repo (Hash Commit(s) are required).\n"
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
+}
+
+func (s *S) TestPostNewCommit(c *gocheck.C) {
+	url := "/repository/repo/commit/?:name=repo"
+	params := map[string]string{
+		"message":   "Repository scaffold",
+		"author":    "Doge Dog <doge@much.com>",
+		"committer": "Barking Doge <bark@much.com>",
+	}
+	var files = []struct {
+		Name, Body string
+	}{
+		{"doge.txt", "Much doge"},
+		{"much.txt", "Much mucho"},
+		{"WOW/WOW.WOW", "WOW\nWOW"},
+	}
+	buf, err := multipartzip.CreateZipBuffer(files)
+	c.Assert(err, gocheck.IsNil)
+	reader, writer := io.Pipe()
+	go multipartzip.StreamWriteMultipartForm(params, "zipfile", "scaffold.zip", "muchBOUNDARY", writer, buf)
+	repository.Retriever = &repository.MockContentRetriever{}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("POST", url, reader)
+	request.Header.Set("Content-Type", "multipart/form-data;boundary=muchBOUNDARY")
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	Commit(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	fmt.Println(recorder.Body)
 }

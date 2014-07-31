@@ -14,12 +14,17 @@ import (
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
+	"github.com/tsuru/gandalf/multipartzip"
 	fstesting "github.com/tsuru/tsuru/fs/testing"
 	"gopkg.in/mgo.v2/bson"
 	"io"
 	"io/ioutil"
 	"launchpad.net/gocheck"
+	"mime/multipart"
+	"os"
+	"os/exec"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -1053,8 +1058,9 @@ func (s *S) TestGetDiffIntegrationWhenInvalidRepo(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	secondHashCommit, err := GetLastHashCommit(bare, repo)
 	c.Assert(err, gocheck.IsNil)
+	expectedErr := fmt.Sprintf("Error when trying to obtain diff with commits %s and %s of repository invalid-repo (Repository does not exist).", secondHashCommit, firstHashCommit)
 	_, err = GetDiff("invalid-repo", string(firstHashCommit), string(secondHashCommit))
-	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and %s of repository invalid-repo (Repository does not exist).", secondHashCommit, firstHashCommit))
+	c.Assert(err.Error(), gocheck.Equals, expectedErr)
 }
 
 func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
@@ -1074,8 +1080,9 @@ func (s *S) TestGetDiffIntegrationWhenInvalidCommit(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	firstHashCommit, err := GetLastHashCommit(bare, repo)
 	c.Assert(err, gocheck.IsNil)
+	expectedErr := fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstHashCommit, repo)
 	_, err = GetDiff(repo, "12beu23eu23923ey32eiyeg2ye", string(firstHashCommit))
-	c.Assert(err.Error(), gocheck.Equals, fmt.Sprintf("Error when trying to obtain diff with commits %s and 12beu23eu23923ey32eiyeg2ye of repository %s (exit status 128).", firstHashCommit, repo))
+	c.Assert(err.Error(), gocheck.Equals, expectedErr)
 }
 
 func (s *S) TestGetTagsIntegration(c *gocheck.C) {
@@ -1124,4 +1131,570 @@ func (s *S) TestGetTagsIntegration(c *gocheck.C) {
 func (s *S) TestGetArchiveUrl(c *gocheck.C) {
 	url := GetArchiveUrl("repo", "ref", "zip")
 	c.Assert(url, gocheck.Equals, fmt.Sprintf("/repository/%s/archive?ref=%s&format=%s", "repo", "ref", "zip"))
+}
+
+func (s *S) TestTempCloneIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-clone"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	dstat, errStat := os.Stat(clone)
+	c.Assert(dstat.IsDir(), gocheck.Equals, true)
+	fstat, errStat := os.Stat(clone + "/" + file)
+	c.Assert(fstat.IsDir(), gocheck.Equals, false)
+	c.Assert(errStat, gocheck.IsNil)
+}
+
+func (s *S) TestTempCloneWhenRepoInvalid(c *gocheck.C) {
+	clone, cloneCleanUp, err := TempClone("invalid-repo")
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to clone repository invalid-repo (Repository does not exist).")
+	c.Assert(cloneCleanUp, gocheck.IsNil)
+	c.Assert(clone, gocheck.HasLen, 0)
+}
+
+func (s *S) TestTempCloneWhenGitError(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-clone"
+	file := "README"
+	cleanUp, errCreate := CreateEmptyTestRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Error("git", "much error", 1)
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	expectedErr := fmt.Sprintf("Error when trying to clone repository %s into %s (exit status 1 [much error]).", repo, clone)
+	c.Assert(errClone.Error(), gocheck.Equals, expectedErr)
+	dstat, errStat := os.Stat(clone)
+	c.Assert(dstat.IsDir(), gocheck.Equals, true)
+	fstat, errStat := os.Stat(clone + "/" + file)
+	c.Assert(fstat, gocheck.IsNil)
+	c.Assert(errStat, gocheck.NotNil)
+}
+
+func (s *S) TestSetCommitterIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-set-committer"
+	cleanUp, errCreate := CreateEmptyTestRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	committer := GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+	}
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	b, errRead := ioutil.ReadFile(clone + "/.git/config")
+	c.Assert(errRead, gocheck.IsNil)
+	c.Assert(strings.Contains(string(b), "[user]"), gocheck.Equals, false)
+	c.Assert(strings.Contains(string(b), "name = committer"), gocheck.Equals, false)
+	errSetC := SetCommitter(clone, committer)
+	c.Assert(errSetC, gocheck.IsNil)
+	b, errRead = ioutil.ReadFile(clone + "/.git/config")
+	c.Assert(errRead, gocheck.IsNil)
+	c.Assert(strings.Contains(string(b), "[user]"), gocheck.Equals, true)
+	c.Assert(strings.Contains(string(b), "name = committer"), gocheck.Equals, true)
+	c.Assert(strings.Contains(string(b), "email = committer@globo.com"), gocheck.Equals, true)
+}
+
+func (s *S) TestSetCommitterWhenCloneInvalid(c *gocheck.C) {
+	committer := GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+	}
+	err := SetCommitter("invalid-repo", committer)
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to set committer of clone invalid-repo (Clone does not exist).")
+}
+
+func (s *S) TestSetCommitterWhenGitError(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-set-committer"
+	cleanUp, errCreate := CreateEmptyTestRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	tmpdir, err := commandmocker.Error("git", "much error", 1)
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	committer := GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+	}
+	errSetC := SetCommitter(clone, committer)
+	expectedErr := fmt.Sprintf("Error when trying to set committer of clone %s (Invalid committer name [much error]).", clone)
+	c.Assert(errSetC.Error(), gocheck.Equals, expectedErr)
+	b, errRead := ioutil.ReadFile(clone + "/.git/config")
+	c.Assert(errRead, gocheck.IsNil)
+	c.Assert(strings.Contains(string(b), "[user]"), gocheck.Equals, false)
+	c.Assert(strings.Contains(string(b), "name = "), gocheck.Equals, false)
+}
+
+func (s *S) TestCheckoutIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-checkout"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_bites")
+	c.Assert(errCreateBranches, gocheck.IsNil)
+	branches, err := GetBranches(repo)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(branches, gocheck.HasLen, 2)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errCheckout := Checkout(clone, "doge_bites", false)
+	c.Assert(errCheckout, gocheck.IsNil)
+	errCheckout = Checkout(clone, "master", false)
+	c.Assert(errCheckout, gocheck.IsNil)
+}
+
+func (s *S) TestCheckoutBareRepoIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-checkout"
+	cleanUp, errCreate := CreateEmptyTestBareRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	branches, err := GetBranches(repo)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(branches, gocheck.HasLen, 0)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errCheckout := Checkout(clone, "doge_bites", false)
+	expectedErr := fmt.Sprintf("Error when trying to checkout clone %s into branch doge_bites (exit status 1 [error: pathspec 'doge_bites' did not match any file(s) known to git.\n]).", clone)
+	c.Assert(errCheckout.Error(), gocheck.Equals, expectedErr)
+	errCheckout = Checkout(clone, "doge_bites", true)
+	c.Assert(errCheckout, gocheck.IsNil)
+}
+
+func (s *S) TestCheckoutWhenBranchInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-checkout"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateBranches := CreateBranchesOnTestRepository(bare, repo, "doge_bites")
+	c.Assert(errCreateBranches, gocheck.IsNil)
+	branches, err := GetBranches(repo)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(branches, gocheck.HasLen, 2)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errCheckout := Checkout(clone, "doge_bites", false)
+	c.Assert(errCheckout, gocheck.IsNil)
+	errCheckout = Checkout(clone, "master", false)
+	c.Assert(errCheckout, gocheck.IsNil)
+	expectedErr := fmt.Sprintf("Error when trying to checkout clone %s into branch invalid_branch (exit status 1 [error: pathspec 'invalid_branch' did not match any file(s) known to git.\n]).", clone)
+	errCheckout = Checkout(clone, "invalid_branch", false)
+	c.Assert(errCheckout.Error(), gocheck.Equals, expectedErr)
+}
+
+func (s *S) TestCheckoutWhenCloneInvalid(c *gocheck.C) {
+	err := Checkout("invalid_clone", "doge_bites", false)
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to checkout clone invalid_clone into branch doge_bites (Clone does not exist).")
+}
+
+func (s *S) TestCheckoutWhenGitError(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-checkout"
+	file := "README"
+	content := "will\tbark"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errCheckout := Checkout(clone, "master", false)
+	c.Assert(errCheckout, gocheck.IsNil)
+	tmpdir, err := commandmocker.Error("git", "much error", 1)
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	expectedErr := fmt.Sprintf("Error when trying to checkout clone %s into branch master (exit status 1 [much error]).", clone)
+	errCheckout = Checkout(clone, "master", false)
+	c.Assert(errCheckout.Error(), gocheck.Equals, expectedErr)
+}
+
+func (s *S) TestAddAllIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-add-all"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateEmptyTestRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errWrite := ioutil.WriteFile(clone+"/"+file, []byte(content+content), 0644)
+	c.Assert(errWrite, gocheck.IsNil)
+	errWrite = ioutil.WriteFile(clone+"/WOWME", []byte(content+content), 0644)
+	c.Assert(errWrite, gocheck.IsNil)
+	errAddAll := AddAll(clone)
+	c.Assert(errAddAll, gocheck.IsNil)
+	gitPath, err := exec.LookPath("git")
+	c.Assert(err, gocheck.IsNil)
+	cmd := exec.Command(gitPath, "diff", "--staged", "--stat")
+	cmd.Dir = clone
+	out, err := cmd.CombinedOutput()
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(strings.Contains(string(out), file), gocheck.Equals, true)
+	c.Assert(strings.Contains(string(out), "WOWME"), gocheck.Equals, true)
+}
+
+func (s *S) TestAddAllWhenCloneInvalid(c *gocheck.C) {
+	err := AddAll("invalid_clone")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to add all to clone invalid_clone (Clone does not exist).")
+}
+
+func (s *S) TestAddAllWhenGitError(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-add-all"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errAddAll := AddAll(clone)
+	c.Assert(errAddAll, gocheck.IsNil)
+	tmpdir, err := commandmocker.Error("git", "much error", 1)
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	expectedErr := fmt.Sprintf("Error when trying to add all to clone %s (exit status 1 [much error]).", clone)
+	errAddAll = AddAll(clone)
+	c.Assert(errAddAll.Error(), gocheck.Equals, expectedErr)
+}
+
+func (s *S) TestCommitIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-commit"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errWrite := ioutil.WriteFile(clone+"/"+file, []byte(content+content), 0644)
+	c.Assert(errWrite, gocheck.IsNil)
+	gitPath, err := exec.LookPath("git")
+	c.Assert(err, gocheck.IsNil)
+	cmd := exec.Command(gitPath, "diff", "--stat")
+	cmd.Dir = clone
+	out, err := cmd.CombinedOutput()
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(len(out) > 0, gocheck.Equals, true)
+	errAddAll := AddAll(clone)
+	c.Assert(errAddAll, gocheck.IsNil)
+	committer := GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+	}
+	author := GitUser{
+		Name:  "author",
+		Email: "author@globo.com",
+	}
+	message := "commit message"
+	errSetC := SetCommitter(clone, committer)
+	c.Assert(errSetC, gocheck.IsNil)
+	errCommit := Commit(clone, message, author)
+	c.Assert(errCommit, gocheck.IsNil)
+	cmd = exec.Command(gitPath, "diff")
+	cmd.Dir = clone
+	out, err = cmd.CombinedOutput()
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(out, gocheck.HasLen, 0)
+}
+
+func (s *S) TestCommitWhenCloneInvalid(c *gocheck.C) {
+	author := GitUser{
+		Name:  "author",
+		Email: "author@globo.com",
+	}
+	message := "commit message"
+	err := Commit("invalid_clone", message, author)
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to commit to clone invalid_clone (Clone does not exist).")
+}
+
+func (s *S) TestCommitWhenGitError(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-add-all"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	author := GitUser{
+		Name:  "author",
+		Email: "author@globo.com",
+	}
+	message := "commit message"
+	tmpdir, err := commandmocker.Error("git", "much error", 1)
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	expectedErr := fmt.Sprintf("Error when trying to commit to clone %s (exit status 1 [much error]).", clone)
+	errCommit := Commit(clone, message, author)
+	c.Assert(errCommit.Error(), gocheck.Equals, expectedErr)
+}
+
+func (s *S) TestPushIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-push"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateEmptyTestBareRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	errWrite := ioutil.WriteFile(clone+"/"+file, []byte(content+content), 0644)
+	c.Assert(errWrite, gocheck.IsNil)
+	errAddAll := AddAll(clone)
+	c.Assert(errAddAll, gocheck.IsNil)
+	committer := GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+	}
+	author := GitUser{
+		Name:  "author",
+		Email: "author@globo.com",
+	}
+	message := "commit message"
+	errSetC := SetCommitter(clone, committer)
+	c.Assert(errSetC, gocheck.IsNil)
+	errCommit := Commit(clone, message, author)
+	c.Assert(errCommit, gocheck.IsNil)
+	errPush := Push(clone, "master")
+	c.Assert(errPush, gocheck.IsNil)
+}
+
+func (s *S) TestPushWhenCloneInvalid(c *gocheck.C) {
+	err := Push("invalid_clone", "master")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to push clone invalid_clone into origin's master branch (Clone does not exist).")
+}
+
+func (s *S) TestPushWhenGitError(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-add-all"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, gocheck.IsNil)
+	tmpdir, err := commandmocker.Error("git", "much error", 1)
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	expectedErr := fmt.Sprintf("Error when trying to push clone %s into origin's master branch (exit status 1 [much error]).", clone)
+	errPush := Push(clone, "master")
+	c.Assert(errPush.Error(), gocheck.Equals, expectedErr)
+}
+
+func (s *S) TestCommitZipIntegration(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-push"
+	cleanUp, errCreate := CreateEmptyTestBareRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	boundary := "muchBOUNDARY"
+	params := map[string]string{}
+	var files = []struct {
+		Name, Body string
+	}{
+		{"doge.txt", "Much doge"},
+		{"much.txt", "Much mucho"},
+		{"much/WOW.txt", "Much WOW"},
+	}
+	buf, err := multipartzip.CreateZipBuffer(files)
+	c.Assert(err, gocheck.IsNil)
+	reader, writer := io.Pipe()
+	go multipartzip.StreamWriteMultipartForm(params, "muchfile", "muchfile.zip", boundary, writer, buf)
+	mpr := multipart.NewReader(reader, boundary)
+	form, err := mpr.ReadForm(0)
+	c.Assert(err, gocheck.IsNil)
+	file, err := multipartzip.FileField(form, "muchfile")
+	c.Assert(err, gocheck.IsNil)
+	commit := GitCommit{
+		Message: "will bark",
+		Author: GitUser{
+			Name:  "author",
+			Email: "author@globo.com",
+		},
+		Committer: GitUser{
+			Name:  "committer",
+			Email: "committer@globo.com",
+		},
+		Branch: "doge_barks",
+	}
+	ref, err := CommitZip(repo, file, commit)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(ref.Ref, gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(ref.Name, gocheck.Equals, "doge_barks")
+	c.Assert(ref.Committer.Name, gocheck.Equals, "committer")
+	c.Assert(ref.Committer.Email, gocheck.Equals, "<committer@globo.com>")
+	c.Assert(ref.Author.Name, gocheck.Equals, "author")
+	c.Assert(ref.Author.Email, gocheck.Equals, "<author@globo.com>")
+	c.Assert(ref.Subject, gocheck.Equals, "will bark")
+	tree, err := GetTree(repo, "doge_barks", "")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(tree, gocheck.HasLen, 3)
+	c.Assert(tree[0]["path"], gocheck.Equals, "doge.txt")
+	c.Assert(tree[0]["rawPath"], gocheck.Equals, "doge.txt")
+	c.Assert(tree[1]["path"], gocheck.Equals, "much.txt")
+	c.Assert(tree[1]["rawPath"], gocheck.Equals, "much.txt")
+	c.Assert(tree[2]["path"], gocheck.Equals, "much/WOW.txt")
+	c.Assert(tree[2]["rawPath"], gocheck.Equals, "much/WOW.txt")
+}
+
+func (s *S) TestCommitZipIntegrationWhenFileEmpty(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-push"
+	cleanUp, errCreate := CreateEmptyTestBareRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	boundary := "muchBOUNDARY"
+	params := map[string]string{}
+	reader, writer := io.Pipe()
+	go multipartzip.StreamWriteMultipartForm(params, "muchfile", "muchfile.zip", boundary, writer, nil)
+	mpr := multipart.NewReader(reader, boundary)
+	form, err := mpr.ReadForm(0)
+	c.Assert(err, gocheck.IsNil)
+	file, err := multipartzip.FileField(form, "muchfile")
+	c.Assert(err, gocheck.IsNil)
+	commit := GitCommit{
+		Message: "will bark",
+		Author: GitUser{
+			Name:  "author",
+			Email: "author@globo.com",
+		},
+		Committer: GitUser{
+			Name:  "committer",
+			Email: "committer@globo.com",
+		},
+		Branch: "doge_barks",
+	}
+	expectedErr := fmt.Sprintf("Error when trying to commit zip to repository %s, could not extract: zip: not a valid zip file", repo)
+	_, err = CommitZip(repo, file, commit)
+	c.Assert(err.Error(), gocheck.Equals, expectedErr)
 }

@@ -7,6 +7,7 @@ package repository
 import (
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"os"
 	"os/exec"
 	"path"
@@ -19,9 +20,12 @@ type MockContentRetriever struct {
 	LastPath       string
 	ResultContents []byte
 	Tree           []map[string]string
+	Ref            Ref
 	Refs           []Ref
 	LookPathError  error
 	OutputError    error
+	ClonePath      string
+	CleanUp        func()
 }
 
 func (r *MockContentRetriever) GetContents(repo, ref, path string) ([]byte, error) {
@@ -74,7 +78,7 @@ func CreateFile(testPath, file, content string) error {
 	return ioutil.WriteFile(path.Join(testPath, file), []byte(content), 0644)
 }
 
-func AddAll(testPath string) error {
+func AddAllMock(testPath string) error {
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return err
@@ -89,7 +93,7 @@ func MakeCommit(testPath, content string) error {
 	if err != nil {
 		return err
 	}
-	err = AddAll(testPath)
+	err = AddAllMock(testPath)
 	if err != nil {
 		return err
 	}
@@ -125,6 +129,24 @@ func InitRepository(testPath string) error {
 	return CreateOrUpdateConfig(testPath, "user.name", "doge")
 }
 
+func InitBareRepository(testPath string) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(gitPath, "init", "--bare")
+	cmd.Dir = testPath
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	err = CreateOrUpdateConfig(testPath, "user.email", "much@email.com")
+	if err != nil {
+		return err
+	}
+	return CreateOrUpdateConfig(testPath, "user.name", "doge")
+}
+
 func CreateEmptyTestRepository(tmpPath, repo string) (func(), error) {
 	testPath := path.Join(tmpPath, repo+".git")
 	cleanup := func() {
@@ -135,6 +157,19 @@ func CreateEmptyTestRepository(tmpPath, repo string) (func(), error) {
 		return cleanup, err
 	}
 	err = InitRepository(testPath)
+	return cleanup, err
+}
+
+func CreateEmptyTestBareRepository(tmpPath, repo string) (func(), error) {
+	testPath := path.Join(tmpPath, repo+".git")
+	cleanup := func() {
+		os.RemoveAll(testPath)
+	}
+	err := os.MkdirAll(testPath, 0777)
+	if err != nil {
+		return cleanup, err
+	}
+	err = InitBareRepository(testPath)
 	return cleanup, err
 }
 
@@ -289,4 +324,74 @@ func (r *MockContentRetriever) GetTags(repo string) ([]Ref, error) {
 		return nil, r.OutputError
 	}
 	return r.Refs, nil
+}
+
+func (r *MockContentRetriever) TempClone(repo string) (string, func(), error) {
+	if r.LookPathError != nil {
+		return "", nil, r.LookPathError
+	}
+	if r.OutputError != nil {
+		return "", nil, r.OutputError
+	}
+	return r.ClonePath, r.CleanUp, nil
+}
+
+func (r *MockContentRetriever) SetCommitter(cloneDir string, committer GitUser) error {
+	if r.LookPathError != nil {
+		return r.LookPathError
+	}
+	if r.OutputError != nil {
+		return r.OutputError
+	}
+	return nil
+}
+
+func (r *MockContentRetriever) Checkout(cloneDir, branch string, isNew bool) error {
+	if r.LookPathError != nil {
+		return r.LookPathError
+	}
+	if r.OutputError != nil {
+		return r.OutputError
+	}
+	return nil
+}
+
+func (r *MockContentRetriever) AddAll(cloneDir string) error {
+	if r.LookPathError != nil {
+		return r.LookPathError
+	}
+	if r.OutputError != nil {
+		return r.OutputError
+	}
+	return nil
+}
+
+func (r *MockContentRetriever) Commit(cloneDir, message string, author GitUser) error {
+	if r.LookPathError != nil {
+		return r.LookPathError
+	}
+	if r.OutputError != nil {
+		return r.OutputError
+	}
+	return nil
+}
+
+func (r *MockContentRetriever) Push(cloneDir, branch string) error {
+	if r.LookPathError != nil {
+		return r.LookPathError
+	}
+	if r.OutputError != nil {
+		return r.OutputError
+	}
+	return nil
+}
+
+func (r *MockContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error) {
+	if r.LookPathError != nil {
+		return nil, r.LookPathError
+	}
+	if r.OutputError != nil {
+		return nil, r.OutputError
+	}
+	return &r.Ref, nil
 }

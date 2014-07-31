@@ -8,8 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/hook"
+	"github.com/tsuru/gandalf/multipartzip"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
 	"io"
@@ -21,6 +23,20 @@ import (
 	"strconv"
 	"strings"
 )
+
+var maxMemory int
+
+func maxMemoryValue() int {
+	if maxMemory > 0 {
+		return maxMemory
+	}
+	var err error
+	maxMemory, err = config.GetInt("api:request:maxMemory")
+	if err != nil {
+		panic("You should configure a api:request:maxMemory for gandalf.")
+	}
+	return maxMemory
+}
 
 func accessParameters(body io.ReadCloser) (repositories, users []string, err error) {
 	var params map[string][]string
@@ -426,4 +442,95 @@ func GetDiff(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Length", strconv.Itoa(len(diff)))
 	w.Write(diff)
+}
+
+func Commit(w http.ResponseWriter, r *http.Request) {
+	repo := r.URL.Query().Get(":name")
+	if repo == "" {
+		err := fmt.Errorf("Error when trying to commit to repository %s (repository is required).", repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err := r.ParseMultipartForm(int64(maxMemoryValue()))
+	if err != nil {
+		err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	committer := repository.GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+		Date:  "",
+	}
+	// committer, err := multipart.GetCommitter(r.MultipartForm.File["zipfile"][0])
+	// if err != nil {
+	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+	author := repository.GitUser{
+		Name:  "author",
+		Email: "author@globo.com",
+		Date:  "",
+	}
+	// author, err := multipart.GetAuthor(r.MultipartForm)
+	// if err != nil {
+	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+	message := "commit message"
+	// message, err := multipart.GetMessage(r.MultipartForm)
+	// if err != nil {
+	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+	branch := "master"
+	// branch, err := multipart.GetBranch(r.MultipartForm)
+	// if err != nil {
+	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
+	cloneDir, _, err := repository.TempClone(repo)
+	// cloneDir, cleanUp, err := repository.TempClone(repo)
+	// if cleanUp != nil {
+	// 	defer cleanUp()
+	// }
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = repository.SetCommitter(cloneDir, committer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = repository.Checkout(cloneDir, branch)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = multipartzip.ExtractZip(r.MultipartForm.File["zipfile"][0], cloneDir)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = repository.AddAll(cloneDir)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = repository.Commit(cloneDir, message, author)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	err = repository.Push(cloneDir, branch)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	fmt.Fprintf(w, "Commit successfully applied to: %s\n", cloneDir)
 }

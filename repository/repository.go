@@ -11,10 +11,12 @@ import (
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
+	"github.com/tsuru/gandalf/multipartzip"
 	"github.com/tsuru/tsuru/log"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
+	"mime/multipart"
 	"os"
 	"os/exec"
 	"regexp"
@@ -27,6 +29,38 @@ type Repository struct {
 	Name     string `bson:"_id"`
 	Users    []string
 	IsPublic bool
+}
+
+type Links struct {
+	TarArchive string `json:"tarArchive"`
+	ZipArchive string `json:"zipArchive"`
+}
+
+type GitUser struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Date  string `json:"date"`
+}
+
+func (gu GitUser) String() string {
+	return fmt.Sprintf("%s <%s>", gu.Name, gu.Email)
+}
+
+type GitCommit struct {
+	Message   string
+	Author    GitUser
+	Committer GitUser
+	Branch    string
+}
+
+type Ref struct {
+	Ref       string   `json:"ref"`
+	Name      string   `json:"name"`
+	Author    *GitUser `json:"author"`
+	Committer *GitUser `json:"committer"`
+	Links     *Links   `json:"_links"`
+	Subject   string   `json:"subject"`
+	CreatedAt string   `json:"createdAt"`
 }
 
 // exists returns whether the given file or directory exists or not
@@ -258,6 +292,13 @@ type ContentRetriever interface {
 	GetBranches(repo string) ([]Ref, error)
 	GetDiff(repo, lastCommit, previousCommit string) ([]byte, error)
 	GetTags(repo string) ([]Ref, error)
+	TempClone(repo string) (string, func(), error)
+	SetCommitter(cloneDir string, committer GitUser) error
+	Checkout(cloneDir, branch string, isNew bool) error
+	AddAll(cloneDir string) error
+	Commit(cloneDir, message string, author GitUser) error
+	Push(cloneDir, branch string) error
+	CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error)
 }
 
 var Retriever ContentRetriever
@@ -356,27 +397,6 @@ func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string
 		objectCount++
 	}
 	return objects, nil
-}
-
-type Links struct {
-	TarArchive string `json:"tarArchive"`
-	ZipArchive string `json:"zipArchive"`
-}
-
-type GitUser struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Date  string `json:"date"`
-}
-
-type Ref struct {
-	Ref       string   `json:"ref"`
-	Name      string   `json:"name"`
-	Author    *GitUser `json:"author"`
-	Committer *GitUser `json:"committer"`
-	Links     *Links   `json:"_links"`
-	Subject   string   `json:"subject"`
-	CreatedAt string   `json:"createdAt"`
 }
 
 func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
@@ -479,6 +499,178 @@ func (*GitContentRetriever) GetTags(repo string) ([]Ref, error) {
 	return tags, err
 }
 
+func (*GitContentRetriever) TempClone(repo string) (string, func(), error) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return "", nil, fmt.Errorf("Error when trying to clone repository %s (%s).", repo, err)
+	}
+	repoDir := barePath(repo)
+	repoExists, err := exists(repoDir)
+	if err != nil || !repoExists {
+		return "", nil, fmt.Errorf("Error when trying to clone repository %s (Repository does not exist).", repo)
+	}
+	cloneDir, err := ioutil.TempDir("", "gandalf_clone")
+	if err != nil {
+		return "", nil, fmt.Errorf("Error when trying to clone repository %s (Could not create temporary directory).", repo)
+	}
+	cleanup := func() {
+		os.RemoveAll(cloneDir)
+	}
+	cmd := exec.Command(gitPath, "clone", repoDir, cloneDir)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return cloneDir, cleanup, fmt.Errorf("Error when trying to clone repository %s into %s (%s [%s]).", repo, cloneDir, err, out)
+	}
+	return cloneDir, cleanup, nil
+}
+
+func (*GitContentRetriever) SetCommitter(cloneDir string, committer GitUser) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return fmt.Errorf("Error when trying to set committer of clone %s (%s).", cloneDir, err)
+	}
+	cloneExists, err := exists(cloneDir)
+	if err != nil || !cloneExists {
+		return fmt.Errorf("Error when trying to set committer of clone %s (Clone does not exist).", cloneDir)
+	}
+	cmd := exec.Command(gitPath, "config", "user.name", committer.Name)
+	cmd.Dir = cloneDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Error when trying to set committer of clone %s (Invalid committer name [%s]).", cloneDir, out)
+	}
+	cmd = exec.Command(gitPath, "config", "user.email", committer.Email)
+	cmd.Dir = cloneDir
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Error when trying to set committer of clone %s (Invalid committer email [%s]).", cloneDir, out)
+	}
+	return nil
+}
+
+func (*GitContentRetriever) Checkout(cloneDir, branch string, isNew bool) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return fmt.Errorf("Error when trying to checkout clone %s into branch %s (%s).", cloneDir, branch, err)
+	}
+	cloneExists, err := exists(cloneDir)
+	if err != nil || !cloneExists {
+		return fmt.Errorf("Error when trying to checkout clone %s into branch %s (Clone does not exist).", cloneDir, branch)
+	}
+	cmd := exec.Command(gitPath, "checkout")
+	if isNew {
+		cmd.Args = append(cmd.Args, "-b")
+	}
+	cmd.Args = append(cmd.Args, branch)
+	cmd.Dir = cloneDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Error when trying to checkout clone %s into branch %s (%s [%s]).", cloneDir, branch, err, out)
+	}
+	return nil
+}
+
+func (*GitContentRetriever) AddAll(cloneDir string) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return fmt.Errorf("Error when trying to add all to clone %s (%s).", cloneDir, err)
+	}
+	cloneExists, err := exists(cloneDir)
+	if err != nil || !cloneExists {
+		return fmt.Errorf("Error when trying to add all to clone %s (Clone does not exist).", cloneDir)
+	}
+	cmd := exec.Command(gitPath, "add", "--all")
+	cmd.Dir = cloneDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Error when trying to add all to clone %s (%s [%s]).", cloneDir, err, out)
+	}
+	return nil
+}
+
+func (*GitContentRetriever) Commit(cloneDir, message string, author GitUser) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return fmt.Errorf("Error when trying to commit to clone %s (%s).", cloneDir, err)
+	}
+	cloneExists, err := exists(cloneDir)
+	if err != nil || !cloneExists {
+		return fmt.Errorf("Error when trying to commit to clone %s (Clone does not exist).", cloneDir)
+	}
+	cmd := exec.Command(gitPath, "commit", "-m", message, "--author", author.String(), "--allow-empty-message")
+	cmd.Dir = cloneDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Error when trying to commit to clone %s (%s [%s]).", cloneDir, err, out)
+	}
+	return nil
+}
+
+func (*GitContentRetriever) Push(cloneDir, branch string) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return fmt.Errorf("Error when trying to push clone %s (%s).", cloneDir, err)
+	}
+	cloneExists, err := exists(cloneDir)
+	if err != nil || !cloneExists {
+		return fmt.Errorf("Error when trying to push clone %s into origin's %s branch (Clone does not exist).", cloneDir, branch)
+	}
+	cmd := exec.Command(gitPath, "push", "origin", branch)
+	cmd.Dir = cloneDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Error when trying to push clone %s into origin's %s branch (%s [%s]).", cloneDir, branch, err, out)
+	}
+	return nil
+}
+
+func (*GitContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error) {
+	cloneDir, cleanUp, err := TempClone(repo)
+	if cleanUp != nil {
+		defer cleanUp()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not clone: %s", repo, err)
+	}
+	err = SetCommitter(cloneDir, c.Committer)
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not set committer: %s", repo, err)
+	}
+	err = Checkout(cloneDir, c.Branch, false)
+	if err != nil {
+		err = Checkout(cloneDir, c.Branch, true)
+		if err != nil {
+			return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not checkout: %s", repo, err)
+		}
+	}
+	err = multipartzip.ExtractZip(z, cloneDir)
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not extract: %s", repo, err)
+	}
+	err = AddAll(cloneDir)
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not add all: %s", repo, err)
+	}
+	err = Commit(cloneDir, c.Message, c.Author)
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not commit: %s", repo, err)
+	}
+	err = Push(cloneDir, c.Branch)
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not push: %s", repo, err)
+	}
+	branches, err := GetBranches(repo)
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not get branches: %s", repo, err)
+	}
+	for _, branch := range branches {
+		if branch.Name == c.Branch {
+			return &branch, nil
+		}
+	}
+	return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not check branch: %s", repo, err)
+}
+
 func retriever() ContentRetriever {
 	if Retriever == nil {
 		Retriever = &GitContentRetriever{}
@@ -516,4 +708,32 @@ func GetDiff(repo, previousCommit, lastCommit string) ([]byte, error) {
 
 func GetTags(repo string) ([]Ref, error) {
 	return retriever().GetTags(repo)
+}
+
+func TempClone(repo string) (string, func(), error) {
+	return retriever().TempClone(repo)
+}
+
+func SetCommitter(cloneDir string, committer GitUser) error {
+	return retriever().SetCommitter(cloneDir, committer)
+}
+
+func Checkout(cloneDir, branch string, isNew bool) error {
+	return retriever().Checkout(cloneDir, branch, isNew)
+}
+
+func AddAll(cloneDir string) error {
+	return retriever().AddAll(cloneDir)
+}
+
+func Commit(cloneDir, message string, author GitUser) error {
+	return retriever().Commit(cloneDir, message, author)
+}
+
+func Push(cloneDir, branch string) error {
+	return retriever().Push(cloneDir, branch)
+}
+
+func CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error) {
+	return retriever().CommitZip(repo, z, c)
 }
