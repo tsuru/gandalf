@@ -12,6 +12,19 @@ import (
 	"strings"
 )
 
+func createHookFile(path string, body io.Reader) error {
+	file, err := fs.Filesystem().OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Adds a hook script.
 func Add(name string, body io.Reader) error {
 	path, err := config.GetString("git:bare:template")
@@ -20,14 +33,23 @@ func Add(name string, body io.Reader) error {
 	}
 	s := []string{path, "hooks", name}
 	scriptPath := strings.Join(s, "/")
-	file, err := fs.Filesystem().OpenFile(scriptPath, os.O_WRONLY|os.O_CREATE, 0755)
+	return createHookFile(scriptPath, body)
+}
+
+// Adds a hook script for a repository
+func AddRepository(name string, repos []string, body io.Reader) error {
+	path, err := config.GetString("git:bare:location")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	_, err = io.Copy(file, body)
-	if err != nil {
-		return err
+	for _, repo := range repos {
+		repo += ".git"
+		s := []string{path, repo, "hooks", name}
+		scriptPath := strings.Join(s, "/")
+		err := createHookFile(scriptPath, body)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
