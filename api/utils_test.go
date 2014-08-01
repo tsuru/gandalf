@@ -11,7 +11,7 @@ import (
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/user"
 	testingfs "github.com/tsuru/tsuru/fs/testing"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
 	"testing"
 )

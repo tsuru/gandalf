@@ -11,7 +11,7 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
 	"log/syslog"
 	"os"

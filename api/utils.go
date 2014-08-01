@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/user"
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func getUserOr404(name string) (user.User, error) {
