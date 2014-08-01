@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 func accessParameters(body io.ReadCloser) (repositories, users []string, err error) {
@@ -211,6 +212,33 @@ func AddHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, "hook ", name, " successfully created\n")
+}
+
+type repositoryHook struct {
+	Repositories []string
+	Content      string
+}
+
+func AddRepositoryHook(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get(":name")
+	if name != "post-receive" && name != "pre-receive" && name != "update" {
+		http.Error(w,
+			"Unsupported hook, valid options are: post-receive, pre-receive or update",
+			http.StatusBadRequest)
+		return
+	}
+	var params repositoryHook
+	if err := parseBody(r.Body, &params); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	content := strings.NewReader(params.Content)
+	if err := hook.AddRepository(name, params.Repositories, content); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Fprint(w, "hook ", name, " successfully created for ", params.Repositories, "\n")
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {

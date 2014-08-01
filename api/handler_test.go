@@ -331,6 +331,61 @@ func (s *S) TestAddKey(c *gocheck.C) {
 	c.Assert(k.Comment, gocheck.Equals, keyComment)
 }
 
+func (s *S) TestAddPostReceiveHookRepository(c *gocheck.C) {
+	b := strings.NewReader(fmt.Sprintf(`{"repositories": ["some-repo"], "content": "some content"}`))
+	recorder, request := post("repository/hook/post-receive?:name=post-receive", b, c)
+	AddRepositoryHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "hook post-receive successfully created for [some-repo]\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 200)
+	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/post-receive", os.O_RDONLY, 0755)
+	defer file.Close()
+	content, err := ioutil.ReadAll(file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(content), gocheck.Equals, "some content")
+}
+
+func (s *S) TestAddPreReceiveHookRepository(c *gocheck.C) {
+	b := strings.NewReader(fmt.Sprintf(`{"repositories": ["some-repo"], "content": "some content"}`))
+	recorder, request := post("repository/hook/pre-receive?:name=pre-receive", b, c)
+	AddRepositoryHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "hook pre-receive successfully created for [some-repo]\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 200)
+	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/pre-receive", os.O_RDONLY, 0755)
+	defer file.Close()
+	content, err := ioutil.ReadAll(file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(content), gocheck.Equals, "some content")
+}
+
+func (s *S) TestAddUpdateReceiveHookRepository(c *gocheck.C) {
+	b := strings.NewReader(fmt.Sprintf(`{"repositories": ["some-repo"], "content": "some content"}`))
+	recorder, request := post("repository/hook/update?:name=update", b, c)
+	AddRepositoryHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "hook update successfully created for [some-repo]\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 200)
+	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/update", os.O_RDONLY, 0755)
+	defer file.Close()
+	content, err := ioutil.ReadAll(file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(content), gocheck.Equals, "some content")
+}
+
+func (s *S) TestAddInvalidHookRepository(c *gocheck.C) {
+	b := strings.NewReader(fmt.Sprintf(`{"repositories": ["some-repo"], "content": "some content"}`))
+	recorder, request := post("repository/hook/invalid-hook?:name=invalid-hook", b, c)
+	AddHook(recorder, request)
+	got := readBody(recorder.Body, c)
+	expected := "Unsupported hook, valid options are: post-receive, pre-receive or update\n"
+	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(recorder.Code, gocheck.Equals, 400)
+}
+
 func (s *S) TestAddPostReceiveHook(c *gocheck.C) {
 	b := strings.NewReader("some content")
 	recorder, request := post("/hook/post-receive?:name=post-receive", b, c)
@@ -339,6 +394,11 @@ func (s *S) TestAddPostReceiveHook(c *gocheck.C) {
 	expected := "hook post-receive successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
+	file, err := fs.Filesystem().OpenFile("/home/git/bare-template/hooks/post-receive", os.O_RDONLY, 0755)
+	defer file.Close()
+	content, err := ioutil.ReadAll(file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(content), gocheck.Equals, "some content")
 }
 
 func (s *S) TestAddPreReceiveHook(c *gocheck.C) {
@@ -349,6 +409,11 @@ func (s *S) TestAddPreReceiveHook(c *gocheck.C) {
 	expected := "hook pre-receive successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
+	file, err := fs.Filesystem().OpenFile("/home/git/bare-template/hooks/pre-receive", os.O_RDONLY, 0755)
+	defer file.Close()
+	content, err := ioutil.ReadAll(file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(content), gocheck.Equals, "some content")
 }
 
 func (s *S) TestAddUpdateHook(c *gocheck.C) {
@@ -359,6 +424,11 @@ func (s *S) TestAddUpdateHook(c *gocheck.C) {
 	expected := "hook update successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
+	file, err := fs.Filesystem().OpenFile("/home/git/bare-template/hooks/update", os.O_RDONLY, 0755)
+	defer file.Close()
+	content, err := ioutil.ReadAll(file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(content), gocheck.Equals, "some content")
 }
 
 func (s *S) TestAddInvalidHook(c *gocheck.C) {
