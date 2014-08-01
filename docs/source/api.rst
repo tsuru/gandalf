@@ -209,3 +209,33 @@ Example result::
 Example URL (http://gandalf-server omitted for clarity)::
 
     $ curl /repository/myrepository/tags                      # gets list of tags
+
+Add repository hook
+-------------------
+
+Create a repository hook.
+
+* Method: POST
+* URI: /repository/hook/`:name`
+
+Where:
+
+* `:name` is the name of the hook.
+
+    - Supported hook names:
+
+        * `post-receive`
+        * `pre-receive`
+        * `update`
+
+Example URL (http://gandalf-server omitted for clarity)::
+
+    $ curl -d '{"repositories": ["some-repo"], "content": "content of my update hook"}' localhost:8000/repository/hook/update
+
+You should see the following:
+
+.. highlight:: bash
+
+::
+
+    hook update successfully created for [some-repo]
