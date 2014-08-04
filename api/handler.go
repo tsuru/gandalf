@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 func accessParameters(body io.ReadCloser) (repositories, users []string, err error) {
@@ -197,6 +198,11 @@ func RenameRepository(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type repositoryHook struct {
+	Repositories []string
+	Content      string
+}
+
 func AddHook(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
 	if name != "post-receive" && name != "pre-receive" && name != "update" {
@@ -206,11 +212,31 @@ func AddHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	if err := hook.Add(name, r.Body); err != nil {
+	var params repositoryHook
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprint(w, "hook ", name, " successfully created\n")
+	repos := []string{}
+	if err := json.Unmarshal(body, &params); err != nil {
+		content := strings.NewReader(string(body))
+		if err := hook.Add(name, repos, content); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	content := strings.NewReader(params.Content)
+	repos = params.Repositories
+	if err := hook.Add(name, repos, content); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if len(repos) > 0 {
+		fmt.Fprint(w, "hook ", name, " successfully created for ", repos, "\n")
+	} else {
+		fmt.Fprint(w, "hook ", name, " successfully created\n")
+	}
 }
 
 func parseBody(body io.ReadCloser, result interface{}) error {
