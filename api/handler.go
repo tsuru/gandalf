@@ -453,84 +453,46 @@ func Commit(w http.ResponseWriter, r *http.Request) {
 	}
 	err := r.ParseMultipartForm(int64(maxMemoryValue()))
 	if err != nil {
-		err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	committer := repository.GitUser{
-		Name:  "committer",
-		Email: "committer@globo.com",
-		Date:  "",
+	form := r.MultipartForm
+	data := map[string]string{
+		"branch":          "",
+		"message":         "",
+		"author-name":     "",
+		"author-email":    "",
+		"committer-name":  "",
+		"committer-email": "",
 	}
-	// committer, err := multipart.GetCommitter(r.MultipartForm.File["zipfile"][0])
-	// if err != nil {
-	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-	author := repository.GitUser{
-		Name:  "author",
-		Email: "author@globo.com",
-		Date:  "",
+	for key, _ := range data {
+		data[key], err = multipartzip.ValueField(form, key)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
-	// author, err := multipart.GetAuthor(r.MultipartForm)
-	// if err != nil {
-	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-	message := "commit message"
-	// message, err := multipart.GetMessage(r.MultipartForm)
-	// if err != nil {
-	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-	branch := "master"
-	// branch, err := multipart.GetBranch(r.MultipartForm)
-	// if err != nil {
-	// 	err := fmt.Errorf("Error when trying to commit to repository %s (%s).", repo, err)
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-	cloneDir, _, err := repository.TempClone(repo)
-	// cloneDir, cleanUp, err := repository.TempClone(repo)
-	// if cleanUp != nil {
-	// 	defer cleanUp()
-	// }
+	commit := repository.GitCommit{
+		Branch:  data["branch"],
+		Message: data["message"],
+		Author: repository.GitUser{
+			Name:  data["author-name"],
+			Email: data["author-email"],
+		},
+		Committer: repository.GitUser{
+			Name:  data["committer-name"],
+			Email: data["committer-email"],
+		},
+	}
+	ref, err := repository.CommitZip(repo, r.MultipartForm.File["zipfile"][0], commit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = repository.SetCommitter(cloneDir, committer)
+	b, err := json.Marshal(ref)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = repository.Checkout(cloneDir, branch)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	err = multipartzip.ExtractZip(r.MultipartForm.File["zipfile"][0], cloneDir)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	err = repository.AddAll(cloneDir)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	err = repository.Commit(cloneDir, message, author)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	err = repository.Push(cloneDir, branch)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	fmt.Fprintf(w, "Commit successfully applied to: %s\n", cloneDir)
+	w.Write(b)
 }

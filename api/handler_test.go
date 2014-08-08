@@ -1288,9 +1288,89 @@ func (s *S) TestGetDiffWhenNoCommits(c *gocheck.C) {
 func (s *S) TestPostNewCommit(c *gocheck.C) {
 	url := "/repository/repo/commit/?:name=repo"
 	params := map[string]string{
-		"message":   "Repository scaffold",
-		"author":    "Doge Dog <doge@much.com>",
-		"committer": "Barking Doge <bark@much.com>",
+		"message":         "Repository scaffold",
+		"author-name":     "Doge Dog",
+		"author-email":    "doge@much.com",
+		"committer-name":  "Doge Dog",
+		"committer-email": "doge@much.com",
+		"branch":          "master",
+	}
+	var files = []struct {
+		Name, Body string
+	}{
+		{"doge.txt", "Much doge"},
+		{"much.txt", "Much mucho"},
+		{"WOW/WOW.WOW", "WOW\nWOW"},
+	}
+	buf, err := multipartzip.CreateZipBuffer(files)
+	c.Assert(err, gocheck.IsNil)
+	reader, writer := io.Pipe()
+	go multipartzip.StreamWriteMultipartForm(params, "zipfile", "scaffold.zip", "muchBOUNDARY", writer, buf)
+	mockRetriever := repository.MockContentRetriever{
+		Ref: repository.Ref{
+			Ref:       "some-random-ref",
+			Name:      "master",
+			CreatedAt: "Mon Jul 28 10:13:27 2014 -0300",
+			Committer: &repository.GitUser{
+				Name:  params["committer-name"],
+				Email: params["committer-email"],
+			},
+			Author: &repository.GitUser{
+				Name:  params["author-name"],
+				Email: params["author-email"],
+			},
+			Subject: params["message"],
+			Links: &repository.Links{
+				ZipArchive: repository.GetArchiveUrl("repo", "master", "zip"),
+				TarArchive: repository.GetArchiveUrl("repo", "master", "tar.gz"),
+			},
+		},
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("POST", url, reader)
+	request.Header.Set("Content-Type", "multipart/form-data;boundary=muchBOUNDARY")
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	Commit(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	var data map[string]interface{}
+	body, err := ioutil.ReadAll(recorder.Body)
+	err = json.Unmarshal(body, &data)
+	c.Assert(err, gocheck.IsNil)
+	expected := map[string]interface{}{
+		"ref":  "some-random-ref",
+		"name": "master",
+		"author": map[string]interface{}{
+			"name":  "Doge Dog",
+			"email": "doge@much.com",
+			"date":  "",
+		},
+		"committer": map[string]interface{}{
+			"name":  "Doge Dog",
+			"email": "doge@much.com",
+			"date":  "",
+		},
+		"_links": map[string]interface{}{
+			"tarArchive": "/repository/repo/archive?ref=master\u0026format=tar.gz",
+			"zipArchive": "/repository/repo/archive?ref=master\u0026format=zip",
+		},
+		"subject":   "Repository scaffold",
+		"createdAt": "Mon Jul 28 10:13:27 2014 -0300",
+	}
+	c.Assert(data, gocheck.DeepEquals, expected)
+}
+
+func (s *S) TestPostNewCommitWithoutBranch(c *gocheck.C) {
+	url := "/repository/repo/commit/?:name=repo"
+	params := map[string]string{
+		"message":         "Repository scaffold",
+		"author-name":     "Doge Dog",
+		"author-email":    "doge@much.com",
+		"committer-name":  "Doge Dog",
+		"committer-email": "doge@much.com",
 	}
 	var files = []struct {
 		Name, Body string
@@ -1312,6 +1392,38 @@ func (s *S) TestPostNewCommit(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
 	Commit(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	fmt.Println(recorder.Body)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+}
+
+func (s *S) TestPostNewCommitWithEmptyBranch(c *gocheck.C) {
+	url := "/repository/repo/commit/?:name=repo"
+	params := map[string]string{
+		"message":         "Repository scaffold",
+		"author-name":     "Doge Dog",
+		"author-email":    "doge@much.com",
+		"committer-name":  "Doge Dog",
+		"committer-email": "doge@much.com",
+		"branch":          "",
+	}
+	var files = []struct {
+		Name, Body string
+	}{
+		{"doge.txt", "Much doge"},
+		{"much.txt", "Much mucho"},
+		{"WOW/WOW.WOW", "WOW\nWOW"},
+	}
+	buf, err := multipartzip.CreateZipBuffer(files)
+	c.Assert(err, gocheck.IsNil)
+	reader, writer := io.Pipe()
+	go multipartzip.StreamWriteMultipartForm(params, "zipfile", "scaffold.zip", "muchBOUNDARY", writer, buf)
+	repository.Retriever = &repository.MockContentRetriever{}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("POST", url, reader)
+	request.Header.Set("Content-Type", "multipart/form-data;boundary=muchBOUNDARY")
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	Commit(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 }
