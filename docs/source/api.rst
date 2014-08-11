@@ -239,3 +239,61 @@ You should see the following:
 ::
 
     hook update successfully created for [some-repo]
+
+Commit
+------
+
+Commits a ZIP file into `repository`.
+
+* Method: POST
+* URI: /repository/`:name`/commit
+* Format: MULTIPART
+
+Where:
+
+* `:name` is the name of the repository.
+
+Expects a multipart form with the following fields:
+
+* `message`: The commit message
+* `author-name`: The name of the author
+* `author-email`: The email of the author
+* `committer-name`: The name of the committer
+* `committer-email`: The email of the committer
+* `branch`: The name of the branch this commit will bi applied to
+* `zipfile`: A ZIP with files and directory structure
+
+Example URL (http://gandalf-server omitted for clarity)::
+
+    # commit `scaffold.zip` into `myrepository`:
+    $ curl -XPOST /repository/myrepository/commit \
+        -F "message=Repository scaffold" \
+        -F "author-name=Author Name" \
+        -F "author-email=author@email.com" \
+        -F "committer-name=Committer Name" \
+        -F "committer-email=committer@email.com" \
+        -F "branch=master" \
+        -F "zipfile=@scaffold.zip"
+
+Example result::
+
+    {
+        ref: "6767b5de5943632e47cb6f8bf5b2147bc0be5cf8",
+        name: "master",
+        subject: "Repository scaffold",
+        createdAt: "Mon Jul 28 10:13:27 2014 -0300"
+        author: {
+            name: "Author Name",
+            email: "author@email.com",
+            date: "Mon Jul 28 10:13:27 2014 -0300""
+        },
+        committer: {
+            name: "Committer Name",
+            email: "committer@email.com",
+            date: "Tue Jul 29 13:43:57 2014 -0300"
+        },
+        _links: {
+            tarArchive: "/repository/myrepository/archive?ref=master&format=tar.gz",
+            zipArchive: "/repository/myrepository/archive?ref=master&format=zip",
+        }
+    }
