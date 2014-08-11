@@ -465,7 +465,7 @@ func Commit(w http.ResponseWriter, r *http.Request) {
 		"committer-name":  "",
 		"committer-email": "",
 	}
-	for key, _ := range data {
+	for key := range data {
 		data[key], err = multipartzip.ValueField(form, key)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
