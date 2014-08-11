@@ -13,7 +13,12 @@ import (
 	"path/filepath"
 )
 
-func CreateZipBuffer(files []struct{ Name, Body string }) (*bytes.Buffer, error) {
+type File struct {
+	Name string
+	Body string
+}
+
+func CreateZipBuffer(files []File) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
 	for _, file := range files {

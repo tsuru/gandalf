@@ -1635,9 +1635,7 @@ func (s *S) TestCommitZipIntegration(c *gocheck.C) {
 	c.Assert(errCreate, gocheck.IsNil)
 	boundary := "muchBOUNDARY"
 	params := map[string]string{}
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []multipartzip.File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"much/WOW.txt", "Much WOW"},

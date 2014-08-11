@@ -1303,9 +1303,7 @@ func (s *S) TestPostNewCommit(c *gocheck.C) {
 		"committer-email": "doge@much.com",
 		"branch":          "master",
 	}
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []multipartzip.File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"WOW/WOW.WOW", "WOW\nWOW"},
@@ -1380,9 +1378,7 @@ func (s *S) TestPostNewCommitWithoutBranch(c *gocheck.C) {
 		"committer-name":  "Doge Dog",
 		"committer-email": "doge@much.com",
 	}
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []multipartzip.File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"WOW/WOW.WOW", "WOW\nWOW"},
@@ -1413,9 +1409,7 @@ func (s *S) TestPostNewCommitWithEmptyBranch(c *gocheck.C) {
 		"committer-email": "doge@much.com",
 		"branch":          "",
 	}
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []multipartzip.File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"WOW/WOW.WOW", "WOW\nWOW"},
