@@ -67,14 +67,22 @@ func (s *S) authKeysContent(c *gocheck.C) string {
 
 func (s *S) TestMaxMemoryValueShouldComeFromGandalfConf(c *gocheck.C) {
 	config.Set("api:request:maxMemory", 1024)
+	oldMaxMemory := maxMemory
 	maxMemory = 0
-	c.Assert(maxMemoryValue(), gocheck.Equals, 1024)
+	defer func() {
+		maxMemory = oldMaxMemory
+	}()
+	c.Assert(maxMemoryValue(), gocheck.Equals, uint(1024))
 }
 
 func (s *S) TestMaxMemoryValueDontResetMaxMemory(c *gocheck.C) {
 	config.Set("api:request:maxMemory", 1024)
+	oldMaxMemory := maxMemory
 	maxMemory = 359
-	c.Assert(maxMemoryValue(), gocheck.Equals, 359)
+	defer func() {
+		maxMemory = oldMaxMemory
+	}()
+	c.Assert(maxMemoryValue(), gocheck.Equals, uint(359))
 }
 
 func (s *S) TestNewUser(c *gocheck.C) {
