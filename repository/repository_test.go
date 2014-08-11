@@ -50,6 +50,26 @@ func (s *S) TearDownSuite(c *gocheck.C) {
 	conn.User().Database.DropDatabase()
 }
 
+func (s *S) TestTempDirLocationShouldComeFromGandalfConf(c *gocheck.C) {
+	config.Set("repository:tempDir", "/home/gandalf/temp")
+	oldTempDir := tempDir
+	tempDir = ""
+	defer func() {
+		tempDir = oldTempDir
+	}()
+	c.Assert(tempDirLocation(), gocheck.Equals, "/home/gandalf/temp")
+}
+
+func (s *S) TestTempDirLocationDontResetTempDir(c *gocheck.C) {
+	config.Set("repository:tempDir", "/home/gandalf/temp")
+	oldTempDir := tempDir
+	tempDir = "/var/folders"
+	defer func() {
+		tempDir = oldTempDir
+	}()
+	c.Assert(tempDirLocation(), gocheck.Equals, "/var/folders")
+}
+
 func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
@@ -1615,9 +1635,7 @@ func (s *S) TestCommitZipIntegration(c *gocheck.C) {
 	c.Assert(errCreate, gocheck.IsNil)
 	boundary := "muchBOUNDARY"
 	params := map[string]string{}
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []multipartzip.File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"much/WOW.txt", "Much WOW"},

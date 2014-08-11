@@ -29,9 +29,7 @@ func (s *S) TestCopyZipFile(c *gocheck.C) {
 		os.RemoveAll(tempDir)
 	}()
 	c.Assert(err, gocheck.IsNil)
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"WOW/WOW.WOW1", "WOW\nWOW"},
@@ -55,9 +53,7 @@ func (s *S) TestCopyZipFile(c *gocheck.C) {
 func (s *S) TestExtractZip(c *gocheck.C) {
 	boundary := "muchBOUNDARY"
 	params := map[string]string{}
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"WOW/WOW.WOW1", "WOW\nWOW"},
@@ -137,9 +133,7 @@ func (s *S) TestValueFieldWhenFieldEmpty(c *gocheck.C) {
 func (s *S) TestFileField(c *gocheck.C) {
 	boundary := "muchBOUNDARY"
 	params := map[string]string{}
-	var files = []struct {
-		Name, Body string
-	}{
+	var files = []File{
 		{"doge.txt", "Much doge"},
 		{"much.txt", "Much mucho"},
 		{"WOW/WOW.WOW1", "WOW\nWOW"},

@@ -24,14 +24,14 @@ import (
 	"strings"
 )
 
-var maxMemory int
+var maxMemory uint
 
-func maxMemoryValue() int {
+func maxMemoryValue() uint {
 	if maxMemory > 0 {
 		return maxMemory
 	}
 	var err error
-	maxMemory, err = config.GetInt("api:request:maxMemory")
+	maxMemory, err = config.GetUint("api:request:maxMemory")
 	if err != nil {
 		panic("You should configure a api:request:maxMemory for gandalf.")
 	}

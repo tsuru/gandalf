@@ -23,6 +23,20 @@ import (
 	"strings"
 )
 
+var tempDir string
+
+func tempDirLocation() string {
+	if tempDir != "" {
+		return tempDir
+	}
+	var err error
+	tempDir, err = config.GetString("repository:tempDir")
+	if err != nil {
+		panic("You should configure a repository:tempDir for gandalf.")
+	}
+	return tempDir
+}
+
 // Repository represents a Git repository. A Git repository is a record in the
 // database and a directory in the filesystem (the bare repository).
 type Repository struct {
@@ -499,7 +513,7 @@ func (*GitContentRetriever) GetTags(repo string) ([]Ref, error) {
 	return tags, err
 }
 
-func (*GitContentRetriever) TempClone(repo string) (string, func(), error) {
+func (*GitContentRetriever) TempClone(repo string) (cloneDir string, cleanUp func(), err error) {
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return "", nil, fmt.Errorf("Error when trying to clone repository %s (%s).", repo, err)
@@ -509,19 +523,19 @@ func (*GitContentRetriever) TempClone(repo string) (string, func(), error) {
 	if err != nil || !repoExists {
 		return "", nil, fmt.Errorf("Error when trying to clone repository %s (Repository does not exist).", repo)
 	}
-	cloneDir, err := ioutil.TempDir("", "gandalf_clone")
+	cloneDir, err = ioutil.TempDir(tempDir, "gandalf_clone")
 	if err != nil {
 		return "", nil, fmt.Errorf("Error when trying to clone repository %s (Could not create temporary directory).", repo)
 	}
-	cleanup := func() {
+	cleanUp = func() {
 		os.RemoveAll(cloneDir)
 	}
 	cmd := exec.Command(gitPath, "clone", repoDir, cloneDir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return cloneDir, cleanup, fmt.Errorf("Error when trying to clone repository %s into %s (%s [%s]).", repo, cloneDir, err, out)
+		return cloneDir, cleanUp, fmt.Errorf("Error when trying to clone repository %s into %s (%s [%s]).", repo, cloneDir, err, out)
 	}
-	return cloneDir, cleanup, nil
+	return cloneDir, cleanUp, nil
 }
 
 func (*GitContentRetriever) SetCommitter(cloneDir string, committer GitUser) error {
