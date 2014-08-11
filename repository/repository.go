@@ -23,6 +23,20 @@ import (
 	"strings"
 )
 
+var tempDir string
+
+func tempDirLocation() string {
+	if tempDir != "" {
+		return tempDir
+	}
+	var err error
+	tempDir, err = config.GetString("repository:tempDir")
+	if err != nil {
+		panic("You should configure a repository:tempDir for gandalf.")
+	}
+	return tempDir
+}
+
 // Repository represents a Git repository. A Git repository is a record in the
 // database and a directory in the filesystem (the bare repository).
 type Repository struct {
@@ -509,7 +523,7 @@ func (*GitContentRetriever) TempClone(repo string) (cloneDir string, cleanUp fun
 	if err != nil || !repoExists {
 		return "", nil, fmt.Errorf("Error when trying to clone repository %s (Repository does not exist).", repo)
 	}
-	cloneDir, err = ioutil.TempDir("", "gandalf_clone")
+	cloneDir, err = ioutil.TempDir(tempDir, "gandalf_clone")
 	if err != nil {
 		return "", nil, fmt.Errorf("Error when trying to clone repository %s (Could not create temporary directory).", repo)
 	}
