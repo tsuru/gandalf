@@ -4,7 +4,7 @@ API Reference
 User creation
 -------------
 
-Creates an user in the database.
+Creates a user in the database.
 
 * Method: POST
 * URI: /user
@@ -13,12 +13,12 @@ Creates an user in the database.
 User removal
 ------------
 
-Removes an user from the database.
+Removes a user from the database.
 
 Key add
 -------
 
-Adds a key to an user in the database and writes it in authorized_keys file from the user running Gandalf.
+Adds a key to a user in the database and writes it in authorized_keys file from the user running Gandalf.
 
 Key removal
 -----------
@@ -43,12 +43,12 @@ Retrieves information about a repository.
 Access grant in repository
 --------------------------
 
-Grants an user read and write access into a repository.
+Grants a user read and write access into a repository.
 
 Access revoke in repository
 ---------------------------
 
-Revokes an user read and write access from a repository.
+Revokes a user read and write access from a repository.
 
 Get file contents
 -----------------
