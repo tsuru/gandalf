@@ -26,6 +26,7 @@ type MockContentRetriever struct {
 	OutputError    error
 	ClonePath      string
 	CleanUp        func()
+	History        GitHistory
 }
 
 func (r *MockContentRetriever) GetContents(repo, ref, path string) ([]byte, error) {
@@ -394,4 +395,14 @@ func (r *MockContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c
 		return nil, r.OutputError
 	}
 	return &r.Ref, nil
+}
+
+func (r *MockContentRetriever) GetLog(repo, hash string, total int) (*GitHistory, error) {
+	if r.LookPathError != nil {
+		return nil, r.LookPathError
+	}
+	if r.OutputError != nil {
+		return nil, r.OutputError
+	}
+	return &r.History, nil
 }

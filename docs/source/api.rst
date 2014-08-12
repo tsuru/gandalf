@@ -297,3 +297,46 @@ Example result::
             zipArchive: "/repository/myrepository/archive?ref=master&format=zip",
         }
     }
+
+Logs
+----
+
+Returns a list of all commits into `repository`.
+
+* Method: GET
+* URI: /repository/`:name`/log?ref=:ref&total=:total
+* Format: JSON
+
+Where:
+
+* `:name` is the name of the repository;
+* `:ref` is the repository ref (commit, tag or branch);
+* `:total` is the maximum number of items to retrieve
+
+Example URL (http://gandalf-server omitted for clarity)::
+
+    $ curl /repository/myrepository/logs?ref=HEAD&total=1
+
+Example result::
+
+    {
+        commits: [{
+            ref: "6767b5de5943632e47cb6f8bf5b2147bc0be5cf8",
+            subject: "much WOW",
+            createdAt: "Mon Jul 28 10:13:27 2014 -0300"
+            author: {
+                name: "Author name",
+                email: "author@email.com",
+                date: "Mon Jul 28 10:13:27 2014 -0300""
+            },
+            committer: {
+                name: "Committer name",
+                email: "committer@email.com",
+                date: "Tue Jul 29 13:43:57 2014 -0300"
+            },
+            parent: [
+                "a367b5de5943632e47cb6f8bf5b2147bc0be5cf8"
+            ]
+        }],
+        next: "1267b5de5943632e47cb6f8bf5b2147bc0be5cf123"
+    }

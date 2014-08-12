@@ -496,3 +496,32 @@ func Commit(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(b)
 }
+
+func GetLog(w http.ResponseWriter, r *http.Request) {
+	repo := r.URL.Query().Get(":name")
+	ref := r.URL.Query().Get("ref")
+	total, err := strconv.Atoi(r.URL.Query().Get("total"))
+	if err != nil {
+		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if repo == "" {
+		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (repository is required).", ref, repo)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	logs, err := repository.GetLog(repo, ref, total)
+	if err != nil {
+		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	b, err := json.Marshal(logs)
+	if err != nil {
+		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(b)
+}

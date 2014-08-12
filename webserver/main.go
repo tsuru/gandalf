@@ -53,6 +53,7 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 	router.Get("/repository/:name/tags", http.HandlerFunc(api.GetTags))
 	router.Get("/repository/:name/diff/commits", http.HandlerFunc(api.GetDiff))
 	router.Post("/repository/:name/commit", http.HandlerFunc(api.Commit))
+	router.Get("/repository/:name/logs", http.HandlerFunc(api.GetLog))
 	router.Get("/healthcheck/", http.HandlerFunc(api.HealthCheck))
 	router.Post("/hook/:name", http.HandlerFunc(api.AddHook))
 
