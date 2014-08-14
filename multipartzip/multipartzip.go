@@ -43,7 +43,7 @@ func CopyZipFile(f *zip.File, d, p string) error {
 	if p != "" {
 		dirname := path.Dir(p)
 		if dirname != "." {
-			err := os.MkdirAll(d+"/"+dirname, 0755)
+			err := os.MkdirAll(path.Join(d, dirname), 0755)
 			if err != nil {
 				return err
 			}
@@ -53,7 +53,7 @@ func CopyZipFile(f *zip.File, d, p string) error {
 		if err != nil {
 			return err
 		}
-		path := d + "/" + p
+		path := path.Join(d, p)
 		stat, err := os.Stat(path)
 		if err != nil || !stat.IsDir() {
 			file, err := fs.Filesystem().OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
