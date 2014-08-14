@@ -1182,7 +1182,7 @@ func (s *S) TestTempCloneIntegration(c *gocheck.C) {
 	c.Assert(errClone, gocheck.IsNil)
 	dstat, errStat := os.Stat(clone)
 	c.Assert(dstat.IsDir(), gocheck.Equals, true)
-	fstat, errStat := os.Stat(clone + "/" + file)
+	fstat, errStat := os.Stat(path.Join(clone, file))
 	c.Assert(fstat.IsDir(), gocheck.Equals, false)
 	c.Assert(errStat, gocheck.IsNil)
 }
@@ -1219,7 +1219,7 @@ func (s *S) TestTempCloneWhenGitError(c *gocheck.C) {
 	c.Assert(errClone.Error(), gocheck.Equals, expectedErr)
 	dstat, errStat := os.Stat(clone)
 	c.Assert(dstat.IsDir(), gocheck.Equals, true)
-	fstat, errStat := os.Stat(clone + "/" + file)
+	fstat, errStat := os.Stat(path.Join(clone, file))
 	c.Assert(fstat, gocheck.IsNil)
 	c.Assert(errStat, gocheck.NotNil)
 }
@@ -1429,7 +1429,7 @@ func (s *S) TestAddAllIntegration(c *gocheck.C) {
 		defer cloneCleanUp()
 	}
 	c.Assert(errClone, gocheck.IsNil)
-	errWrite := ioutil.WriteFile(clone+"/"+file, []byte(content+content), 0644)
+	errWrite := ioutil.WriteFile(path.Join(clone, file), []byte(content+content), 0644)
 	c.Assert(errWrite, gocheck.IsNil)
 	errWrite = ioutil.WriteFile(clone+"/WOWME", []byte(content+content), 0644)
 	c.Assert(errWrite, gocheck.IsNil)
@@ -1494,7 +1494,7 @@ func (s *S) TestCommitIntegration(c *gocheck.C) {
 		defer cloneCleanUp()
 	}
 	c.Assert(errClone, gocheck.IsNil)
-	errWrite := ioutil.WriteFile(clone+"/"+file, []byte(content+content), 0644)
+	errWrite := ioutil.WriteFile(path.Join(clone, file), []byte(content+content), 0644)
 	c.Assert(errWrite, gocheck.IsNil)
 	gitPath, err := exec.LookPath("git")
 	c.Assert(err, gocheck.IsNil)
@@ -1582,7 +1582,7 @@ func (s *S) TestPushIntegration(c *gocheck.C) {
 		defer cloneCleanUp()
 	}
 	c.Assert(errClone, gocheck.IsNil)
-	errWrite := ioutil.WriteFile(clone+"/"+file, []byte(content+content), 0644)
+	errWrite := ioutil.WriteFile(path.Join(clone, file), []byte(content+content), 0644)
 	c.Assert(errWrite, gocheck.IsNil)
 	errAddAll := AddAll(clone)
 	c.Assert(errAddAll, gocheck.IsNil)

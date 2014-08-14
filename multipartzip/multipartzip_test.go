@@ -12,6 +12,7 @@ import (
 	"launchpad.net/gocheck"
 	"mime/multipart"
 	"os"
+	"path"
 	"testing"
 )
 
@@ -44,7 +45,7 @@ func (s *S) TestCopyZipFile(c *gocheck.C) {
 	for _, f := range r.File {
 		err = CopyZipFile(f, tempDir, f.Name)
 		c.Assert(err, gocheck.IsNil)
-		fstat, errStat := os.Stat(tempDir + "/" + f.Name)
+		fstat, errStat := os.Stat(path.Join(tempDir, f.Name))
 		c.Assert(errStat, gocheck.IsNil)
 		c.Assert(fstat.IsDir(), gocheck.Equals, false)
 	}
@@ -76,7 +77,7 @@ func (s *S) TestExtractZip(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	ExtractZip(formfile, tempDir)
 	for _, file := range files {
-		body, err := ioutil.ReadFile(tempDir + "/" + file.Name)
+		body, err := ioutil.ReadFile(path.Join(tempDir, file.Name))
 		c.Assert(err, gocheck.IsNil)
 		c.Assert(string(body), gocheck.Equals, file.Body)
 	}
