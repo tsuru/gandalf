@@ -70,6 +70,16 @@ func (s *S) TestTempDirLocationDontResetTempDir(c *gocheck.C) {
 	c.Assert(tempDirLocation(), gocheck.Equals, "/var/folders")
 }
 
+func (s *S) TestTempDirLocationWhenNotInGandalfConf(c *gocheck.C) {
+	config.Unset("repository:tempDir")
+	oldTempDir := tempDir
+	tempDir = ""
+	defer func() {
+		tempDir = oldTempDir
+	}()
+	c.Assert(tempDirLocation(), gocheck.Equals, "")
+}
+
 func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)

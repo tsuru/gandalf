@@ -26,13 +26,8 @@ import (
 var tempDir string
 
 func tempDirLocation() string {
-	if tempDir != "" {
-		return tempDir
-	}
-	var err error
-	tempDir, err = config.GetString("repository:tempDir")
-	if err != nil {
-		panic("You should configure a repository:tempDir for gandalf.")
+	if tempDir == "" {
+		tempDir, _ = config.GetString("repository:tempDir")
 	}
 	return tempDir
 }
