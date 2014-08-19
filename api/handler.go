@@ -370,7 +370,7 @@ func GetTree(w http.ResponseWriter, r *http.Request) {
 	b, err := json.Marshal(tree)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Write(b)
@@ -392,7 +392,7 @@ func GetBranches(w http.ResponseWriter, r *http.Request) {
 	b, err := json.Marshal(branches)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Write(b)
@@ -415,7 +415,7 @@ func GetTags(w http.ResponseWriter, r *http.Request) {
 	b, err := json.Marshal(tags)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Write(b)
@@ -491,7 +491,7 @@ func Commit(w http.ResponseWriter, r *http.Request) {
 	}
 	b, err := json.Marshal(ref)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Write(b)
