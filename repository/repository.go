@@ -72,6 +72,20 @@ type Ref struct {
 	CreatedAt string   `json:"createdAt"`
 }
 
+type GitLog struct {
+	Ref       string   `json:"ref"`
+	Author    *GitUser `json:"author"`
+	Committer *GitUser `json:"committer"`
+	Subject   string   `json:"subject"`
+	CreatedAt string   `json:"createdAt"`
+	Parent    []string `json:"parent"`
+}
+
+type GitHistory struct {
+	Commits []GitLog `json:"commits"`
+	Next    string   `json:"next"`
+}
+
 // exists returns whether the given file or directory exists or not
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -308,6 +322,7 @@ type ContentRetriever interface {
 	Commit(cloneDir, message string, author GitUser) error
 	Push(cloneDir, branch string) error
 	CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error)
+	GetLog(repo, hash string, total int) (*GitHistory, error)
 }
 
 var Retriever ContentRetriever
@@ -680,6 +695,95 @@ func (*GitContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c Gi
 	return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not check branch: %s", repo, err)
 }
 
+func (*GitContentRetriever) GetLog(repo, hash string, total int) (*GitHistory, error) {
+	if total < 1 {
+		total = 1
+	}
+	totalPagination := total + 1
+	var last, ref, committerName, committerEmail, committerDate, authorName, authorEmail, authorDate, subject, parent string
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain the log of repository %s (%s).", repo, err)
+	}
+	cwd := barePath(repo)
+	repoExists, err := exists(cwd)
+	if err != nil || !repoExists {
+		return nil, fmt.Errorf("Error when trying to obtain the log of repository %s (Repository does not exist).", repo)
+	}
+	format := "%H%x09%an%x09%ae%x09%ad%x09%cn%x09%ce%x09%cd%x09%P%x09%s"
+	cmd := exec.Command(gitPath, "--no-pager", "log", fmt.Sprintf("-n %d", totalPagination), fmt.Sprintf("--format=%s", format), hash)
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("Error when trying to obtain the log of repository %s (%s).", repo, err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	objectCount := len(lines)
+	if len(lines) == 1 && len(lines[0]) == 0 {
+		objectCount = 0
+	}
+	if objectCount > total {
+		last = lines[objectCount-1]
+		lines = lines[0 : objectCount-1]
+		objectCount -= 1
+	}
+	history := GitHistory{}
+	commits := make([]GitLog, objectCount)
+	objectCount = 0
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		fields := strings.Split(line, "\t")
+		if len(fields) > 8 { // let there be commits with empty subject
+			ref = fields[0]
+			authorName = fields[1]
+			authorEmail = fields[2]
+			authorDate = fields[3]
+			committerName = fields[4]
+			committerEmail = fields[5]
+			committerDate = fields[6]
+			parent = fields[7]
+			subject = strings.Join(fields[8:], "\t") // let there be subjects with \t
+		} else {
+			return nil, fmt.Errorf("Error when trying to obtain the log of repository %s (Invalid git log output [%s]).", repo, out)
+		}
+		commit := GitLog{}
+		commit.Ref = ref
+		commit.Subject = subject
+		commit.CreatedAt = authorDate
+		commit.Committer = &GitUser{
+			Name:  committerName,
+			Email: committerEmail,
+			Date:  committerDate,
+		}
+		commit.Author = &GitUser{
+			Name:  authorName,
+			Email: authorEmail,
+			Date:  authorDate,
+		}
+		parents := strings.Split(parent, " ")
+		parentCount := len(parents)
+		aux := make([]string, parentCount)
+		parentCount = 0
+		for _, item := range parents {
+			aux[parentCount] = item
+			parentCount++
+		}
+		commit.Parent = aux
+		commits[objectCount] = commit
+		objectCount++
+	}
+	history.Commits = commits
+	if last != "" {
+		fields := strings.Split(last, "\t")
+		history.Next = fields[0]
+	} else {
+		history.Next = ""
+	}
+	return &history, nil
+}
+
 func retriever() ContentRetriever {
 	if Retriever == nil {
 		Retriever = &GitContentRetriever{}
@@ -745,4 +849,8 @@ func Push(cloneDir, branch string) error {
 
 func CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error) {
 	return retriever().CommitZip(repo, z, c)
+}
+
+func GetLog(repo, hash string, total int) (*GitHistory, error) {
+	return retriever().GetLog(repo, hash, total)
 }
