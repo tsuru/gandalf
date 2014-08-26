@@ -340,3 +340,34 @@ Example result::
         }],
         next: "1267b5de5943632e47cb6f8bf5b2147bc0be5cf123"
     }
+
+Namespaces
+----------
+
+Gandalf supports namespaces for repositories and must be informed in the name of the repository followed by a single slash and the actual name of the repository, i.e. `mynamespace/myrepository`. Examples of usage:
+
+* Creates a repository in a namespace:
+
+    * Method: POST
+    * URI: /repository
+    * Format: JSON
+
+    Example URL (http://gandalf-server omitted for clarity)::
+
+        $ curl -XPOST /repository \
+            -d '{"name": "mynamespace/myrepository", \
+                "users": ["myuser"]}'
+
+* Returns a list of all the branches of the specified `mynamespace/myrepository`.
+
+    * Method: GET
+    * URI: //repository/`:name`/branches
+    * Format: JSON
+
+    Where:
+
+    * `:name` is the name of the repository.
+
+    Example URL (http://gandalf-server omitted for clarity)::
+
+        $ curl /repository/mynamespace/myrepository/branches  # gets list of branches

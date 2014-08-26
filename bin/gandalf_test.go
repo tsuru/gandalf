@@ -142,12 +142,12 @@ func (s *S) TestRequestedRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhat
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, err := requestedRepository()
-	c.Assert(err, gocheck.ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something nasty$")
+	c.Assert(err, gocheck.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
 func (s *S) TestRequestedRepositoryShouldReturnErrorWhenThereIsNoCommandPassedToSSH_ORIGINAL_COMMAND(c *gocheck.C) {
 	_, err := requestedRepository()
-	c.Assert(err, gocheck.ErrorMatches, "^Cannot deduce repository name from command. You are probably trying to do something nasty$")
+	c.Assert(err, gocheck.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
 func (s *S) TestRequestedRepositoryShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *gocheck.C) {
@@ -163,48 +163,56 @@ func (s *S) TestRequestedRepositoryShouldReturnEmptyRepositoryStructOnError(c *g
 	c.Assert(repo.Name, gocheck.Equals, "")
 }
 
-func (s *S) TestRequestedRepositoryName(c *gocheck.C) {
+func (s *S) TestParseGitCommand(c *gocheck.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foobar.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
-	name, err := requestedRepositoryName()
+	_, name, err := parseGitCommand()
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(name, gocheck.Equals, "foobar")
 }
 
-func (s *S) TestRequestedRepositoryNameWithSlash(c *gocheck.C) {
+func (s *S) TestParseGitCommandWithSlash(c *gocheck.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/foobar.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
-	name, err := requestedRepositoryName()
+	_, name, err := parseGitCommand()
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(name, gocheck.Equals, "foobar")
 }
 
-func (s *S) TestrequestedRepositoryNameShouldReturnErrorWhenTheresNoMatch(c *gocheck.C) {
-	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack foobar")
+func (s *S) TestParseGitCommandShouldReturnErrorWhenTheresNoMatch(c *gocheck.C) {
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
-	name, err := requestedRepositoryName()
-	c.Assert(err, gocheck.ErrorMatches, "Cannot deduce repository name from command. You are probably trying to do something nasty")
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack foobar")
+	_, name, err := parseGitCommand()
+	c.Assert(err, gocheck.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
+	c.Assert(name, gocheck.Equals, "")
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack ../foobar")
+	_, name, err = parseGitCommand()
+	c.Assert(err, gocheck.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
+	c.Assert(name, gocheck.Equals, "")
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack /etc")
+	_, name, err = parseGitCommand()
+	c.Assert(err, gocheck.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
 	c.Assert(name, gocheck.Equals, "")
 }
 
-func (s *S) TestValidateCmdReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(c *gocheck.C) {
+func (s *S) TestParseGitCommandReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(c *gocheck.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
-	err := validateCmd()
+	_, _, err := parseGitCommand()
 	c.Assert(err, gocheck.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
-func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *gocheck.C) {
+func (s *S) TestParseGitCommandDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *gocheck.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'my-repo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
-	err := validateCmd()
+	_, _, err := parseGitCommand()
 	c.Assert(err, gocheck.IsNil)
 }
 
-func (s *S) TestValidateCmdDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommandWithDashInName(c *gocheck.C) {
+func (s *S) TestParseGitCommandDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommandWithDashInName(c *gocheck.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/my-repo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
-	err := validateCmd()
+	_, _, err := parseGitCommand()
 	c.Assert(err, gocheck.IsNil)
 }
 
@@ -267,6 +275,17 @@ func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositor
 	p, err := config.GetString("git:bare:location")
 	c.Assert(err, gocheck.IsNil)
 	expected := path.Join(p, "myproject.git")
+	c.Assert(cmd, gocheck.DeepEquals, []string{"git-receive-pack", expected})
+}
+
+func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositoryPathWithNamespace(c *gocheck.C) {
+	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'me/myproject.git'")
+	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
+	cmd, err := formatCommand()
+	c.Assert(err, gocheck.IsNil)
+	p, err := config.GetString("git:bare:location")
+	c.Assert(err, gocheck.IsNil)
+	expected := path.Join(p, "me/myproject.git")
 	c.Assert(cmd, gocheck.DeepEquals, []string{"git-receive-pack", expected})
 }
 
