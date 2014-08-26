@@ -331,7 +331,7 @@ type ContentRetriever interface {
 	Commit(cloneDir, message string, author GitUser) error
 	Push(cloneDir, branch string) error
 	CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error)
-	GetLog(repo, hash string, total int) (*GitHistory, error)
+	GetLog(repo, hash string, total int, path string) (*GitHistory, error)
 }
 
 var Retriever ContentRetriever
@@ -704,7 +704,7 @@ func (*GitContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c Gi
 	return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not check branch: %s", repo, err)
 }
 
-func (*GitContentRetriever) GetLog(repo, hash string, total int) (*GitHistory, error) {
+func (*GitContentRetriever) GetLog(repo, hash string, total int, path string) (*GitHistory, error) {
 	if total < 1 {
 		total = 1
 	}
@@ -720,7 +720,7 @@ func (*GitContentRetriever) GetLog(repo, hash string, total int) (*GitHistory, e
 		return nil, fmt.Errorf("Error when trying to obtain the log of repository %s (Repository does not exist).", repo)
 	}
 	format := "%H%x09%an%x09%ae%x09%ad%x09%cn%x09%ce%x09%cd%x09%P%x09%s"
-	cmd := exec.Command(gitPath, "--no-pager", "log", fmt.Sprintf("-n %d", totalPagination), fmt.Sprintf("--format=%s", format), hash)
+	cmd := exec.Command(gitPath, "--no-pager", "log", fmt.Sprintf("-n %d", totalPagination), fmt.Sprintf("--format=%s", format), hash, "--", path)
 	cmd.Dir = cwd
 	out, err := cmd.Output()
 	if err != nil {
@@ -860,6 +860,6 @@ func CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error) 
 	return retriever().CommitZip(repo, z, c)
 }
 
-func GetLog(repo, hash string, total int) (*GitHistory, error) {
-	return retriever().GetLog(repo, hash, total)
+func GetLog(repo, hash string, total int, path string) (*GitHistory, error) {
+	return retriever().GetLog(repo, hash, total, path)
 }

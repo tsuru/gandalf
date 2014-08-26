@@ -397,7 +397,7 @@ func (r *MockContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c
 	return &r.Ref, nil
 }
 
-func (r *MockContentRetriever) GetLog(repo, hash string, total int) (*GitHistory, error) {
+func (r *MockContentRetriever) GetLog(repo, hash string, total int, path string) (*GitHistory, error) {
 	if r.LookPathError != nil {
 		return nil, r.LookPathError
 	}
