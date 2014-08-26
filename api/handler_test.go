@@ -85,6 +85,36 @@ func (s *S) TestMaxMemoryValueDontResetMaxMemory(c *gocheck.C) {
 	c.Assert(maxMemoryValue(), gocheck.Equals, uint(359))
 }
 
+func (s *S) TestAccessParametersShouldReturnErrorWhenInvalidJSONInput(c *gocheck.C) {
+	b := bufferCloser{bytes.NewBufferString(``)}
+	_, _, err := accessParameters(b)
+	c.Assert(err, gocheck.ErrorMatches, `^Could not parse json: .+$`)
+	b = bufferCloser{bytes.NewBufferString(`{`)}
+	_, _, err = accessParameters(b)
+	c.Assert(err, gocheck.ErrorMatches, `^Could not parse json: .+$`)
+	b = bufferCloser{bytes.NewBufferString(`bang`)}
+	_, _, err = accessParameters(b)
+	c.Assert(err, gocheck.ErrorMatches, `^Could not parse json: .+$`)
+	b = bufferCloser{bytes.NewBufferString(` `)}
+	_, _, err = accessParameters(b)
+	c.Assert(err, gocheck.ErrorMatches, `^Could not parse json: .+$`)
+}
+
+func (s *S) TestAccessParametersShouldReturnErrorWhenNoUserListProvided(c *gocheck.C) {
+	b := bufferCloser{bytes.NewBufferString(`{"users": "oneuser"}`)}
+	_, _, err := accessParameters(b)
+	c.Assert(err, gocheck.ErrorMatches, `^Could not parse json: json: cannot unmarshal string into Go value of type \[\]string$`)
+	b = bufferCloser{bytes.NewBufferString(`{"repositories": ["barad-dur"]}`)}
+	_, _, err = accessParameters(b)
+	c.Assert(err, gocheck.ErrorMatches, `^It is need a user list$`)
+}
+
+func (s *S) TestAccessParametersShouldReturnErrorWhenNoRepositoryListProvided(c *gocheck.C) {
+	b := bufferCloser{bytes.NewBufferString(`{"users": ["nazgul"]}`)}
+	_, _, err := accessParameters(b)
+	c.Assert(err, gocheck.ErrorMatches, `^It is need a repository list$`)
+}
+
 func (s *S) TestNewUser(c *gocheck.C) {
 	b := strings.NewReader(fmt.Sprintf(`{"name": "brain", "keys": {"keyname": %q}}`, rawKey))
 	recorder, request := post("/user", b, c)
