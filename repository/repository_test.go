@@ -96,6 +96,82 @@ func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	c.Assert(r.IsPublic, gocheck.Equals, false)
 }
 
+func (s *S) TestNewIntegration(c *gocheck.C) {
+	configBare, err := config.GetString("git:bare:location")
+	c.Assert(err, gocheck.IsNil)
+	odlBare := bare
+	bare, err = ioutil.TempDir("", "gandalf_repository_test")
+	c.Assert(err, gocheck.IsNil)
+	config.Set("git:bare:location", bare)
+	c.Assert(err, gocheck.IsNil)
+	defer func() {
+		os.RemoveAll(bare)
+		config.Set("git:bare:location", configBare)
+		checkBare, err := config.GetString("git:bare:location")
+		c.Assert(err, gocheck.IsNil)
+		c.Assert(checkBare, gocheck.Equals, configBare)
+		bare = odlBare
+	}()
+	r, err := New("the-shire", []string{"bilbo"}, false)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().Remove(bson.M{"_id": "the-shire"})
+	barePath := barePath(r.Name)
+	c.Assert(barePath, gocheck.Equals, path.Join(bare, "the-shire.git"))
+	fstat, errStat := os.Stat(path.Join(barePath, "HEAD"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, false)
+	fstat, errStat = os.Stat(path.Join(barePath, "config"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, false)
+	fstat, errStat = os.Stat(path.Join(barePath, "objects"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, true)
+	fstat, errStat = os.Stat(path.Join(barePath, "refs"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, true)
+}
+
+func (s *S) TestNewIntegrationWithNamespace(c *gocheck.C) {
+	configBare, err := config.GetString("git:bare:location")
+	c.Assert(err, gocheck.IsNil)
+	odlBare := bare
+	bare, err = ioutil.TempDir("", "gandalf_repository_test")
+	c.Assert(err, gocheck.IsNil)
+	config.Set("git:bare:location", bare)
+	c.Assert(err, gocheck.IsNil)
+	defer func() {
+		os.RemoveAll(bare)
+		config.Set("git:bare:location", configBare)
+		checkBare, err := config.GetString("git:bare:location")
+		c.Assert(err, gocheck.IsNil)
+		c.Assert(checkBare, gocheck.Equals, configBare)
+		bare = odlBare
+	}()
+	r, err := New("saruman/two-towers", []string{"frodo"}, false)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().Remove(bson.M{"_id": "saruman/two-towers"})
+	barePath := barePath(r.Name)
+	c.Assert(barePath, gocheck.Equals, path.Join(bare, "saruman/two-towers.git"))
+	fstat, errStat := os.Stat(path.Join(barePath, "HEAD"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, false)
+	fstat, errStat = os.Stat(path.Join(barePath, "config"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, false)
+	fstat, errStat = os.Stat(path.Join(barePath, "objects"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, true)
+	fstat, errStat = os.Stat(path.Join(barePath, "refs"))
+	c.Assert(errStat, gocheck.IsNil)
+	c.Assert(fstat.IsDir(), gocheck.Equals, true)
+}
+
 func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
@@ -111,6 +187,37 @@ func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
 	c.Assert(r.Name, gocheck.Equals, "someRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, []string{"smeagol"})
 	c.Assert(r.IsPublic, gocheck.Equals, false)
+}
+
+func (s *S) TestNewShouldCreateNamesakeRepositories(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	u1 := struct {
+		Name string `bson:"_id"`
+	}{Name: "melkor"}
+	err = conn.User().Insert(&u1)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().RemoveId(u1.Name)
+	u2 := struct {
+		Name string `bson:"_id"`
+	}{Name: "morgoth"}
+	err = conn.User().Insert(&u2)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().RemoveId(u2.Name)
+	r1, err := New("melkor/angband", []string{"nazgul"}, false)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": "melkor/angband"})
+	c.Assert(r1.Name, gocheck.Equals, "melkor/angband")
+	c.Assert(r1.IsPublic, gocheck.Equals, false)
+	r2, err := New("morgoth/angband", []string{"nazgul"}, false)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": "morgoth/angband"})
+	c.Assert(r2.Name, gocheck.Equals, "morgoth/angband")
+	c.Assert(r2.IsPublic, gocheck.Equals, false)
 }
 
 func (s *S) TestNewPublicRepository(c *gocheck.C) {
@@ -171,6 +278,36 @@ func (s *S) TestRepositoryShoudBeInvalidWIthoutAnyUsers(c *gocheck.C) {
 	got := err.Error()
 	expected := "Validation Error: repository should have at least one user"
 	c.Assert(got, gocheck.Equals, expected)
+}
+
+func (s *S) TestRepositoryShoudBeInvalidWIthInvalidNamespace(c *gocheck.C) {
+	r := Repository{Name: "../repositories", Users: []string{}}
+	v, err := r.isValid()
+	c.Assert(v, gocheck.Equals, false)
+	c.Assert(err, gocheck.NotNil)
+	expected := "^Validation Error: repository name is not valid$"
+	c.Assert(err, gocheck.ErrorMatches, expected)
+	r = Repository{Name: "../../repositories", Users: []string{}}
+	v, err = r.isValid()
+	c.Assert(v, gocheck.Equals, false)
+	c.Assert(err, gocheck.NotNil)
+	expected = "^Validation Error: repository name is not valid$"
+	c.Assert(err, gocheck.ErrorMatches, expected)
+}
+
+func (s *S) TestRepositoryAcceptsValidNamespaces(c *gocheck.C) {
+	r := Repository{Name: "_.mallory/foo_bar", Users: []string{"alice", "bob"}}
+	v, err := r.isValid()
+	c.Assert(v, gocheck.Equals, true)
+	c.Assert(err, gocheck.IsNil)
+	r = Repository{Name: "_git/foo_bar", Users: []string{"alice", "bob"}}
+	v, err = r.isValid()
+	c.Assert(v, gocheck.Equals, true)
+	c.Assert(err, gocheck.IsNil)
+	r = Repository{Name: "time-home_rc2+beta@globoi.com/foo_bar", Users: []string{"you", "me"}}
+	v, err = r.isValid()
+	c.Assert(v, gocheck.Equals, true)
+	c.Assert(err, gocheck.IsNil)
 }
 
 func (s *S) TestRepositoryShouldBeValidWithoutIsPublic(c *gocheck.C) {
@@ -280,6 +417,13 @@ func (s *S) TestReadOnlyURL(c *gocheck.C) {
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("git://%s/lol.git", host))
 }
 
+func (s *S) TestReadOnlyURLWithNamespace(c *gocheck.C) {
+	host, err := config.GetString("host")
+	c.Assert(err, gocheck.IsNil)
+	remote := (&Repository{Name: "olo/lol"}).ReadOnlyURL()
+	c.Assert(remote, gocheck.Equals, fmt.Sprintf("git://%s/olo/lol.git", host))
+}
+
 func (s *S) TestReadOnlyURLWithSSH(c *gocheck.C) {
 	config.Set("git:ssh:use", true)
 	defer config.Unset("git:ssh:use")
@@ -316,6 +460,18 @@ func (s *S) TestReadWriteURLWithSSH(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	remote := (&Repository{Name: "lol"}).ReadWriteURL()
 	expected := fmt.Sprintf("ssh://%s@%s/lol.git", uid, host)
+	c.Assert(remote, gocheck.Equals, expected)
+}
+
+func (s *S) TestReadWriteURLWithNamespaceAndSSH(c *gocheck.C) {
+	config.Set("git:ssh:use", true)
+	defer config.Unset("git:ssh:use")
+	uid, err := config.GetString("uid")
+	c.Assert(err, gocheck.IsNil)
+	host, err := config.GetString("host")
+	c.Assert(err, gocheck.IsNil)
+	remote := (&Repository{Name: "olo/lol"}).ReadWriteURL()
+	expected := fmt.Sprintf("ssh://%s@%s/olo/lol.git", uid, host)
 	c.Assert(remote, gocheck.Equals, expected)
 }
 

@@ -19,6 +19,7 @@ import (
 	"mime/multipart"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -253,15 +254,23 @@ func (r *Repository) ReadOnlyURL() string {
 }
 
 // Validates a repository
-// A valid repository must have:
+// A valid repository MUST have:
 //  - a name without any special chars only alphanumeric and underlines are allowed.
 //  - at least one user in users array
+// A valid repository MAY have one namespace since:
+//  - one slash (/) separates namespace and name
+//  - a namespace does not start with period
+//  - a namespace contains ony alphanumeric, underlines @, - and period
 func (r *Repository) isValid() (bool, error) {
-	m, e := regexp.Match(`^[\w-]+$`, []byte(r.Name))
+	m, e := regexp.Match(`^([\w-+@][\w-+.@]*/)?[\w-]+$`, []byte(r.Name))
 	if e != nil {
 		panic(e)
 	}
 	if !m {
+		return false, errors.New("Validation Error: repository name is not valid")
+	}
+	absPath, err := filepath.Abs(barePath(r.Name))
+	if err != nil || !strings.HasPrefix(absPath, bare) {
 		return false, errors.New("Validation Error: repository name is not valid")
 	}
 	if len(r.Users) == 0 {
