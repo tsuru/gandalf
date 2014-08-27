@@ -83,6 +83,14 @@ func requestedRepository() (repository.Repository, error) {
 // The following format is allowed:
 // (git-[a-z-]+) '/?([\w-+@][\w-+.@]*/)?([\w-]+)\.git'
 func parseGitCommand() (command, name string, err error) {
+	// The following regex validates the git command, which is in the form:
+	//    <git-command> [<namespace>/]<name>
+	// with namespace being optional. If a namespace is used, we validate it
+	// according to the following:
+	//  - a namespace is optional
+	//  - a namespace contains only alphanumerics, underlines, @´s, -´s, +´s
+	//    and periods but it does not start with a period (.)
+	//  - one and exactly one slash (/) separates namespace and the actual name
 	r, err := regexp.Compile(`(git-[a-z-]+) '/?([\w-+@][\w-+.@]*/)?([\w-]+)\.git'`)
 	if err != nil {
 		panic(err)
