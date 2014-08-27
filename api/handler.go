@@ -500,6 +500,7 @@ func Commit(w http.ResponseWriter, r *http.Request) {
 func GetLog(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
+	path := r.URL.Query().Get("path")
 	total, err := strconv.Atoi(r.URL.Query().Get("total"))
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
@@ -511,7 +512,7 @@ func GetLog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	logs, err := repository.GetLog(repo, ref, total)
+	logs, err := repository.GetLog(repo, ref, total, path)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

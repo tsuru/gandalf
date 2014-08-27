@@ -1501,3 +1501,46 @@ func (s *S) TestLog(c *gocheck.C) {
 	c.Assert(obj.Commits, gocheck.HasLen, 1)
 	c.Assert(obj.Commits[0], gocheck.DeepEquals, commits[0])
 }
+
+func (s *S) TestLogWithPath(c *gocheck.C) {
+	url := "/repository/repo/logs?&:name=repo&ref=HEAD&total=1&path=README.txt"
+	objects := repository.GitHistory{}
+	parent := make([]string, 2)
+	parent[0] = "a367b5de5943632e47cb6f8bf5b2147bc0be5cf8"
+	parent[1] = "b267b5de5943632e47cb6f8bf5b2147bc0be5cf2"
+	commits := make([]repository.GitLog, 1)
+	commits[0] = repository.GitLog{
+		Ref:       "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9",
+		CreatedAt: "Mon Jul 28 10:13:27 2014 -0300",
+		Committer: &repository.GitUser{
+			Name:  "doge",
+			Email: "much@email.com",
+		},
+		Author: &repository.GitUser{
+			Name:  "doge",
+			Email: "much@email.com",
+		},
+		Subject: "will bark",
+		Parent:  parent,
+	}
+	objects.Commits = commits
+	objects.Next = "b231c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9"
+	mockRetriever := repository.MockContentRetriever{
+		History: objects,
+	}
+	repository.Retriever = &mockRetriever
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	GetLog(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	var obj repository.GitHistory
+	json.Unmarshal(recorder.Body.Bytes(), &obj)
+	c.Assert(obj.Next, gocheck.Equals, "b231c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9")
+	c.Assert(obj.Commits, gocheck.HasLen, 1)
+	c.Assert(obj.Commits[0], gocheck.DeepEquals, commits[0])
+}
+

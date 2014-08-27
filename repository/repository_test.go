@@ -1901,7 +1901,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	errCreateCommit = CreateCommit(bare, repo, file, object2)
 	c.Assert(errCreateCommit, gocheck.IsNil)
-	history, err := GetLog(repo, "HEAD", 1)
+	history, err := GetLog(repo, "HEAD", 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1915,7 +1915,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
 	// Next
-	history, err = GetLog(repo, history.Next, 1)
+	history, err = GetLog(repo, history.Next, 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1929,7 +1929,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
 	// Next
-	history, err = GetLog(repo, history.Next, 1)
+	history, err = GetLog(repo, history.Next, 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1942,4 +1942,37 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Commits[0].Subject, gocheck.Equals, "will\tbark")
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Equals, "")
+}
+
+func (s *S) TestGetLogWithFile(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "will\tbark"
+	object1 := "You should read this README"
+	object2 := "Seriously, read this file!"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateCommit := CreateCommit(bare, repo, file, object1)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	errCreateCommit = CreateCommit(bare, repo, file, object2)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	history, err := GetLog(repo, "master", 1, "README")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(history.Commits, gocheck.HasLen, 1)
+	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[0].Parent, gocheck.HasLen, 1)
+	c.Assert(history.Commits[0].Parent[0], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[0].Committer.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[0].Committer.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[0].Author.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[0].Author.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[0].Subject, gocheck.Equals, "Seriously, read this file!")
+	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
+	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
 }
