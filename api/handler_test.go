@@ -364,6 +364,33 @@ func (s *S) TestGrantAccessUpdatesReposDocument(c *gocheck.C) {
 	}
 }
 
+func (s *S) TestGrantAccessReadOnlyUpdatesReposDocument(c *gocheck.C) {
+	u, err := user.New("pippin", map[string]string{})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "pippin"})
+	c.Assert(err, gocheck.IsNil)
+	r := repository.Repository{Name: "onerepo"}
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
+	r2 := repository.Repository{Name: "otherepo"}
+	err = conn.Repository().Insert(&r2)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
+	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["%s"]}`, r.Name, r2.Name, u.Name))
+	rec, req := post("/repository/grant?readonly=yes", b, c)
+	s.router.ServeHTTP(rec, req)
+	var repos []repository.Repository
+	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(rec.Code, gocheck.Equals, 200)
+	for _, repo := range repos {
+		c.Assert(repo.ReadOnlyUsers, gocheck.DeepEquals, []string{u.Name})
+	}
+}
+
 func (s *S) TestRevokeAccessUpdatesReposDocument(c *gocheck.C) {
 	r := repository.Repository{Name: "onerepo", Users: []string{"Umi", "Luke"}}
 	conn, err := db.Conn()
@@ -384,6 +411,29 @@ func (s *S) TestRevokeAccessUpdatesReposDocument(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	for _, repo := range repos {
 		c.Assert(repo.Users, gocheck.DeepEquals, []string{"Luke"})
+	}
+}
+
+func (s *S) TestRevokeAccessReadOnlyUpdatesReposDocument(c *gocheck.C) {
+	r := repository.Repository{Name: "onerepo", ReadOnlyUsers: []string{"Umi", "Luke"}}
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
+	r2 := repository.Repository{Name: "otherepo", ReadOnlyUsers: []string{"Umi", "Luke"}}
+	err = conn.Repository().Insert(&r2)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
+	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["Umi"]}`, r.Name, r2.Name))
+	rec, req := del("/repository/revoke", b, c)
+	s.router.ServeHTTP(rec, req)
+	var repos []repository.Repository
+	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	c.Assert(err, gocheck.IsNil)
+	for _, repo := range repos {
+		c.Assert(repo.ReadOnlyUsers, gocheck.DeepEquals, []string{"Luke"})
 	}
 }
 
@@ -785,7 +835,7 @@ func (s *S) TestRemoveUserShouldRemoveFromDB(c *gocheck.C) {
 }
 
 func (s *S) TestRemoveRepository(c *gocheck.C) {
-	r, err := repository.New("myRepo", []string{"pippin"}, true)
+	r, err := repository.New("myRepo", []string{"pippin"}, []string{""}, true)
 	c.Assert(err, gocheck.IsNil)
 	url := fmt.Sprintf("/repository/%s", r.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
@@ -799,7 +849,7 @@ func (s *S) TestRemoveRepository(c *gocheck.C) {
 }
 
 func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *gocheck.C) {
-	r, err := repository.New("myRepo", []string{"pippin"}, true)
+	r, err := repository.New("myRepo", []string{"pippin"}, []string{""}, true)
 	c.Assert(err, gocheck.IsNil)
 	url := fmt.Sprintf("/repository/%s", r.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
@@ -834,7 +884,7 @@ func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExists(c *goc
 }
 
 func (s *S) TestRenameRepository(c *gocheck.C) {
-	r, err := repository.New("raising", []string{"guardian@what.com"}, true)
+	r, err := repository.New("raising", []string{"guardian@what.com"}, []string{""}, true)
 	c.Assert(err, gocheck.IsNil)
 	url := fmt.Sprintf("/repository/%s", r.Name)
 	body := strings.NewReader(`{"name":"freedom"}`)
@@ -852,7 +902,7 @@ func (s *S) TestRenameRepository(c *gocheck.C) {
 }
 
 func (s *S) TestRenameRepositoryWithNamespace(c *gocheck.C) {
-	r, err := repository.New("lift/raising", []string{"guardian@what.com"}, true)
+	r, err := repository.New("lift/raising", []string{"guardian@what.com"}, []string{}, true)
 	c.Assert(err, gocheck.IsNil)
 	url := fmt.Sprintf("/repository/%s/", r.Name)
 	body := strings.NewReader(`{"name":"norestraint/freedom"}`)

@@ -43,6 +43,11 @@ func hasReadPermission(u *user.User, r *repository.Repository) (allowed bool) {
 			return true
 		}
 	}
+	for _, userName := range r.ReadOnlyUsers {
+		if u.Name == userName {
+			return true
+		}
+	}
 	return false
 }
 

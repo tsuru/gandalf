@@ -37,9 +37,10 @@ func tempDirLocation() string {
 // Repository represents a Git repository. A Git repository is a record in the
 // database and a directory in the filesystem (the bare repository).
 type Repository struct {
-	Name     string `bson:"_id"`
-	Users    []string
-	IsPublic bool
+	Name          string `bson:"_id"`
+	Users         []string
+	ReadOnlyUsers []string
+	IsPublic      bool
 }
 
 type Links struct {
@@ -114,9 +115,9 @@ func (r *Repository) MarshalJSON() ([]byte, error) {
 // New creates a representation of a git repository. It creates a Git
 // repository using the "bare-dir" setting and saves repository's meta data in
 // the database.
-func New(name string, users []string, isPublic bool) (*Repository, error) {
+func New(name string, users, readOnlyUsers []string, isPublic bool) (*Repository, error) {
 	log.Debugf("Creating repository %q", name)
-	r := &Repository{Name: name, Users: users, IsPublic: isPublic}
+	r := &Repository{Name: name, Users: users, ReadOnlyUsers: readOnlyUsers, IsPublic: isPublic}
 	if v, err := r.isValid(); !v {
 		log.Errorf("repository.New: Invalid repository %q: %s", name, err)
 		return r, err
@@ -284,27 +285,35 @@ func (r *Repository) isValid() (bool, error) {
 	return true, nil
 }
 
-// GrantAccess gives write permission for users in all specified repositories.
+// GrantAccess gives full or read-only permission for users in all specified repositories.
 // If any of the repositories/users do not exists, GrantAccess just skips it.
-func GrantAccess(rNames, uNames []string) error {
+func GrantAccess(rNames, uNames []string, readOnly bool) error {
 	conn, err := db.Conn()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
+	if readOnly {
+		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"readonlyusers": bson.M{"$each": uNames}}})
+	} else {
+		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
+	}
 	return err
 }
 
 // RevokeAccess revokes write permission from users in all specified
 // repositories.
-func RevokeAccess(rNames, uNames []string) error {
+func RevokeAccess(rNames, uNames []string, readOnly bool) error {
 	conn, err := db.Conn()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
+	if readOnly {
+		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"readonlyusers": uNames}})
+	} else {
+		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
+	}
 	return err
 }
 

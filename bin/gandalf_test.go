@@ -81,6 +81,18 @@ func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsPublic(c *goche
 	c.Assert(allowed, gocheck.Equals, true)
 }
 
+func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToRead(c *gocheck.C) {
+	user, err := user.New("readonlyuser", map[string]string{})
+	c.Check(err, gocheck.IsNil)
+	repo := &repository.Repository{
+		Name:          "otherapp",
+		Users:         []string{s.user.Name},
+		ReadOnlyUsers: []string{user.Name},
+	}
+	allowed := hasReadPermission(user, repo)
+	c.Assert(allowed, gocheck.Equals, true)
+}
+
 func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToReadAndWrite(c *gocheck.C) {
 	allowed := hasReadPermission(s.user, s.repo)
 	c.Assert(allowed, gocheck.Equals, true)
