@@ -1543,4 +1543,3 @@ func (s *S) TestLogWithPath(c *gocheck.C) {
 	c.Assert(obj.Commits, gocheck.HasLen, 1)
 	c.Assert(obj.Commits[0], gocheck.DeepEquals, commits[0])
 }
-
