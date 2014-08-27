@@ -7,6 +7,7 @@ package api
 import (
 	"testing"
 
+	"github.com/gorilla/pat"
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
@@ -22,6 +23,7 @@ func Test(t *testing.T) { gocheck.TestingT(t) }
 type S struct {
 	tmpdir string
 	rfs    *testingfs.RecordingFs
+	router *pat.Router
 }
 
 var _ = gocheck.Suite(&S{})
@@ -33,6 +35,7 @@ func (s *S) SetUpSuite(c *gocheck.C) {
 	config.Set("database:name", "gandalf_api_tests")
 	s.tmpdir, err = commandmocker.Add("git", "")
 	c.Assert(err, gocheck.IsNil)
+	s.router = SetupRouter()
 }
 
 func (s *S) SetUpTest(c *gocheck.C) {
