@@ -5,6 +5,8 @@
 package api
 
 import (
+	"testing"
+
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
@@ -13,7 +15,6 @@ import (
 	testingfs "github.com/tsuru/tsuru/fs/testing"
 	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
-	"testing"
 )
 
 func Test(t *testing.T) { gocheck.TestingT(t) }

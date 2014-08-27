@@ -8,12 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/tsuru/config"
-	"github.com/tsuru/gandalf/db"
-	"github.com/tsuru/gandalf/hook"
-	"github.com/tsuru/gandalf/multipartzip"
-	"github.com/tsuru/gandalf/repository"
-	"github.com/tsuru/gandalf/user"
 	"io"
 	"io/ioutil"
 	"mime"
@@ -22,6 +16,13 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/tsuru/config"
+	"github.com/tsuru/gandalf/db"
+	"github.com/tsuru/gandalf/hook"
+	"github.com/tsuru/gandalf/multipartzip"
+	"github.com/tsuru/gandalf/repository"
+	"github.com/tsuru/gandalf/user"
 )
 
 var maxMemory uint

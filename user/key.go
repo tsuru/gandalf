@@ -6,15 +6,9 @@ package user
 
 import (
 	"bufio"
-	"code.google.com/p/go.crypto/ssh"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/tsuru/config"
-	"github.com/tsuru/gandalf/db"
-	"github.com/tsuru/gandalf/fs"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"io"
 	"os"
 	"os/user"
@@ -22,6 +16,13 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"code.google.com/p/go.crypto/ssh"
+	"github.com/tsuru/config"
+	"github.com/tsuru/gandalf/db"
+	"github.com/tsuru/gandalf/fs"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var (

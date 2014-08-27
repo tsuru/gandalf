@@ -5,9 +5,10 @@
 package fs
 
 import (
+	"testing"
+
 	tsurufs "github.com/tsuru/tsuru/fs"
 	"launchpad.net/gocheck"
-	"testing"
 )
 
 func Test(t *testing.T) { gocheck.TestingT(t) }

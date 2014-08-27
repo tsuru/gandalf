@@ -5,17 +5,18 @@
 package user
 
 import (
+	"io/ioutil"
+	"os"
+	"path"
+	"testing"
+
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/repository"
 	fstesting "github.com/tsuru/tsuru/fs/testing"
 	"gopkg.in/mgo.v2/bson"
-	"io/ioutil"
 	"launchpad.net/gocheck"
-	"os"
-	"path"
-	"testing"
 )
 
 func Test(t *testing.T) { gocheck.TestingT(t) }

@@ -5,11 +5,12 @@
 package hook
 
 import (
-	"github.com/tsuru/config"
-	"github.com/tsuru/gandalf/fs"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/tsuru/config"
+	"github.com/tsuru/gandalf/fs"
 )
 
 func createHookFile(path string, body io.Reader) error {

@@ -9,15 +9,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/tsuru/config"
-	"github.com/tsuru/gandalf/db"
-	"gopkg.in/mgo.v2/bson"
 	"io"
 	"io/ioutil"
-	"launchpad.net/gocheck"
 	"os"
 	"path"
 	"time"
+
+	"github.com/tsuru/config"
+	"github.com/tsuru/gandalf/db"
+	"gopkg.in/mgo.v2/bson"
+	"launchpad.net/gocheck"
 )
 
 type shortWriter struct{}

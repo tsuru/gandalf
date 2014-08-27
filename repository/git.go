@@ -6,10 +6,11 @@ package repository
 
 import (
 	"fmt"
-	"github.com/tsuru/config"
-	"github.com/tsuru/gandalf/fs"
 	"os/exec"
 	"path"
+
+	"github.com/tsuru/config"
+	"github.com/tsuru/gandalf/fs"
 )
 
 var bare string

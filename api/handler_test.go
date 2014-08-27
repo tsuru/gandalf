@@ -8,6 +8,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path"
+	"strings"
+
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
@@ -15,14 +23,7 @@ import (
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"io/ioutil"
 	"launchpad.net/gocheck"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path"
-	"strings"
 )
 
 type bufferCloser struct {

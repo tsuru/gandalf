@@ -7,11 +7,12 @@ package multipartzip
 import (
 	"archive/zip"
 	"fmt"
-	"github.com/tsuru/gandalf/fs"
 	"io"
 	"mime/multipart"
 	"os"
 	"path"
+
+	"github.com/tsuru/gandalf/fs"
 )
 
 func ValueField(f *multipart.Form, n string) (string, error) {

@@ -7,11 +7,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/bmizerany/pat"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/api"
-	"log"
-	"net/http"
 )
 
 const version = "0.5.0"

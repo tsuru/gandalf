@@ -8,11 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/tsuru/config"
-	"github.com/tsuru/gandalf/db"
-	"github.com/tsuru/gandalf/repository"
-	"github.com/tsuru/gandalf/user"
-	"gopkg.in/mgo.v2/bson"
 	"io"
 	"log/syslog"
 	"os"
@@ -20,6 +15,12 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/tsuru/config"
+	"github.com/tsuru/gandalf/db"
+	"github.com/tsuru/gandalf/repository"
+	"github.com/tsuru/gandalf/user"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var log *syslog.Writer

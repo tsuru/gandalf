@@ -8,13 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/tsuru/config"
-	"github.com/tsuru/gandalf/db"
-	"github.com/tsuru/gandalf/fs"
-	"github.com/tsuru/gandalf/multipartzip"
-	"github.com/tsuru/tsuru/log"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"mime/multipart"
 	"os"
@@ -22,6 +15,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/tsuru/config"
+	"github.com/tsuru/gandalf/db"
+	"github.com/tsuru/gandalf/fs"
+	"github.com/tsuru/gandalf/multipartzip"
+	"github.com/tsuru/tsuru/log"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var tempDir string

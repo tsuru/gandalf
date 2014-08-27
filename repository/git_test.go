@@ -6,12 +6,13 @@ package repository
 
 import (
 	"fmt"
+	"path"
+
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/tsuru/fs/testing"
 	"launchpad.net/gocheck"
-	"path"
 )
 
 func (s *S) TestBareLocationValuShouldComeFromGandalfConf(c *gocheck.C) {

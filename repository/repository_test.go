@@ -10,6 +10,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
+	"os"
+	"os/exec"
+	"path"
+	"strings"
+	"testing"
+
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
@@ -17,15 +26,7 @@ import (
 	"github.com/tsuru/gandalf/multipartzip"
 	fstesting "github.com/tsuru/tsuru/fs/testing"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"io/ioutil"
 	"launchpad.net/gocheck"
-	"mime/multipart"
-	"os"
-	"os/exec"
-	"path"
-	"strings"
-	"testing"
 )
 
 func Test(t *testing.T) { gocheck.TestingT(t) }

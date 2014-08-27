@@ -5,16 +5,17 @@
 package hook
 
 import (
+	"io/ioutil"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	testingfs "github.com/tsuru/tsuru/fs/testing"
-	"io/ioutil"
 	"launchpad.net/gocheck"
-	"os"
-	"strings"
-	"testing"
 )
 
 func Test(t *testing.T) { gocheck.TestingT(t) }

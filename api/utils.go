@@ -6,6 +6,7 @@ package api
 
 import (
 	"fmt"
+
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/user"
 	"gopkg.in/mgo.v2/bson"

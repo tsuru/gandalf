@@ -9,11 +9,12 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"launchpad.net/gocheck"
 	"mime/multipart"
 	"os"
 	"path"
 	"testing"
+
+	"launchpad.net/gocheck"
 )
 
 func Test(t *testing.T) { gocheck.TestingT(t) }

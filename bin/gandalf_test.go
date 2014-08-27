@@ -6,6 +6,11 @@ package main
 
 import (
 	"bytes"
+	"log/syslog"
+	"os"
+	"path"
+	"testing"
+
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
@@ -13,10 +18,6 @@ import (
 	"github.com/tsuru/gandalf/user"
 	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
-	"log/syslog"
-	"os"
-	"path"
-	"testing"
 )
 
 func Test(t *testing.T) { gocheck.TestingT(t) }
