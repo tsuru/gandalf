@@ -201,6 +201,30 @@ func (s *S) TestGetRepository(c *gocheck.C) {
 	c.Assert(data, gocheck.DeepEquals, expected)
 }
 
+func (s *S) TestGetRepositoryWithNamespace(c *gocheck.C) {
+	r := repository.Repository{Name: "onenamespace/onerepo"}
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
+	recorder, request := get("/repository/onenamespace/onerepo", nil, c)
+	s.router.ServeHTTP(recorder, request)
+	body, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, gocheck.IsNil)
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	c.Assert(err, gocheck.IsNil)
+	expected := map[string]interface{}{
+		"name":    r.Name,
+		"public":  r.IsPublic,
+		"ssh_url": r.ReadWriteURL(),
+		"git_url": r.ReadOnlyURL(),
+	}
+	c.Assert(data, gocheck.DeepEquals, expected)
+}
+
 func (s *S) TestGetRepositoryDoesNotExist(c *gocheck.C) {
 	recorder, request := get("/repository/doesnotexists", nil, c)
 	s.router.ServeHTTP(recorder, request)
@@ -823,6 +847,24 @@ func (s *S) TestRenameRepository(c *gocheck.C) {
 	c.Assert(err, gocheck.NotNil)
 	r.Name = "freedom"
 	repo, err := repository.Get("freedom")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(repo, gocheck.DeepEquals, *r)
+}
+
+func (s *S) TestRenameRepositoryWithNamespace(c *gocheck.C) {
+	r, err := repository.New("lift/raising", []string{"guardian@what.com"}, true)
+	c.Assert(err, gocheck.IsNil)
+	url := fmt.Sprintf("/repository/%s/", r.Name)
+	body := strings.NewReader(`{"name":"norestraint/freedom"}`)
+	request, err := http.NewRequest("PUT", url, body)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	_, err = repository.Get("raising")
+	c.Assert(err, gocheck.NotNil)
+	r.Name = "norestraint/freedom"
+	repo, err := repository.Get("norestraint/freedom")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(repo, gocheck.DeepEquals, *r)
 }
