@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/pat"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/hook"
@@ -53,6 +54,32 @@ func accessParameters(body io.ReadCloser) (repositories, users []string, err err
 		return []string{}, []string{}, errors.New("It is need a repository list")
 	}
 	return repositories, users, nil
+}
+
+func SetupRouter() *pat.Router {
+	router := pat.New()
+	router.Post("/user/{name}/key", http.HandlerFunc(AddKey))
+	router.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(RemoveKey))
+	router.Get("/user/{name}/keys", http.HandlerFunc(ListKeys))
+	router.Post("/user", http.HandlerFunc(NewUser))
+	router.Delete("/user/{name}", http.HandlerFunc(RemoveUser))
+	router.Post("/repository/grant", http.HandlerFunc(GrantAccess))
+	router.Post("/repository", http.HandlerFunc(NewRepository))
+	router.Delete("/repository/revoke", http.HandlerFunc(RevokeAccess))
+	router.Delete("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(RemoveRepository))
+	router.Get("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(GetRepository))
+	router.Put("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(RenameRepository))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/archive", http.HandlerFunc(GetArchive))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/contents", http.HandlerFunc(GetFileContents))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/tree", http.HandlerFunc(GetTree))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/branches", http.HandlerFunc(GetBranches))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/tags", http.HandlerFunc(GetTags))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/diff/commits", http.HandlerFunc(GetDiff))
+	router.Post("/repository/{name:[^/]*/?[^/]+}/commit", http.HandlerFunc(Commit))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/logs", http.HandlerFunc(GetLog))
+	router.Get("/healthcheck", http.HandlerFunc(HealthCheck))
+	router.Post("/hook/{name}", http.HandlerFunc(AddHook))
+	return router
 }
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {

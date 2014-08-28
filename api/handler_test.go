@@ -119,7 +119,7 @@ func (s *S) TestAccessParametersShouldReturnErrorWhenNoRepositoryListProvided(c 
 func (s *S) TestNewUser(c *gocheck.C) {
 	b := strings.NewReader(fmt.Sprintf(`{"name": "brain", "keys": {"keyname": %q}}`, rawKey))
 	recorder, request := post("/user", b, c)
-	NewUser(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -134,7 +134,7 @@ func (s *S) TestNewUser(c *gocheck.C) {
 func (s *S) TestNewUserShouldSaveInDB(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "brain", "keys": {"content": "some id_rsa.pub key.. use your imagination!", "name": "somekey"}}`)
 	recorder, request := post("/user", b, c)
-	NewUser(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -149,7 +149,7 @@ func (s *S) TestNewUserShouldSaveInDB(c *gocheck.C) {
 func (s *S) TestNewUserShouldRepassParseBodyErrors(c *gocheck.C) {
 	b := strings.NewReader("{]9afe}")
 	recorder, request := post("/user", b, c)
-	NewUser(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	body := readBody(recorder.Body, c)
 	expected := "Got error while parsing body: Could not parse json: invalid character ']' looking for beginning of object key string"
 	got := strings.Replace(body, "\n", "", -1)
@@ -159,7 +159,7 @@ func (s *S) TestNewUserShouldRepassParseBodyErrors(c *gocheck.C) {
 func (s *S) TestNewUserShouldRequireUserName(c *gocheck.C) {
 	b := strings.NewReader(`{"name": ""}`)
 	recorder, request := post("/user", b, c)
-	NewUser(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	body := readBody(recorder.Body, c)
 	expected := "Got error while creating user: Validation Error: user name is not valid"
 	got := strings.Replace(body, "\n", "", -1)
@@ -169,7 +169,7 @@ func (s *S) TestNewUserShouldRequireUserName(c *gocheck.C) {
 func (s *S) TestNewUserWihoutKeys(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "brain"}`)
 	recorder, request := post("/user", b, c)
-	NewUser(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -185,8 +185,32 @@ func (s *S) TestGetRepository(c *gocheck.C) {
 	err = conn.Repository().Insert(&r)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
-	recorder, request := get("/repository/onerepo?:name=onerepo", nil, c)
-	GetRepository(recorder, request)
+	recorder, request := get("/repository/onerepo", nil, c)
+	s.router.ServeHTTP(recorder, request)
+	body, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, gocheck.IsNil)
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	c.Assert(err, gocheck.IsNil)
+	expected := map[string]interface{}{
+		"name":    r.Name,
+		"public":  r.IsPublic,
+		"ssh_url": r.ReadWriteURL(),
+		"git_url": r.ReadOnlyURL(),
+	}
+	c.Assert(data, gocheck.DeepEquals, expected)
+}
+
+func (s *S) TestGetRepositoryWithNamespace(c *gocheck.C) {
+	r := repository.Repository{Name: "onenamespace/onerepo"}
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
+	recorder, request := get("/repository/onenamespace/onerepo", nil, c)
+	s.router.ServeHTTP(recorder, request)
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, gocheck.IsNil)
 	var data map[string]interface{}
@@ -202,8 +226,8 @@ func (s *S) TestGetRepository(c *gocheck.C) {
 }
 
 func (s *S) TestGetRepositoryDoesNotExist(c *gocheck.C) {
-	recorder, request := get("/repository/doesnotexists?:name=doesnotexists", nil, c)
-	GetRepository(recorder, request)
+	recorder, request := get("/repository/doesnotexists", nil, c)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 500)
 }
 
@@ -214,7 +238,7 @@ func (s *S) TestNewRepository(c *gocheck.C) {
 	defer conn.Repository().Remove(bson.M{"_id": "some_repository"})
 	b := strings.NewReader(`{"name": "some_repository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, c)
-	NewRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Repository \"some_repository\" successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -223,7 +247,7 @@ func (s *S) TestNewRepository(c *gocheck.C) {
 func (s *S) TestNewRepositoryShouldSaveInDB(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
 	recorder, request := post("/repository", b, c)
-	NewRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -237,7 +261,7 @@ func (s *S) TestNewRepositoryShouldSaveInDB(c *gocheck.C) {
 func (s *S) TestNewRepositoryShouldSaveUserIdInRepository(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2", "brain"]}`)
 	recorder, request := post("/repository", b, c)
-	NewRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -252,7 +276,7 @@ func (s *S) TestNewRepositoryShouldSaveUserIdInRepository(c *gocheck.C) {
 func (s *S) TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(c *gocheck.C) {
 	b := strings.NewReader(`{"name": "myRepository"}`)
 	recorder, request := post("/repository", b, c)
-	NewRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 400)
 	body := readBody(recorder.Body, c)
 	expected := "Validation Error: repository should have at least one user"
@@ -263,7 +287,7 @@ func (s *S) TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(c *gocheck.C) {
 func (s *S) TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(c *gocheck.C) {
 	b := strings.NewReader("{}")
 	recorder, request := post("/repository", b, c)
-	NewRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 400)
 	body := readBody(recorder.Body, c)
 	expected := "Validation Error: repository name is not valid"
@@ -309,7 +333,7 @@ func (s *S) TestParseBodyShouldReturnErrorWhenResultParamIsNotAPointer(c *gochec
 func (s *S) TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(c *gocheck.C) {
 	b := strings.NewReader("")
 	recorder, request := post("/repository", b, c)
-	NewRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 400)
 }
 
@@ -329,8 +353,8 @@ func (s *S) TestGrantAccessUpdatesReposDocument(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
 	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["%s"]}`, r.Name, r2.Name, u.Name))
-	rec, req := del("/repository/grant", b, c)
-	GrantAccess(rec, req)
+	rec, req := post("/repository/grant", b, c)
+	s.router.ServeHTTP(rec, req)
 	var repos []repository.Repository
 	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
 	c.Assert(err, gocheck.IsNil)
@@ -354,7 +378,7 @@ func (s *S) TestRevokeAccessUpdatesReposDocument(c *gocheck.C) {
 	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
 	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["Umi"]}`, r.Name, r2.Name))
 	rec, req := del("/repository/revoke", b, c)
-	RevokeAccess(rec, req)
+	s.router.ServeHTTP(rec, req)
 	var repos []repository.Repository
 	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
 	c.Assert(err, gocheck.IsNil)
@@ -368,8 +392,8 @@ func (s *S) TestAddKey(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(usr.Name)
 	b := strings.NewReader(fmt.Sprintf(`{"keyname": %q}`, rawKey))
-	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", usr.Name, usr.Name), b, c)
-	AddKey(recorder, request)
+	recorder, request := post(fmt.Sprintf("/user/%s/key", usr.Name), b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Key(s) successfully created"
 	c.Assert(got, gocheck.Equals, expected)
@@ -386,8 +410,8 @@ func (s *S) TestAddKey(c *gocheck.C) {
 
 func (s *S) TestAddPostReceiveHookRepository(c *gocheck.C) {
 	b := strings.NewReader(`{"repositories": ["some-repo"], "content": "some content"}`)
-	recorder, request := post("repository/hook/post-receive?:name=post-receive", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/post-receive", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook post-receive successfully created for [some-repo]\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -401,8 +425,8 @@ func (s *S) TestAddPostReceiveHookRepository(c *gocheck.C) {
 
 func (s *S) TestAddPreReceiveHookRepository(c *gocheck.C) {
 	b := strings.NewReader(`{"repositories": ["some-repo"], "content": "some content"}`)
-	recorder, request := post("repository/hook/pre-receive?:name=pre-receive", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/pre-receive", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook pre-receive successfully created for [some-repo]\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -416,8 +440,8 @@ func (s *S) TestAddPreReceiveHookRepository(c *gocheck.C) {
 
 func (s *S) TestAddUpdateReceiveHookRepository(c *gocheck.C) {
 	b := strings.NewReader(`{"repositories": ["some-repo"], "content": "some content"}`)
-	recorder, request := post("repository/hook/update?:name=update", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/update", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook update successfully created for [some-repo]\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -431,8 +455,8 @@ func (s *S) TestAddUpdateReceiveHookRepository(c *gocheck.C) {
 
 func (s *S) TestAddInvalidHookRepository(c *gocheck.C) {
 	b := strings.NewReader(`{"repositories": ["some-repo"], "content": "some content"}`)
-	recorder, request := post("repository/hook/invalid-hook?:name=invalid-hook", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/invalid-hook", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Unsupported hook, valid options are: post-receive, pre-receive or update\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -441,8 +465,8 @@ func (s *S) TestAddInvalidHookRepository(c *gocheck.C) {
 
 func (s *S) TestAddPostReceiveHook(c *gocheck.C) {
 	b := strings.NewReader(`{"content": "some content"}`)
-	recorder, request := post("/hook/post-receive?:name=post-receive", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/post-receive", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook post-receive successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -456,8 +480,8 @@ func (s *S) TestAddPostReceiveHook(c *gocheck.C) {
 
 func (s *S) TestAddPreReceiveHook(c *gocheck.C) {
 	b := strings.NewReader(`{"content": "some content"}`)
-	recorder, request := post("/hook/pre-receive?:name=pre-receive", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/pre-receive", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook pre-receive successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -471,8 +495,8 @@ func (s *S) TestAddPreReceiveHook(c *gocheck.C) {
 
 func (s *S) TestAddUpdateHook(c *gocheck.C) {
 	b := strings.NewReader(`{"content": "some content"}`)
-	recorder, request := post("/hook/update?:name=update", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/update", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook update successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -486,8 +510,8 @@ func (s *S) TestAddUpdateHook(c *gocheck.C) {
 
 func (s *S) TestAddInvalidHook(c *gocheck.C) {
 	b := strings.NewReader(`{"content": "some content"}`)
-	recorder, request := post("/hook/invalid-hook?:name=invalid-hook", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/invalid-hook", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Unsupported hook, valid options are: post-receive, pre-receive or update\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -496,8 +520,8 @@ func (s *S) TestAddInvalidHook(c *gocheck.C) {
 
 func (s *S) TestAddPostReceiveOldFormatHook(c *gocheck.C) {
 	b := strings.NewReader("some content")
-	recorder, request := post("/hook/post-receive?:name=post-receive", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/post-receive", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook post-receive successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -511,8 +535,8 @@ func (s *S) TestAddPostReceiveOldFormatHook(c *gocheck.C) {
 
 func (s *S) TestAddPreReceiveOldFormatHook(c *gocheck.C) {
 	b := strings.NewReader("some content")
-	recorder, request := post("/hook/pre-receive?:name=pre-receive", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/pre-receive", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook pre-receive successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -526,8 +550,8 @@ func (s *S) TestAddPreReceiveOldFormatHook(c *gocheck.C) {
 
 func (s *S) TestAddUpdateOldFormatHook(c *gocheck.C) {
 	b := strings.NewReader("some content")
-	recorder, request := post("/hook/update?:name=update", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/update", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "hook update successfully created\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -541,8 +565,8 @@ func (s *S) TestAddUpdateOldFormatHook(c *gocheck.C) {
 
 func (s *S) TestAddInvalidOldFormatHook(c *gocheck.C) {
 	b := strings.NewReader("some content")
-	recorder, request := post("/hook/invalid-hook?:name=invalid-hook", b, c)
-	AddHook(recorder, request)
+	recorder, request := post("/hook/invalid-hook", b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Unsupported hook, valid options are: post-receive, pre-receive or update\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -551,8 +575,8 @@ func (s *S) TestAddInvalidOldFormatHook(c *gocheck.C) {
 
 func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExists(c *gocheck.C) {
 	b := strings.NewReader(`{"key": "a public key"}`)
-	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
-	AddKey(recorder, request)
+	recorder, request := post("/user/Frodo/key", b, c)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 404)
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, gocheck.IsNil)
@@ -564,8 +588,8 @@ func (s *S) TestAddKeyShouldReturnProperStatusCodeWhenKeyAlreadyExists(c *gochec
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(usr.Name)
 	b := strings.NewReader(fmt.Sprintf(`{"keyname": %q}`, rawKey))
-	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", usr.Name, usr.Name), b, c)
-	AddKey(recorder, request)
+	recorder, request := post(fmt.Sprintf("/user/%s/key", usr.Name), b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Key already exists.\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -580,8 +604,8 @@ func (s *S) TestAddKeyShouldNotAcceptRepeatedKeysForDifferentUsers(c *gocheck.C)
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(usr2.Name)
 	b := strings.NewReader(fmt.Sprintf(`{"keyname": %q}`, rawKey))
-	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", usr2.Name, usr2.Name), b, c)
-	AddKey(recorder, request)
+	recorder, request := post(fmt.Sprintf("/user/%s/key", usr2.Name), b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Key already exists.\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -597,8 +621,8 @@ func (s *S) TestAddKeyInvalidKey(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer conn.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{"keyname":"invalid-rsa"}`)
-	recorder, request := post(fmt.Sprintf("/user/%s/key?:name=%s", u.Name, u.Name), b, c)
-	AddKey(recorder, request)
+	recorder, request := post(fmt.Sprintf("/user/%s/key", u.Name), b, c)
+	s.router.ServeHTTP(recorder, request)
 	got := readBody(recorder.Body, c)
 	expected := "Invalid key\n"
 	c.Assert(got, gocheck.Equals, expected)
@@ -614,8 +638,8 @@ func (s *S) TestAddKeyShouldRequireKey(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer conn.User().Remove(bson.M{"_id": "Frodo"})
 	b := strings.NewReader(`{}`)
-	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
-	AddKey(recorder, request)
+	recorder, request := post("/user/Frodo/key", b, c)
+	s.router.ServeHTTP(recorder, request)
 	body := readBody(recorder.Body, c)
 	expected := "A key is needed"
 	got := strings.Replace(body, "\n", "", -1)
@@ -631,8 +655,8 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeysFile(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer conn.User().RemoveId("Frodo")
 	b := strings.NewReader(fmt.Sprintf(`{"key": "%s"}`, rawKey))
-	recorder, request := post("/user/Frodo/key?:name=Frodo", b, c)
-	AddKey(recorder, request)
+	recorder, request := post("/user/Frodo/key", b, c)
+	s.router.ServeHTTP(recorder, request)
 	defer conn.Key().Remove(bson.M{"name": "key", "username": u.Name})
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	content := s.authKeysContent(c)
@@ -643,9 +667,9 @@ func (s *S) TestRemoveKeyGivesExpectedSuccessResponse(c *gocheck.C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": rawKey})
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(u.Name)
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
+	url := "/user/Gandalf/key/keyname"
 	recorder, request := del(url, nil, c)
-	RemoveKey(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	b := readBody(recorder.Body, c)
 	c.Assert(b, gocheck.Equals, `Key "keyname" successfully removed`)
@@ -655,9 +679,9 @@ func (s *S) TestRemoveKeyRemovesKeyFromDatabase(c *gocheck.C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": rawKey})
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(u.Name)
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
+	url := "/user/Gandalf/key/keyname"
 	recorder, request := del(url, nil, c)
-	RemoveKey(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -670,17 +694,17 @@ func (s *S) TestRemoveKeyShouldRemoveKeyFromAuthorizedKeysFile(c *gocheck.C) {
 	u, err := user.New("Gandalf", map[string]string{"keyname": rawKey})
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(u.Name)
-	url := "/user/Gandalf/key/keyname?:keyname=keyname&:name=Gandalf"
+	url := "/user/Gandalf/key/keyname"
 	recorder, request := del(url, nil, c)
-	RemoveKey(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	content := s.authKeysContent(c)
 	c.Assert(content, gocheck.Equals, "")
 }
 
 func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *gocheck.C) {
-	url := "/user/idiocracy/key/keyname?:keyname=keyname&:name=idiocracy"
+	url := "/user/idiocracy/key/keyname"
 	recorder, request := del(url, nil, c)
-	RemoveKey(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	b := readBody(recorder.Body, c)
 	c.Assert(b, gocheck.Equals, "User not found\n")
 }
@@ -690,11 +714,11 @@ func (s *S) TestListKeysGivesExpectedSuccessResponse(c *gocheck.C) {
 	u, err := user.New("Gandalf", keys)
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(u.Name)
-	url := "/user/Gandalf/keys?:name=Gandalf"
+	url := "/user/Gandalf/keys"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	ListKeys(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, gocheck.IsNil)
@@ -708,22 +732,22 @@ func (s *S) TestListKeysWithoutKeysGivesEmptyJSON(c *gocheck.C) {
 	u, err := user.New("Gandalf", map[string]string{})
 	c.Assert(err, gocheck.IsNil)
 	defer user.Remove(u.Name)
-	url := "/user/Gandalf/keys?:name=Gandalf"
+	url := "/user/Gandalf/keys"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	ListKeys(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	b := readBody(recorder.Body, c)
 	c.Assert(b, gocheck.Equals, "{}")
 }
 
 func (s *S) TestListKeysWithInvalidUserReturnsNotFound(c *gocheck.C) {
-	url := "/user/no-Gandalf/keys?:name=no-Gandalf"
+	url := "/user/no-Gandalf/keys"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	ListKeys(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 404)
 	b := readBody(recorder.Body, c)
 	c.Assert(b, gocheck.Equals, "User not found\n")
@@ -732,11 +756,11 @@ func (s *S) TestListKeysWithInvalidUserReturnsNotFound(c *gocheck.C) {
 func (s *S) TestRemoveUser(c *gocheck.C) {
 	u, err := user.New("username", map[string]string{})
 	c.Assert(err, gocheck.IsNil)
-	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
+	url := fmt.Sprintf("/user/%s", u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RemoveUser(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	b, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, gocheck.IsNil)
@@ -746,11 +770,11 @@ func (s *S) TestRemoveUser(c *gocheck.C) {
 func (s *S) TestRemoveUserShouldRemoveFromDB(c *gocheck.C) {
 	u, err := user.New("anuser", map[string]string{})
 	c.Assert(err, gocheck.IsNil)
-	url := fmt.Sprintf("/user/%s/?:name=%s", u.Name, u.Name)
+	url := fmt.Sprintf("/user/%s", u.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RemoveUser(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -763,11 +787,11 @@ func (s *S) TestRemoveUserShouldRemoveFromDB(c *gocheck.C) {
 func (s *S) TestRemoveRepository(c *gocheck.C) {
 	r, err := repository.New("myRepo", []string{"pippin"}, true)
 	c.Assert(err, gocheck.IsNil)
-	url := fmt.Sprintf("repository/%s/?:name=%s", r.Name, r.Name)
+	url := fmt.Sprintf("/repository/%s", r.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RemoveRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	b, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, gocheck.IsNil)
@@ -777,11 +801,11 @@ func (s *S) TestRemoveRepository(c *gocheck.C) {
 func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *gocheck.C) {
 	r, err := repository.New("myRepo", []string{"pippin"}, true)
 	c.Assert(err, gocheck.IsNil)
-	url := fmt.Sprintf("repository/%s/?:name=%s", r.Name, r.Name)
+	url := fmt.Sprintf("/repository/%s", r.Name)
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RemoveRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -790,20 +814,20 @@ func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *gocheck.C) {
 }
 
 func (s *S) TestRemoveRepositoryShouldReturn400OnFailure(c *gocheck.C) {
-	url := fmt.Sprintf("repository/%s/?:name=%s", "foo", "foo")
+	url := "/repository/foo"
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RemoveRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 400)
 }
 
 func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExists(c *gocheck.C) {
-	url := fmt.Sprintf("repository/%s/?:name=%s", "foo", "foo")
+	url := "/repository/foo"
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RemoveRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	b, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(string(b), gocheck.Equals, "Could not remove repository: not found\n")
@@ -812,12 +836,12 @@ func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExists(c *goc
 func (s *S) TestRenameRepository(c *gocheck.C) {
 	r, err := repository.New("raising", []string{"guardian@what.com"}, true)
 	c.Assert(err, gocheck.IsNil)
-	url := fmt.Sprintf("/repository/%s/?:name=%s", r.Name, r.Name)
+	url := fmt.Sprintf("/repository/%s", r.Name)
 	body := strings.NewReader(`{"name":"freedom"}`)
 	request, err := http.NewRequest("PUT", url, body)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RenameRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	_, err = repository.Get("raising")
 	c.Assert(err, gocheck.NotNil)
@@ -827,23 +851,41 @@ func (s *S) TestRenameRepository(c *gocheck.C) {
 	c.Assert(repo, gocheck.DeepEquals, *r)
 }
 
+func (s *S) TestRenameRepositoryWithNamespace(c *gocheck.C) {
+	r, err := repository.New("lift/raising", []string{"guardian@what.com"}, true)
+	c.Assert(err, gocheck.IsNil)
+	url := fmt.Sprintf("/repository/%s/", r.Name)
+	body := strings.NewReader(`{"name":"norestraint/freedom"}`)
+	request, err := http.NewRequest("PUT", url, body)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	_, err = repository.Get("raising")
+	c.Assert(err, gocheck.NotNil)
+	r.Name = "norestraint/freedom"
+	repo, err := repository.Get("norestraint/freedom")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(repo, gocheck.DeepEquals, *r)
+}
+
 func (s *S) TestRenameRepositoryInvalidJSON(c *gocheck.C) {
-	url := "/repository/foo/?:name=foo"
+	url := "/repository/foo"
 	body := strings.NewReader(`{"name""`)
 	request, err := http.NewRequest("PUT", url, body)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RenameRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 }
 
 func (s *S) TestRenameRepositoryNotfound(c *gocheck.C) {
-	url := "/repository/foo/?:name=foo"
+	url := "/repository/foo"
 	body := strings.NewReader(`{"name":"freedom"}`)
 	request, err := http.NewRequest("PUT", url, body)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	RenameRepository(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
 }
 
@@ -852,7 +894,7 @@ func (s *S) TestHealthcheck(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	HealthCheck(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "WORKING")
 }
