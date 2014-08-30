@@ -950,7 +950,7 @@ func (s *S) TestHealthcheck(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContents(c *gocheck.C) {
-	url := "/repository/repo/contents?:name=repo&path=README.txt"
+	url := "/repository/repo/contents?path=README.txt"
 	expected := "result"
 	repository.Retriever = &repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -961,7 +961,7 @@ func (s *S) TestGetFileContents(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetFileContents(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "text/plain; charset=utf-8")
@@ -969,7 +969,7 @@ func (s *S) TestGetFileContents(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentsWithoutExtension(c *gocheck.C) {
-	url := "/repository/repo/contents?:name=repo&path=README"
+	url := "/repository/repo/contents?path=README"
 	expected := "result"
 	repository.Retriever = &repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -980,7 +980,7 @@ func (s *S) TestGetFileContentsWithoutExtension(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetFileContents(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "text/plain; charset=utf-8")
@@ -988,7 +988,7 @@ func (s *S) TestGetFileContentsWithoutExtension(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentsWithRef(c *gocheck.C) {
-	url := "/repository/repo/contents?:name=repo&path=README.txt&ref=other"
+	url := "/repository/repo/contents?path=README.txt&ref=other"
 	expected := "result"
 	mockRetriever := repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -1000,7 +1000,7 @@ func (s *S) TestGetFileContentsWithRef(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetFileContents(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "text/plain; charset=utf-8")
@@ -1009,7 +1009,7 @@ func (s *S) TestGetFileContentsWithRef(c *gocheck.C) {
 }
 
 func (s *S) TestGetFileContentsWhenCommandFails(c *gocheck.C) {
-	url := "/repository/repo/contents?:name=repo&path=README.txt&ref=other"
+	url := "/repository/repo/contents?path=README.txt&ref=other"
 	outputError := fmt.Errorf("command error")
 	repository.Retriever = &repository.MockContentRetriever{
 		OutputError: outputError,
@@ -1020,57 +1020,46 @@ func (s *S) TestGetFileContentsWhenCommandFails(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetFileContents(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "command error\n")
 }
 
-func (s *S) TestGetFileContentsWhenNoRepository(c *gocheck.C) {
-	url := "/repository//contents?:name=&path=README.txt&ref=other"
+func (s *S) TestGetFileContentsWhenNoPath(c *gocheck.C) {
+	url := "/repository/repo/contents?&ref=other"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetFileContents(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	expected := "Error when trying to obtain file README.txt on ref other of repository  (repository and path are required).\n"
+	expected := "Error when trying to obtain an uknown file on ref other of repository repo (path is required).\n"
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 }
 
 func (s *S) TestGetArchiveWhenNoRef(c *gocheck.C) {
-	url := "/repository/repo/archive?:name=repo&ref=&format=zip"
+	url := "/repository/repo/archive?ref=&format=zip"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetArchive(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	expected := "Error when trying to obtain archive for ref '' (format: zip) of repository 'repo' (repository, ref and format are required).\n"
-	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
-}
-
-func (s *S) TestGetArchiveWhenNoRepo(c *gocheck.C) {
-	url := "/repository//archive?:name=&ref=master&format=zip"
-	request, err := http.NewRequest("GET", url, nil)
-	c.Assert(err, gocheck.IsNil)
-	recorder := httptest.NewRecorder()
-	GetArchive(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	expected := "Error when trying to obtain archive for ref 'master' (format: zip) of repository '' (repository, ref and format are required).\n"
+	expected := "Error when trying to obtain archive for ref '' (format: zip) of repository 'repo' (ref and format are required).\n"
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 }
 
 func (s *S) TestGetArchiveWhenNoFormat(c *gocheck.C) {
-	url := "/repository/repo/archive?:name=repo&ref=master&format="
+	url := "/repository/repo/archive?ref=master&format="
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetArchive(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	expected := "Error when trying to obtain archive for ref 'master' (format: ) of repository 'repo' (repository, ref and format are required).\n"
+	expected := "Error when trying to obtain archive for ref 'master' (format: ) of repository 'repo' (ref and format are required).\n"
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 }
 
 func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
-	url := "/repository/repo/archive?:name=repo&ref=master&format=zip"
+	url := "/repository/repo/archive?ref=master&format=zip"
 	expected := fmt.Errorf("output error")
 	mockRetriever := repository.MockContentRetriever{
 		OutputError: expected,
@@ -1082,13 +1071,13 @@ func (s *S) TestGetArchiveWhenCommandFails(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetArchive(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "output error\n")
 }
 
 func (s *S) TestGetArchive(c *gocheck.C) {
-	url := "/repository/repo/archive?:name=repo&ref=master&format=zip"
+	url := "/repository/repo/archive?ref=master&format=zip"
 	expected := "result123"
 	mockRetriever := repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -1100,7 +1089,7 @@ func (s *S) TestGetArchive(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetArchive(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 	c.Assert(mockRetriever.LastFormat, gocheck.Equals, repository.Zip)
@@ -1115,7 +1104,7 @@ func (s *S) TestGetArchive(c *gocheck.C) {
 }
 
 func (s *S) TestGetTreeWithDefaultValues(c *gocheck.C) {
-	url := "/repository/repo/tree?:name=repo"
+	url := "/repository/repo/tree"
 	tree := make([]map[string]string, 1)
 	tree[0] = make(map[string]string)
 	tree[0]["permission"] = "333"
@@ -1133,7 +1122,7 @@ func (s *S) TestGetTreeWithDefaultValues(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetTree(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []map[string]string
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
@@ -1148,7 +1137,7 @@ func (s *S) TestGetTreeWithDefaultValues(c *gocheck.C) {
 }
 
 func (s *S) TestGetTreeWithSpecificPath(c *gocheck.C) {
-	url := "/repository/repo/tree?:name=repo&path=/test"
+	url := "/repository/repo/tree?path=/test"
 	tree := make([]map[string]string, 1)
 	tree[0] = make(map[string]string)
 	tree[0]["permission"] = "333"
@@ -1166,7 +1155,7 @@ func (s *S) TestGetTreeWithSpecificPath(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetTree(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []map[string]string
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
@@ -1181,7 +1170,7 @@ func (s *S) TestGetTreeWithSpecificPath(c *gocheck.C) {
 }
 
 func (s *S) TestGetTreeWithSpecificRef(c *gocheck.C) {
-	url := "/repository/repo/tree?:name=repo&path=/test&ref=1.1.1"
+	url := "/repository/repo/tree?path=/test&ref=1.1.1"
 	tree := make([]map[string]string, 1)
 	tree[0] = make(map[string]string)
 	tree[0]["permission"] = "333"
@@ -1199,7 +1188,7 @@ func (s *S) TestGetTreeWithSpecificRef(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetTree(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []map[string]string
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
@@ -1213,19 +1202,8 @@ func (s *S) TestGetTreeWithSpecificRef(c *gocheck.C) {
 	c.Assert(mockRetriever.LastPath, gocheck.Equals, "/test")
 }
 
-func (s *S) TestGetTreeWhenNoRepo(c *gocheck.C) {
-	url := "/repository//tree?:name="
-	request, err := http.NewRequest("GET", url, nil)
-	c.Assert(err, gocheck.IsNil)
-	recorder := httptest.NewRecorder()
-	GetTree(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	expected := "Error when trying to obtain tree for path . on ref master of repository  (repository is required).\n"
-	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
-}
-
 func (s *S) TestGetTreeWhenCommandFails(c *gocheck.C) {
-	url := "/repository/repo/tree/?:name=repo&ref=master&path=/test"
+	url := "/repository/repo/tree/?ref=master&path=/test"
 	expected := fmt.Errorf("output error")
 	mockRetriever := repository.MockContentRetriever{
 		OutputError: expected,
@@ -1237,13 +1215,13 @@ func (s *S) TestGetTreeWhenCommandFails(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetTree(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Error when trying to obtain tree for path /test on ref master of repository repo (output error).\n")
 }
 
 func (s *S) TestGetBranches(c *gocheck.C) {
-	url := "/repository/repo/branches?:name=repo"
+	url := "/repository/repo/branches"
 	refs := make([]repository.Ref, 1)
 	refs[0] = repository.Ref{
 		Ref:       "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9",
@@ -1273,7 +1251,7 @@ func (s *S) TestGetBranches(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetBranches(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []repository.Ref
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
@@ -1281,30 +1259,19 @@ func (s *S) TestGetBranches(c *gocheck.C) {
 	c.Assert(obj[0], gocheck.DeepEquals, refs[0])
 }
 
-func (s *S) TestGetBranchesWhenRepoNotSupplied(c *gocheck.C) {
-	url := "/repository//branches?:name="
-	request, err := http.NewRequest("GET", url, nil)
-	c.Assert(err, gocheck.IsNil)
-	recorder := httptest.NewRecorder()
-	GetBranches(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	expected := "Error when trying to obtain the branches of repository  (repository is required).\n"
-	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
-}
-
 func (s *S) TestGetBranchesWhenRepoNonExistent(c *gocheck.C) {
-	url := "/repository/repo/branches?:name=repo"
+	url := "/repository/repo/branches"
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetBranches(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	expected := "Error when trying to obtain the branches of repository repo (Error when trying to obtain the refs of repository repo (Repository does not exist).).\n"
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 }
 
 func (s *S) TestGetBranchesWhenCommandFails(c *gocheck.C) {
-	url := "/repository/repo/branches/?:name=repo"
+	url := "/repository/repo/branches"
 	expected := fmt.Errorf("output error")
 	mockRetriever := repository.MockContentRetriever{
 		OutputError: expected,
@@ -1316,13 +1283,13 @@ func (s *S) TestGetBranchesWhenCommandFails(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetBranches(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Error when trying to obtain the branches of repository repo (output error).\n")
 }
 
 func (s *S) TestGetTags(c *gocheck.C) {
-	url := "/repository/repo/tags?:name=repo"
+	url := "/repository/repo/tags"
 	refs := make([]repository.Ref, 1)
 	refs[0] = repository.Ref{
 		Ref:       "a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9",
@@ -1352,7 +1319,7 @@ func (s *S) TestGetTags(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetTags(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj []repository.Ref
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
@@ -1361,7 +1328,7 @@ func (s *S) TestGetTags(c *gocheck.C) {
 }
 
 func (s *S) TestGetDiff(c *gocheck.C) {
-	url := "/repository/repo/diff/commits?:name=repo&previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
+	url := "/repository/repo/diff/commits?previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
 	expected := "test_diff"
 	repository.Retriever = &repository.MockContentRetriever{
 		ResultContents: []byte(expected),
@@ -1372,13 +1339,13 @@ func (s *S) TestGetDiff(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetDiff(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 }
 
 func (s *S) TestGetDiffWhenCommandFails(c *gocheck.C) {
-	url := "/repository/repo/diff/commits?:name=repo&previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
+	url := "/repository/repo/diff/commits?previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
 	outputError := fmt.Errorf("command error")
 	repository.Retriever = &repository.MockContentRetriever{
 		OutputError: outputError,
@@ -1389,35 +1356,24 @@ func (s *S) TestGetDiffWhenCommandFails(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetDiff(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusNotFound)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "command error\n")
 }
 
-func (s *S) TestGetDiffWhenNoRepository(c *gocheck.C) {
-	url := "/repository//diff/commits?:name=&previous_commit=1b970b076bbb30d708e262b402d4e31910e1dc10&last_commit=545b1904af34458704e2aa06ff1aaffad5289f8f"
-	request, err := http.NewRequest("GET", url, nil)
-	c.Assert(err, gocheck.IsNil)
-	recorder := httptest.NewRecorder()
-	GetDiff(recorder, request)
-	expected := "Error when trying to obtain diff between hash commits of repository  (repository is required).\n"
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
-}
-
 func (s *S) TestGetDiffWhenNoCommits(c *gocheck.C) {
-	url := "/repository/repo/diff/commits?:name=repo&previous_commit=&last_commit="
+	url := "/repository/repo/diff/commits?previous_commit=&last_commit="
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetDiff(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	expected := "Error when trying to obtain diff between hash commits of repository repo (Hash Commit(s) are required).\n"
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, expected)
 }
 
 func (s *S) TestPostNewCommit(c *gocheck.C) {
-	url := "/repository/repo/commit/?:name=repo"
+	url := "/repository/repo/commit"
 	params := map[string]string{
 		"message":         "Repository scaffold",
 		"author-name":     "Doge Dog",
@@ -1463,7 +1419,7 @@ func (s *S) TestPostNewCommit(c *gocheck.C) {
 	request.Header.Set("Content-Type", "multipart/form-data;boundary=muchBOUNDARY")
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	Commit(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var data map[string]interface{}
 	body, err := ioutil.ReadAll(recorder.Body)
@@ -1493,7 +1449,7 @@ func (s *S) TestPostNewCommit(c *gocheck.C) {
 }
 
 func (s *S) TestPostNewCommitWithoutBranch(c *gocheck.C) {
-	url := "/repository/repo/commit/?:name=repo"
+	url := "/repository/repo/commit"
 	params := map[string]string{
 		"message":         "Repository scaffold",
 		"author-name":     "Doge Dog",
@@ -1518,12 +1474,12 @@ func (s *S) TestPostNewCommitWithoutBranch(c *gocheck.C) {
 	request.Header.Set("Content-Type", "multipart/form-data;boundary=muchBOUNDARY")
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	Commit(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 }
 
 func (s *S) TestPostNewCommitWithEmptyBranch(c *gocheck.C) {
-	url := "/repository/repo/commit/?:name=repo"
+	url := "/repository/repo/commit"
 	params := map[string]string{
 		"message":         "Repository scaffold",
 		"author-name":     "Doge Dog",
@@ -1549,12 +1505,12 @@ func (s *S) TestPostNewCommitWithEmptyBranch(c *gocheck.C) {
 	request.Header.Set("Content-Type", "multipart/form-data;boundary=muchBOUNDARY")
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	Commit(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 }
 
 func (s *S) TestLog(c *gocheck.C) {
-	url := "/repository/repo/logs?&:name=repo&ref=HEAD&total=1"
+	url := "/repository/repo/logs?ref=HEAD&total=1"
 	objects := repository.GitHistory{}
 	parent := make([]string, 2)
 	parent[0] = "a367b5de5943632e47cb6f8bf5b2147bc0be5cf8"
@@ -1586,7 +1542,7 @@ func (s *S) TestLog(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetLog(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj repository.GitHistory
 	json.Unmarshal(recorder.Body.Bytes(), &obj)
@@ -1596,7 +1552,7 @@ func (s *S) TestLog(c *gocheck.C) {
 }
 
 func (s *S) TestLogWithPath(c *gocheck.C) {
-	url := "/repository/repo/logs?&:name=repo&ref=HEAD&total=1&path=README.txt"
+	url := "/repository/repo/logs?ref=HEAD&total=1&path=README.txt"
 	objects := repository.GitHistory{}
 	parent := make([]string, 2)
 	parent[0] = "a367b5de5943632e47cb6f8bf5b2147bc0be5cf8"
@@ -1628,7 +1584,7 @@ func (s *S) TestLogWithPath(c *gocheck.C) {
 	request, err := http.NewRequest("GET", url, nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	GetLog(recorder, request)
+	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	var obj repository.GitHistory
 	json.Unmarshal(recorder.Body.Bytes(), &obj)

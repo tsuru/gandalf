@@ -326,8 +326,8 @@ func GetFileContents(w http.ResponseWriter, r *http.Request) {
 	if ref == "" {
 		ref = "master"
 	}
-	if path == "" || repo == "" {
-		err := fmt.Errorf("Error when trying to obtain file %s on ref %s of repository %s (repository and path are required).", path, ref, repo)
+	if path == "" {
+		err := fmt.Errorf("Error when trying to obtain an uknown file on ref %s of repository %s (path is required).", ref, repo)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -350,8 +350,8 @@ func GetArchive(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	format := r.URL.Query().Get("format")
-	if ref == "" || format == "" || repo == "" {
-		err := fmt.Errorf("Error when trying to obtain archive for ref '%s' (format: %s) of repository '%s' (repository, ref and format are required).", ref, format, repo)
+	if ref == "" || format == "" {
+		err := fmt.Errorf("Error when trying to obtain archive for ref '%s' (format: %s) of repository '%s' (ref and format are required).", ref, format, repo)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -392,11 +392,6 @@ func GetTree(w http.ResponseWriter, r *http.Request) {
 	if path == "" {
 		path = "."
 	}
-	if repo == "" {
-		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (repository is required).", path, ref, repo)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	tree, err := repository.GetTree(repo, ref, path)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
@@ -414,11 +409,6 @@ func GetTree(w http.ResponseWriter, r *http.Request) {
 
 func GetBranches(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
-	if repo == "" {
-		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (repository is required).", repo)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	branches, err := repository.GetBranches(repo)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
@@ -437,11 +427,6 @@ func GetBranches(w http.ResponseWriter, r *http.Request) {
 func GetTags(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
-	if repo == "" {
-		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (repository is required).", ref, repo)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	tags, err := repository.GetTags(repo)
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
@@ -461,11 +446,6 @@ func GetDiff(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	previousCommit := r.URL.Query().Get("previous_commit")
 	lastCommit := r.URL.Query().Get("last_commit")
-	if repo == "" {
-		err := fmt.Errorf("Error when trying to obtain diff between hash commits of repository %s (repository is required).", repo)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	if previousCommit == "" || lastCommit == "" {
 		err := fmt.Errorf("Error when trying to obtain diff between hash commits of repository %s (Hash Commit(s) are required).", repo)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -482,11 +462,6 @@ func GetDiff(w http.ResponseWriter, r *http.Request) {
 
 func Commit(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
-	if repo == "" {
-		err := fmt.Errorf("Error when trying to commit to repository %s (repository is required).", repo)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	err := r.ParseMultipartForm(int64(maxMemoryValue()))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -540,11 +515,6 @@ func GetLog(w http.ResponseWriter, r *http.Request) {
 	total, err := strconv.Atoi(r.URL.Query().Get("total"))
 	if err != nil {
 		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if repo == "" {
-		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (repository is required).", ref, repo)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
