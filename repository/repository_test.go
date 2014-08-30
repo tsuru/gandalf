@@ -86,7 +86,8 @@ func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
 	users := []string{"smeagol", "saruman"}
-	r, err := New("myRepo", users, false)
+	readOnlyUsers := []string{"gollum", "curumo"}
+	r, err := New("myRepo", users, readOnlyUsers, false)
 	c.Assert(err, gocheck.IsNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
@@ -94,6 +95,7 @@ func (s *S) TestNewShouldCreateANewRepository(c *gocheck.C) {
 	defer conn.Repository().Remove(bson.M{"_id": "myRepo"})
 	c.Assert(r.Name, gocheck.Equals, "myRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, users)
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, readOnlyUsers)
 	c.Assert(r.IsPublic, gocheck.Equals, false)
 }
 
@@ -113,7 +115,7 @@ func (s *S) TestNewIntegration(c *gocheck.C) {
 		c.Assert(checkBare, gocheck.Equals, configBare)
 		bare = odlBare
 	}()
-	r, err := New("the-shire", []string{"bilbo"}, false)
+	r, err := New("the-shire", []string{"bilbo"}, []string{""}, false)
 	c.Assert(err, gocheck.IsNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
@@ -151,7 +153,7 @@ func (s *S) TestNewIntegrationWithNamespace(c *gocheck.C) {
 		c.Assert(checkBare, gocheck.Equals, configBare)
 		bare = odlBare
 	}()
-	r, err := New("saruman/two-towers", []string{"frodo"}, false)
+	r, err := New("saruman/two-towers", []string{"frodo"}, []string{""}, false)
 	c.Assert(err, gocheck.IsNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
@@ -177,7 +179,7 @@ func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	r, err := New("someRepo", []string{"smeagol"}, false)
+	r, err := New("someRepo", []string{"smeagol"}, []string{"gollum"}, false)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -187,6 +189,7 @@ func (s *S) TestNewShouldRecordItOnDatabase(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(r.Name, gocheck.Equals, "someRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, []string{"smeagol"})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"gollum"})
 	c.Assert(r.IsPublic, gocheck.Equals, false)
 }
 
@@ -209,12 +212,12 @@ func (s *S) TestNewShouldCreateNamesakeRepositories(c *gocheck.C) {
 	err = conn.User().Insert(&u2)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.User().RemoveId(u2.Name)
-	r1, err := New("melkor/angband", []string{"nazgul"}, false)
+	r1, err := New("melkor/angband", []string{"nazgul"}, []string{""}, false)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": "melkor/angband"})
 	c.Assert(r1.Name, gocheck.Equals, "melkor/angband")
 	c.Assert(r1.IsPublic, gocheck.Equals, false)
-	r2, err := New("morgoth/angband", []string{"nazgul"}, false)
+	r2, err := New("morgoth/angband", []string{"nazgul"}, []string{""}, false)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": "morgoth/angband"})
 	c.Assert(r2.Name, gocheck.Equals, "morgoth/angband")
@@ -228,7 +231,7 @@ func (s *S) TestNewPublicRepository(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	r, err := New("someRepo", []string{"smeagol"}, true)
+	r, err := New("someRepo", []string{"smeagol"}, []string{"gollum"}, true)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
@@ -238,13 +241,14 @@ func (s *S) TestNewPublicRepository(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(r.Name, gocheck.Equals, "someRepo")
 	c.Assert(r.Users, gocheck.DeepEquals, []string{"smeagol"})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"gollum"})
 	c.Assert(r.IsPublic, gocheck.Equals, true)
 	path := barePath("someRepo") + "/git-daemon-export-ok"
 	c.Assert(rfs.HasAction("create "+path), gocheck.Equals, true)
 }
 
 func (s *S) TestNewBreaksOnValidationError(c *gocheck.C) {
-	_, err := New("", []string{"smeagol"}, false)
+	_, err := New("", []string{"smeagol"}, []string{""}, false)
 	c.Check(err, gocheck.NotNil)
 	expected := "Validation Error: repository name is not valid"
 	got := err.Error()
@@ -321,7 +325,7 @@ func (s *S) TestNewShouldCreateNewGitBareRepository(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	_, err = New("myRepo", []string{"pumpkin"}, true)
+	_, err = New("myRepo", []string{"pumpkin"}, []string{""}, true)
 	c.Assert(err, gocheck.IsNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
@@ -334,7 +338,7 @@ func (s *S) TestNewShouldNotStoreRepoInDbWhenBareCreationFails(c *gocheck.C) {
 	dir, err := commandmocker.Error("git", "", 1)
 	c.Check(err, gocheck.IsNil)
 	defer commandmocker.Remove(dir)
-	r, err := New("myRepo", []string{"pumpkin"}, true)
+	r, err := New("myRepo", []string{"pumpkin"}, []string{""}, true)
 	c.Check(err, gocheck.NotNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
@@ -350,7 +354,7 @@ func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *gocheck.C) {
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
-	r, err := New("myRepo", []string{"pumpkin"}, false)
+	r, err := New("myRepo", []string{"pumpkin"}, []string{""}, false)
 	c.Assert(err, gocheck.IsNil)
 	err = Remove(r.Name)
 	c.Assert(err, gocheck.IsNil)
@@ -365,7 +369,7 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *gocheck.C) {
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
-	r, err := New("myRepo", []string{"pumpkin"}, false)
+	r, err := New("myRepo", []string{"pumpkin"}, []string{""}, false)
 	c.Assert(err, gocheck.IsNil)
 	err = Remove(r.Name)
 	c.Assert(err, gocheck.IsNil)
@@ -388,7 +392,7 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDa
 func (s *S) TestRename(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
-	repository, err := New("freedom", []string{"fss@corp.globo.com", "andrews@corp.globo.com"}, true)
+	repository, err := New("freedom", []string{"fss@corp.globo.com"}, []string{"andrews@corp.globo.com"}, true)
 	c.Check(err, gocheck.IsNil)
 	commandmocker.Remove(tmpdir)
 	rfs := &fstesting.RecordingFs{}
@@ -512,13 +516,13 @@ func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	r, err := New("proj1", []string{"someuser"}, true)
+	r, err := New("proj1", []string{"someuser"}, []string{"otheruser"}, true)
 	c.Assert(err, gocheck.IsNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
 	defer conn.Repository().RemoveId(r.Name)
-	r2, err := New("proj2", []string{"otheruser"}, true)
+	r2, err := New("proj2", []string{"otheruser"}, []string{"someuser"}, true)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().RemoveId(r2.Name)
 	u := struct {
@@ -527,7 +531,7 @@ func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
 	err = conn.User().Insert(&u)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.User().RemoveId(u.Name)
-	err = GrantAccess([]string{r.Name, r2.Name}, []string{u.Name})
+	err = GrantAccess([]string{r.Name, r2.Name}, []string{u.Name}, false)
 	c.Assert(err, gocheck.IsNil)
 	err = conn.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, gocheck.IsNil)
@@ -535,6 +539,39 @@ func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(r.Users, gocheck.DeepEquals, []string{"someuser", u.Name})
 	c.Assert(r2.Users, gocheck.DeepEquals, []string{"otheruser", u.Name})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{"someuser"})
+}
+
+func (s *S) TestGrantReadOnlyAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("proj1", []string{"someuser"}, []string{"otheruser"}, true)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
+	r2, err := New("proj2", []string{"otheruser"}, []string{"someuser"}, true)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().RemoveId(r2.Name)
+	u := struct {
+		Name string `bson:"_id"`
+	}{Name: "lolcat"}
+	err = conn.User().Insert(&u)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().RemoveId(u.Name)
+	err = GrantAccess([]string{r.Name, r2.Name}, []string{u.Name}, true)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r2.Name).One(&r2)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(r.Users, gocheck.DeepEquals, []string{"someuser"})
+	c.Assert(r2.Users, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"otheruser", u.Name})
+	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{"someuser", u.Name})
 }
 
 func (s *S) TestGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *gocheck.C) {
@@ -549,7 +586,7 @@ func (s *S) TestGrantAccessShouldAddFirstUserIntoRepositoryDocument(c *gocheck.C
 	err = conn.Repository().Insert(&r2)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().RemoveId(r2.Name)
-	err = GrantAccess([]string{r.Name, r2.Name}, []string{"Umi"})
+	err = GrantAccess([]string{r.Name, r2.Name}, []string{"Umi"}, false)
 	c.Assert(err, gocheck.IsNil)
 	err = conn.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, gocheck.IsNil)
@@ -567,7 +604,7 @@ func (s *S) TestGrantAccessShouldSkipDuplicatedUsers(c *gocheck.C) {
 	err = conn.Repository().Insert(&r)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().RemoveId(r.Name)
-	err = GrantAccess([]string{r.Name}, []string{"pade"})
+	err = GrantAccess([]string{r.Name}, []string{"pade"}, false)
 	c.Assert(err, gocheck.IsNil)
 	err = conn.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, gocheck.IsNil)
@@ -578,16 +615,16 @@ func (s *S) TestRevokeAccessShouldRemoveUserFromAllRepositories(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	r, err := New("proj1", []string{"someuser", "umi"}, true)
+	r, err := New("proj1", []string{"someuser", "umi"}, []string{"otheruser"}, true)
 	c.Assert(err, gocheck.IsNil)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
 	defer conn.Repository().RemoveId(r.Name)
-	r2, err := New("proj2", []string{"otheruser", "umi"}, true)
+	r2, err := New("proj2", []string{"otheruser", "umi"}, []string{"someuser"}, true)
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Repository().RemoveId(r2.Name)
-	err = RevokeAccess([]string{r.Name, r2.Name}, []string{"umi"})
+	err = RevokeAccess([]string{r.Name, r2.Name}, []string{"umi"}, false)
 	c.Assert(err, gocheck.IsNil)
 	err = conn.Repository().FindId(r.Name).One(&r)
 	c.Assert(err, gocheck.IsNil)
@@ -595,24 +632,51 @@ func (s *S) TestRevokeAccessShouldRemoveUserFromAllRepositories(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(r.Users, gocheck.DeepEquals, []string{"someuser"})
 	c.Assert(r2.Users, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{"someuser"})
+}
+
+func (s *S) TestRevokeReadOnlyAccessShouldRemoveUserFromAllRepositories(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("proj1", []string{"someuser"}, []string{"otheruser", "umi"}, true)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
+	r2, err := New("proj2", []string{"otheruser"}, []string{"someuser", "umi"}, true)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().RemoveId(r2.Name)
+	err = RevokeAccess([]string{r.Name, r2.Name}, []string{"umi"}, true)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r2.Name).One(&r2)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(r.Users, gocheck.DeepEquals, []string{"someuser"})
+	c.Assert(r2.Users, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{"someuser"})
 }
 
 func (s *S) TestConflictingRepositoryNameShouldReturnExplicitError(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	_, err = New("someRepo", []string{"gollum"}, true)
+	_, err = New("someRepo", []string{"gollum"}, []string{""}, true)
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
 	defer conn.Repository().Remove(bson.M{"_id": "someRepo"})
 	c.Assert(err, gocheck.IsNil)
-	_, err = New("someRepo", []string{"gollum"}, true)
+	_, err = New("someRepo", []string{"gollum"}, []string{""}, true)
 	c.Assert(err, gocheck.ErrorMatches, "A repository with this name already exists.")
 }
 
 func (s *S) TestGet(c *gocheck.C) {
-	repo := Repository{Name: "somerepo", Users: []string{}}
+	repo := Repository{Name: "somerepo", Users: []string{}, ReadOnlyUsers: []string{}}
 	conn, err := db.Conn()
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()

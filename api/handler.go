@@ -83,17 +83,21 @@ func SetupRouter() *pat.Router {
 }
 
 func GrantAccess(w http.ResponseWriter, r *http.Request) {
-	// TODO: update README
 	repositories, users, err := accessParameters(r.Body)
+	readOnly := r.URL.Query().Get("readonly") == "yes"
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := repository.GrantAccess(repositories, users); err != nil {
+	if err := repository.GrantAccess(repositories, users, readOnly); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	fmt.Fprintf(w, "Successfully granted access to users \"%s\" into repository \"%s\"", users, repositories)
+	if readOnly {
+		fmt.Fprintf(w, "Successfully granted read-only access to users \"%s\" into repository \"%s\"", users, repositories)
+	} else {
+		fmt.Fprintf(w, "Successfully granted full access to users \"%s\" into repository \"%s\"", users, repositories)
+	}
 }
 
 func RevokeAccess(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +106,11 @@ func RevokeAccess(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := repository.RevokeAccess(repositories, users); err != nil {
+	if err := repository.RevokeAccess(repositories, users, true); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := repository.RevokeAccess(repositories, users, false); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -195,7 +203,7 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	rep, err := repository.New(repo.Name, repo.Users, repo.IsPublic)
+	rep, err := repository.New(repo.Name, repo.Users, repo.ReadOnlyUsers, repo.IsPublic)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

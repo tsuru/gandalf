@@ -30,6 +30,17 @@ Repository creation
 
 Creates a repository in the database and an equivalent bare repository in the filesystem.
 
+* Method: POST
+* URI: /repository
+* Format: JSON
+
+Example URL (http://gandalf-server omitted for clarity)::
+
+    $ curl -XPOST /repository \                  # POST to /repository
+        -d '{"name": "myrepository", \           # Name of the repository
+            "users": ["myuser"], \               # Users with read/write access
+            "readonlyusers": ["alice", "bob"]}'  # Users with read-only access
+
 Repository removal
 ------------------
 
@@ -43,12 +54,38 @@ Retrieves information about a repository.
 Access grant in repository
 --------------------------
 
-Grants a user read and write access into a repository.
+Grants a user read and write access into a repository. Specify ``readonly=yes`` if you'd like to grant read-only access.
+
+* Method: POST
+* URI: /repository/grant
+* Format: JSON
+
+Example URL for **read/write** access (http://gandalf-server omitted for clarity)::
+
+    $ curl -XPOST /repository/grant \               # POST to /repository/grant
+        -d '{"repositories": ["myrepo"], \          # Collection of repositories
+            "users": ["john", "james"]}'            # Users with read/write access
+
+Example URL for **read-only** access (http://gandalf-server omitted for clarity)::
+
+    $ curl -XPOST /repository/grant?readonly=yes \  # POST to /repository/grant
+        -d '{"repositories": ["myrepo"], \          # Collection of repositories
+            "users": ["bob", "alice"]}'             # Users with read-only access
 
 Access revoke in repository
 ---------------------------
 
-Revokes a user read and write access from a repository.
+Revokes a user both read **and** write access from a repository.
+
+* Method: DELETE
+* URI: /repository/revoke
+* Format: JSON
+
+Example URL (http://gandalf-server omitted for clarity)::
+
+    $ curl -XDELETE /repository/revoke \            # DELETE to /repository/grant
+        -d '{"repositories": ["myrepo"], \          # Collection of repositories
+            "users": ["john", "james"]}'            # Users with read-only access
 
 Get file contents
 -----------------
@@ -356,7 +393,8 @@ Gandalf supports namespaces for repositories and must be informed in the name of
 
         $ curl -XPOST /repository \
             -d '{"name": "mynamespace/myrepository", \
-                "users": ["myuser"]}'
+                "users": ["myuser"], \
+                "readonlyusers": ["alice", "bob"]}'
 
 * Returns a list of all the branches of the specified `mynamespace/myrepository`.
 
