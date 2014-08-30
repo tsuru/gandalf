@@ -58,31 +58,31 @@ func accessParameters(body io.ReadCloser) (repositories, users []string, err err
 
 func SetupRouter() *pat.Router {
 	router := pat.New()
-	router.Post("/user/{name}/key", http.HandlerFunc(AddKey))
-	router.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(RemoveKey))
-	router.Get("/user/{name}/keys", http.HandlerFunc(ListKeys))
-	router.Post("/user", http.HandlerFunc(NewUser))
-	router.Delete("/user/{name}", http.HandlerFunc(RemoveUser))
-	router.Delete("/repository/revoke", http.HandlerFunc(RevokeAccess))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/archive", http.HandlerFunc(GetArchive))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/contents", http.HandlerFunc(GetFileContents))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/tree", http.HandlerFunc(GetTree))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/branches", http.HandlerFunc(GetBranches))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/tags", http.HandlerFunc(GetTags))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/diff/commits", http.HandlerFunc(GetDiff))
-	router.Post("/repository/{name:[^/]*/?[^/]+}/commit", http.HandlerFunc(Commit))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/logs", http.HandlerFunc(GetLog))
-	router.Post("/repository/grant", http.HandlerFunc(GrantAccess))
-	router.Post("/repository", http.HandlerFunc(NewRepository))
-	router.Get("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(GetRepository))
-	router.Delete("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(RemoveRepository))
-	router.Put("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(RenameRepository))
-	router.Get("/healthcheck", http.HandlerFunc(HealthCheck))
-	router.Post("/hook/{name}", http.HandlerFunc(AddHook))
+	router.Post("/user/{name}/key", http.HandlerFunc(addKey))
+	router.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(removeKey))
+	router.Get("/user/{name}/keys", http.HandlerFunc(listKeys))
+	router.Post("/user", http.HandlerFunc(newUser))
+	router.Delete("/user/{name}", http.HandlerFunc(removeUser))
+	router.Delete("/repository/revoke", http.HandlerFunc(revokeAccess))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/archive", http.HandlerFunc(getArchive))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/contents", http.HandlerFunc(getFileContents))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/tree", http.HandlerFunc(getTree))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/branches", http.HandlerFunc(getBranches))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/tags", http.HandlerFunc(getTags))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/diff/commits", http.HandlerFunc(getDiff))
+	router.Post("/repository/{name:[^/]*/?[^/]+}/commit", http.HandlerFunc(commit))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/logs", http.HandlerFunc(getLog))
+	router.Post("/repository/grant", http.HandlerFunc(grantAccess))
+	router.Post("/repository", http.HandlerFunc(newRepository))
+	router.Get("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(getRepository))
+	router.Delete("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(removeRepository))
+	router.Put("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(renameRepository))
+	router.Get("/healthcheck", http.HandlerFunc(healthCheck))
+	router.Post("/hook/{name}", http.HandlerFunc(addHook))
 	return router
 }
 
-func GrantAccess(w http.ResponseWriter, r *http.Request) {
+func grantAccess(w http.ResponseWriter, r *http.Request) {
 	repositories, users, err := accessParameters(r.Body)
 	readOnly := r.URL.Query().Get("readonly") == "yes"
 	if err != nil {
@@ -100,7 +100,7 @@ func GrantAccess(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func RevokeAccess(w http.ResponseWriter, r *http.Request) {
+func revokeAccess(w http.ResponseWriter, r *http.Request) {
 	repositories, users, err := accessParameters(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -117,7 +117,7 @@ func RevokeAccess(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Successfully revoked access to users \"%s\" into repositories \"%s\"", users, repositories)
 }
 
-func AddKey(w http.ResponseWriter, r *http.Request) {
+func addKey(w http.ResponseWriter, r *http.Request) {
 	keys := map[string]string{}
 	if err := parseBody(r.Body, &keys); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -144,7 +144,7 @@ func AddKey(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Key(s) successfully created")
 }
 
-func RemoveKey(w http.ResponseWriter, r *http.Request) {
+func removeKey(w http.ResponseWriter, r *http.Request) {
 	uName := r.URL.Query().Get(":name")
 	kName := r.URL.Query().Get(":keyname")
 	if err := user.RemoveKey(uName, kName); err != nil {
@@ -154,7 +154,7 @@ func RemoveKey(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Key \"%s\" successfully removed", kName)
 }
 
-func ListKeys(w http.ResponseWriter, r *http.Request) {
+func listKeys(w http.ResponseWriter, r *http.Request) {
 	uName := r.URL.Query().Get(":name")
 	keys, err := user.ListKeys(uName)
 	if err != nil {
@@ -174,7 +174,7 @@ type jsonUser struct {
 	Keys map[string]string
 }
 
-func NewUser(w http.ResponseWriter, r *http.Request) {
+func newUser(w http.ResponseWriter, r *http.Request) {
 	var usr jsonUser
 	if err := parseBody(r.Body, &usr); err != nil {
 		http.Error(w, "Got error while parsing body: "+err.Error(), http.StatusBadRequest)
@@ -188,7 +188,7 @@ func NewUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User \"%s\" successfully created\n", u.Name)
 }
 
-func RemoveUser(w http.ResponseWriter, r *http.Request) {
+func removeUser(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
 	if err := user.Remove(name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -197,7 +197,7 @@ func RemoveUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User \"%s\" successfully removed\n", name)
 }
 
-func NewRepository(w http.ResponseWriter, r *http.Request) {
+func newRepository(w http.ResponseWriter, r *http.Request) {
 	var repo repository.Repository
 	if err := parseBody(r.Body, &repo); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -211,7 +211,7 @@ func NewRepository(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Repository \"%s\" successfully created\n", rep.Name)
 }
 
-func GetRepository(w http.ResponseWriter, r *http.Request) {
+func getRepository(w http.ResponseWriter, r *http.Request) {
 	repo, err := repository.Get(r.URL.Query().Get(":name"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -225,7 +225,7 @@ func GetRepository(w http.ResponseWriter, r *http.Request) {
 	w.Write(out)
 }
 
-func RemoveRepository(w http.ResponseWriter, r *http.Request) {
+func removeRepository(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
 	if err := repository.Remove(name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -234,7 +234,7 @@ func RemoveRepository(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Repository \"%s\" successfully removed\n", name)
 }
 
-func RenameRepository(w http.ResponseWriter, r *http.Request) {
+func renameRepository(w http.ResponseWriter, r *http.Request) {
 	var p struct{ Name string }
 	defer r.Body.Close()
 	err := parseBody(r.Body, &p)
@@ -255,7 +255,7 @@ type repositoryHook struct {
 	Content      string
 }
 
-func AddHook(w http.ResponseWriter, r *http.Request) {
+func addHook(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
 	if name != "post-receive" && name != "pre-receive" && name != "update" {
 		http.Error(w,
@@ -305,7 +305,7 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 	return nil
 }
 
-func HealthCheck(w http.ResponseWriter, r *http.Request) {
+func healthCheck(w http.ResponseWriter, r *http.Request) {
 	conn, err := db.Conn()
 	if err != nil {
 		return
@@ -319,7 +319,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("WORKING"))
 }
 
-func GetFileContents(w http.ResponseWriter, r *http.Request) {
+func getFileContents(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	path := r.URL.Query().Get("path")
 	ref := r.URL.Query().Get("ref")
@@ -346,7 +346,7 @@ func GetFileContents(w http.ResponseWriter, r *http.Request) {
 	w.Write(contents)
 }
 
-func GetArchive(w http.ResponseWriter, r *http.Request) {
+func getArchive(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	format := r.URL.Query().Get("format")
@@ -382,7 +382,7 @@ func GetArchive(w http.ResponseWriter, r *http.Request) {
 	w.Write(contents)
 }
 
-func GetTree(w http.ResponseWriter, r *http.Request) {
+func getTree(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	path := r.URL.Query().Get("path")
 	ref := r.URL.Query().Get("ref")
@@ -407,7 +407,7 @@ func GetTree(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func GetBranches(w http.ResponseWriter, r *http.Request) {
+func getBranches(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	branches, err := repository.GetBranches(repo)
 	if err != nil {
@@ -424,7 +424,7 @@ func GetBranches(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func GetTags(w http.ResponseWriter, r *http.Request) {
+func getTags(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	tags, err := repository.GetTags(repo)
@@ -442,7 +442,7 @@ func GetTags(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func GetDiff(w http.ResponseWriter, r *http.Request) {
+func getDiff(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	previousCommit := r.URL.Query().Get("previous_commit")
 	lastCommit := r.URL.Query().Get("last_commit")
@@ -460,7 +460,7 @@ func GetDiff(w http.ResponseWriter, r *http.Request) {
 	w.Write(diff)
 }
 
-func Commit(w http.ResponseWriter, r *http.Request) {
+func commit(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	err := r.ParseMultipartForm(int64(maxMemoryValue()))
 	if err != nil {
@@ -508,7 +508,7 @@ func Commit(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func GetLog(w http.ResponseWriter, r *http.Request) {
+func getLog(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	path := r.URL.Query().Get("path")
