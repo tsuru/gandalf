@@ -70,7 +70,7 @@ func (s *S) TestGetUserOr404(c *gocheck.C) {
 	c.Assert(rUser.Name, gocheck.Equals, "umi")
 }
 
-func (s *S) TestGetUserOr404ShouldReturn404WhenUserDoesntExists(c *gocheck.C) {
+func (s *S) TestGetUserOr404ShouldReturn404WhenUserDoesntExist(c *gocheck.C) {
 	_, e := getUserOr404("umi")
 	expected := "User umi not found"
 	got := e.Error()

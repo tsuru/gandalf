@@ -122,7 +122,7 @@ func (u *User) handleAssociatedRepositories() error {
 //
 // Stores the key in the user's document and write it in authorized_keys.
 //
-// Returns an error in case the user does not exists.
+// Returns an error in case the user does not exist.
 func AddKey(uName string, k map[string]string) error {
 	var u User
 	conn, err := db.Conn()

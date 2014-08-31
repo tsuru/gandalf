@@ -226,7 +226,7 @@ func (s *S) TestGetRepositoryWithNamespace(c *gocheck.C) {
 }
 
 func (s *S) TestGetRepositoryDoesNotExist(c *gocheck.C) {
-	recorder, request := get("/repository/doesnotexists", nil, c)
+	recorder, request := get("/repository/doesnotexist", nil, c)
 	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 500)
 }
@@ -623,7 +623,7 @@ func (s *S) TestAddInvalidOldFormatHook(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, 400)
 }
 
-func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExists(c *gocheck.C) {
+func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExist(c *gocheck.C) {
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post("/user/Frodo/key", b, c)
 	s.router.ServeHTTP(recorder, request)
@@ -872,7 +872,7 @@ func (s *S) TestRemoveRepositoryShouldReturn400OnFailure(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, 400)
 }
 
-func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExists(c *gocheck.C) {
+func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExist(c *gocheck.C) {
 	url := "/repository/foo"
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, gocheck.IsNil)
@@ -1509,7 +1509,7 @@ func (s *S) TestPostNewCommitWithEmptyBranch(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 }
 
-func (s *S) TestLog(c *gocheck.C) {
+func (s *S) TestLogs(c *gocheck.C) {
 	url := "/repository/repo/logs?ref=HEAD&total=1"
 	objects := repository.GitHistory{}
 	parent := make([]string, 2)
@@ -1551,7 +1551,7 @@ func (s *S) TestLog(c *gocheck.C) {
 	c.Assert(obj.Commits[0], gocheck.DeepEquals, commits[0])
 }
 
-func (s *S) TestLogWithPath(c *gocheck.C) {
+func (s *S) TestLogsWithPath(c *gocheck.C) {
 	url := "/repository/repo/logs?ref=HEAD&total=1&path=README.txt"
 	objects := repository.GitHistory{}
 	parent := make([]string, 2)

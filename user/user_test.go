@@ -299,7 +299,7 @@ func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *gocheck.C) {
 	c.Assert(content, gocheck.Equals, key.format())
 }
 
-func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExists(c *gocheck.C) {
+func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExist(c *gocheck.C) {
 	err := AddKey("umi", map[string]string{"somekey": "ssh-rsa mykey umi@host"})
 	c.Assert(err, gocheck.Equals, ErrUserNotFound)
 }
@@ -342,7 +342,7 @@ func (s *S) TestRemoveUnknownKeyFromUser(c *gocheck.C) {
 	c.Assert(err, gocheck.Equals, ErrKeyNotFound)
 }
 
-func (s *S) TestRemoveKeyShouldReturnFormatedErrorMsgWhenUserDoesNotExists(c *gocheck.C) {
+func (s *S) TestRemoveKeyShouldReturnFormatedErrorMsgWhenUserDoesNotExist(c *gocheck.C) {
 	err := RemoveKey("luke", "homekey")
 	c.Assert(err, gocheck.Equals, ErrUserNotFound)
 }

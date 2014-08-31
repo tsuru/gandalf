@@ -380,7 +380,7 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *gocheck.C) {
 	c.Assert(err, gocheck.ErrorMatches, "^not found$")
 }
 
-func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDatabase(c *gocheck.C) {
+func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistInDatabase(c *gocheck.C) {
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
@@ -939,7 +939,6 @@ func (s *S) TestGetArchiveIntegrationWhenZip(c *gocheck.C) {
 	zipReader, err := zip.NewReader(reader, int64(len(zipContents)))
 	c.Assert(err, gocheck.IsNil)
 	for _, f := range zipReader.File {
-		//fmt.Printf("Contents of %s:\n", f.Name)
 		rc, err := f.Open()
 		c.Assert(err, gocheck.IsNil)
 		defer rc.Close()
@@ -1948,7 +1947,7 @@ func (s *S) TestCommitZipIntegrationWhenFileEmpty(c *gocheck.C) {
 	c.Assert(err.Error(), gocheck.Equals, expectedErr)
 }
 
-func (s *S) TestGetLog(c *gocheck.C) {
+func (s *S) TestGetLogs(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -1966,7 +1965,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	errCreateCommit = CreateCommit(bare, repo, file, object2)
 	c.Assert(errCreateCommit, gocheck.IsNil)
-	history, err := GetLog(repo, "HEAD", 1, "")
+	history, err := GetLogs(repo, "HEAD", 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1980,7 +1979,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
 	// Next
-	history, err = GetLog(repo, history.Next, 1, "")
+	history, err = GetLogs(repo, history.Next, 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1994,7 +1993,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
 	// Next
-	history, err = GetLog(repo, history.Next, 1, "")
+	history, err = GetLogs(repo, history.Next, 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -2009,7 +2008,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Next, gocheck.Equals, "")
 }
 
-func (s *S) TestGetLogWithFile(c *gocheck.C) {
+func (s *S) TestGetLogsWithFile(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -2027,7 +2026,7 @@ func (s *S) TestGetLogWithFile(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	errCreateCommit = CreateCommit(bare, repo, file, object2)
 	c.Assert(errCreateCommit, gocheck.IsNil)
-	history, err := GetLog(repo, "master", 1, "README")
+	history, err := GetLogs(repo, "master", 1, "README")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")

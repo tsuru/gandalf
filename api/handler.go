@@ -71,7 +71,7 @@ func SetupRouter() *pat.Router {
 	router.Get("/repository/{name:[^/]*/?[^/]+}/tags", http.HandlerFunc(getTags))
 	router.Get("/repository/{name:[^/]*/?[^/]+}/diff/commits", http.HandlerFunc(getDiff))
 	router.Post("/repository/{name:[^/]*/?[^/]+}/commit", http.HandlerFunc(commit))
-	router.Get("/repository/{name:[^/]*/?[^/]+}/logs", http.HandlerFunc(getLog))
+	router.Get("/repository/{name:[^/]*/?[^/]+}/logs", http.HandlerFunc(getLogs))
 	router.Post("/repository/grant", http.HandlerFunc(grantAccess))
 	router.Post("/repository", http.HandlerFunc(newRepository))
 	router.Get("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(getRepository))
@@ -508,25 +508,25 @@ func commit(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func getLog(w http.ResponseWriter, r *http.Request) {
+func getLogs(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	ref := r.URL.Query().Get("ref")
 	path := r.URL.Query().Get("path")
 	total, err := strconv.Atoi(r.URL.Query().Get("total"))
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
+		err := fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	logs, err := repository.GetLog(repo, ref, total, path)
+	logs, err := repository.GetLogs(repo, ref, total, path)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
+		err := fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	b, err := json.Marshal(logs)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain log for ref %s of repository %s (%s).", ref, repo, err)
+		err := fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

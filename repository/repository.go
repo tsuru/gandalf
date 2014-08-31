@@ -286,7 +286,7 @@ func (r *Repository) isValid() (bool, error) {
 }
 
 // GrantAccess gives full or read-only permission for users in all specified repositories.
-// If any of the repositories/users do not exists, GrantAccess just skips it.
+// If any of the repositories/users does not exist, GrantAccess just skips it.
 func GrantAccess(rNames, uNames []string, readOnly bool) error {
 	conn, err := db.Conn()
 	if err != nil {
@@ -345,7 +345,7 @@ type ContentRetriever interface {
 	Commit(cloneDir, message string, author GitUser) error
 	Push(cloneDir, branch string) error
 	CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error)
-	GetLog(repo, hash string, total int, path string) (*GitHistory, error)
+	GetLogs(repo, hash string, total int, path string) (*GitHistory, error)
 }
 
 var Retriever ContentRetriever
@@ -718,7 +718,7 @@ func (*GitContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c Gi
 	return nil, fmt.Errorf("Error when trying to commit zip to repository %s, could not check branch: %s", repo, err)
 }
 
-func (*GitContentRetriever) GetLog(repo, hash string, total int, path string) (*GitHistory, error) {
+func (*GitContentRetriever) GetLogs(repo, hash string, total int, path string) (*GitHistory, error) {
 	if total < 1 {
 		total = 1
 	}
@@ -874,6 +874,6 @@ func CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error) 
 	return retriever().CommitZip(repo, z, c)
 }
 
-func GetLog(repo, hash string, total int, path string) (*GitHistory, error) {
-	return retriever().GetLog(repo, hash, total, path)
+func GetLogs(repo, hash string, total int, path string) (*GitHistory, error) {
+	return retriever().GetLogs(repo, hash, total, path)
 }
