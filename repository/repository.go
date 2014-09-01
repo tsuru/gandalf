@@ -719,11 +719,14 @@ func (*GitContentRetriever) CommitZip(repo string, z *multipart.FileHeader, c Gi
 }
 
 func (*GitContentRetriever) GetLogs(repo, hash string, total int, path string) (*GitHistory, error) {
+	if hash == "" {
+		hash = "master"
+	}
 	if total < 1 {
 		total = 1
 	}
 	totalPagination := total + 1
-	var last, ref, committerName, committerEmail, committerDate, authorName, authorEmail, authorDate, subject, parent string
+	var last string
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return nil, fmt.Errorf("Error when trying to obtain the log of repository %s (%s).", repo, err)
@@ -754,46 +757,43 @@ func (*GitContentRetriever) GetLogs(repo, hash string, total int, path string) (
 	commits := make([]GitLog, objectCount)
 	objectCount = 0
 	for _, line := range lines {
+		var parent, subject string
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
 		fields := strings.Split(line, "\t")
-		if len(fields) > 8 { // let there be commits with empty subject
-			ref = fields[0]
-			authorName = fields[1]
-			authorEmail = fields[2]
-			authorDate = fields[3]
-			committerName = fields[4]
-			committerEmail = fields[5]
-			committerDate = fields[6]
-			parent = fields[7]
-			subject = strings.Join(fields[8:], "\t") // let there be subjects with \t
-		} else {
+		if len(fields) < 7 { // let there be commits with empty subject and no parents
 			return nil, fmt.Errorf("Error when trying to obtain the log of repository %s (Invalid git log output [%s]).", repo, out)
 		}
+		if len(fields) > 8 {
+			parent = fields[7]
+			subject = strings.Join(fields[8:], "\t") // let there be subjects with \t
+		}
 		commit := GitLog{}
-		commit.Ref = ref
+		commit.Ref = fields[0]
 		commit.Subject = subject
-		commit.CreatedAt = authorDate
+		commit.CreatedAt = fields[3]
 		commit.Committer = &GitUser{
-			Name:  committerName,
-			Email: committerEmail,
-			Date:  committerDate,
+			Name:  fields[4],
+			Email: fields[5],
+			Date:  fields[6],
 		}
 		commit.Author = &GitUser{
-			Name:  authorName,
-			Email: authorEmail,
-			Date:  authorDate,
+			Name:  fields[1],
+			Email: fields[2],
+			Date:  fields[3],
 		}
-		parents := strings.Split(parent, " ")
-		parentCount := len(parents)
-		aux := make([]string, parentCount)
-		parentCount = 0
-		for _, item := range parents {
-			aux[parentCount] = item
-			parentCount++
+		if len(parent) > 0 {
+			parents := strings.Split(parent, " ")
+			parentCount := len(parents)
+			aux := make([]string, parentCount)
+			parentCount = 0
+			for _, item := range parents {
+				aux[parentCount] = item
+				parentCount++
+			}
+			commit.Parent = aux
 		}
-		commit.Parent = aux
 		commits[objectCount] = commit
 		objectCount++
 	}
