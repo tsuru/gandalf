@@ -1259,6 +1259,45 @@ func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *gocheck.C) {
 	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (exit status 129).")
 }
 
+func (s *S) TestGetForEachRefOutputInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Add("git", "-")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	_, err = GetForEachRef(repo, "")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (Invalid git for-each-ref output [-]).")
+}
+
+func (s *S) TestGetForEachRefOutputEmpty(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Add("git", "\n")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	refs, err := GetForEachRef(repo, "")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(refs, gocheck.HasLen, 0)
+}
+
 func (s *S) TestGetDiffIntegration(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
