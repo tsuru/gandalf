@@ -163,7 +163,7 @@ func (s *S) TestRequestedRepositoryShouldReturnErrorWhenThereIsNoCommandPassedTo
 	c.Assert(err, gocheck.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
-func (s *S) TestRequestedRepositoryShouldReturnFormatedErrorWhenRepositoryDoesNotExists(c *gocheck.C) {
+func (s *S) TestRequestedRepositoryShouldReturnFormatedErrorWhenRepositoryDoesNotExist(c *gocheck.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'inexistent-repo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, err := requestedRepository()
@@ -248,7 +248,7 @@ func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermissi
 	c.Assert(stdout.String(), gocheck.Equals, expected)
 }
 
-func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExists(c *gocheck.C) {
+func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExist(c *gocheck.C) {
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
 	c.Check(err, gocheck.IsNil)
 	defer commandmocker.Remove(dir)
@@ -264,7 +264,7 @@ func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExi
 	c.Assert(commandmocker.Ran(dir), gocheck.Equals, false)
 }
 
-func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenRepositoryDoesNotExists(c *gocheck.C) {
+func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenRepositoryDoesNotExist(c *gocheck.C) {
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
 	c.Check(err, gocheck.IsNil)
 	defer commandmocker.Remove(dir)

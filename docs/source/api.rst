@@ -167,8 +167,8 @@ Example URLs (http://gandalf-server omitted for clarity)::
     $ curl /repository/myrepository/archive?ref=master&format=tar.gz     # gets master and tar.gz format
     $ curl /repository/myrepository/archive?ref=0.1.0&format=zip         # gets 0.1.0 tag and zip format
 
-Get branch
------------
+Get branches
+------------
 
 Returns a list of all the branches of the specified `repository`.
 
@@ -207,8 +207,8 @@ Example URL (http://gandalf-server omitted for clarity)::
 
     $ curl /repository/myrepository/branches                  # gets list of branches
 
-Get tag
--------
+Get tags
+--------
 
 Returns a list of all the tags of the specified `repository`.
 
@@ -341,7 +341,7 @@ Logs
 Returns a list of all commits into `repository`.
 
 * Method: GET
-* URI: /repository/`:name`/log?ref=:ref&total=:total
+* URI: /repository/`:name`/logs?ref=:ref&total=:total
 * Format: JSON
 
 Where:

@@ -380,7 +380,7 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *gocheck.C) {
 	c.Assert(err, gocheck.ErrorMatches, "^not found$")
 }
 
-func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistsInDatabase(c *gocheck.C) {
+func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistInDatabase(c *gocheck.C) {
 	rfs := &fstesting.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
@@ -939,7 +939,6 @@ func (s *S) TestGetArchiveIntegrationWhenZip(c *gocheck.C) {
 	zipReader, err := zip.NewReader(reader, int64(len(zipContents)))
 	c.Assert(err, gocheck.IsNil)
 	for _, f := range zipReader.File {
-		//fmt.Printf("Contents of %s:\n", f.Name)
 		rc, err := f.Open()
 		c.Assert(err, gocheck.IsNil)
 		defer rc.Close()
@@ -1258,6 +1257,45 @@ func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *gocheck.C) {
 	c.Assert(errCreate, gocheck.IsNil)
 	_, err := GetForEachRef("gandalf-test-repo", "--format")
 	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (exit status 129).")
+}
+
+func (s *S) TestGetForEachRefOutputInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Add("git", "-")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	_, err = GetForEachRef(repo, "")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (Invalid git for-each-ref output [-]).")
+}
+
+func (s *S) TestGetForEachRefOutputEmpty(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Add("git", "\n")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	refs, err := GetForEachRef(repo, "")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(refs, gocheck.HasLen, 0)
 }
 
 func (s *S) TestGetDiffIntegration(c *gocheck.C) {
@@ -1948,7 +1986,7 @@ func (s *S) TestCommitZipIntegrationWhenFileEmpty(c *gocheck.C) {
 	c.Assert(err.Error(), gocheck.Equals, expectedErr)
 }
 
-func (s *S) TestGetLog(c *gocheck.C) {
+func (s *S) TestGetLogs(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
@@ -1966,7 +2004,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	errCreateCommit = CreateCommit(bare, repo, file, object2)
 	c.Assert(errCreateCommit, gocheck.IsNil)
-	history, err := GetLog(repo, "HEAD", 1, "")
+	history, err := GetLogs(repo, "HEAD", 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1980,7 +2018,7 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
 	// Next
-	history, err = GetLog(repo, history.Next, 1, "")
+	history, err = GetLogs(repo, history.Next, 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -1994,12 +2032,11 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
 	// Next
-	history, err = GetLog(repo, history.Next, 1, "")
+	history, err = GetLogs(repo, history.Next, 1, "")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
-	c.Assert(history.Commits[0].Parent, gocheck.HasLen, 1)
-	c.Assert(history.Commits[0].Parent[0], gocheck.Equals, "")
+	c.Assert(history.Commits[0].Parent, gocheck.HasLen, 0)
 	c.Assert(history.Commits[0].Committer.Name, gocheck.Equals, "doge")
 	c.Assert(history.Commits[0].Committer.Email, gocheck.Equals, "much@email.com")
 	c.Assert(history.Commits[0].Author.Name, gocheck.Equals, "doge")
@@ -2009,12 +2046,12 @@ func (s *S) TestGetLog(c *gocheck.C) {
 	c.Assert(history.Next, gocheck.Equals, "")
 }
 
-func (s *S) TestGetLogWithFile(c *gocheck.C) {
+func (s *S) TestGetLogsWithFile(c *gocheck.C) {
 	oldBare := bare
 	bare = "/tmp"
 	repo := "gandalf-test-repo"
 	file := "README"
-	content := "will\tbark"
+	content := "will bark"
 	object1 := "You should read this README"
 	object2 := "Seriously, read this file!"
 	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
@@ -2027,7 +2064,7 @@ func (s *S) TestGetLogWithFile(c *gocheck.C) {
 	c.Assert(errCreateCommit, gocheck.IsNil)
 	errCreateCommit = CreateCommit(bare, repo, file, object2)
 	c.Assert(errCreateCommit, gocheck.IsNil)
-	history, err := GetLog(repo, "master", 1, "README")
+	history, err := GetLogs(repo, "master", 1, "README")
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(history.Commits, gocheck.HasLen, 1)
 	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
@@ -2040,4 +2077,146 @@ func (s *S) TestGetLogWithFile(c *gocheck.C) {
 	c.Assert(history.Commits[0].Subject, gocheck.Equals, "Seriously, read this file!")
 	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
 	c.Assert(history.Next, gocheck.Matches, "[a-f0-9]{40}")
+}
+
+func (s *S) TestGetLogsWithFileAndEmptyParameters(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "will bark"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	history, err := GetLogs(repo, "", 0, "")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(history.Commits, gocheck.HasLen, 1)
+	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[0].Parent, gocheck.HasLen, 0)
+	c.Assert(history.Commits[0].Committer.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[0].Committer.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[0].Author.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[0].Author.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[0].Subject, gocheck.Equals, "will bark")
+	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
+	c.Assert(history.Next, gocheck.Equals, "")
+}
+
+func (s *S) TestGetLogsWithAllSortsOfSubjects(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content1 := ""
+	content2 := "will\tbark"
+	content3 := "will bark"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content1)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	errCreateCommit := CreateCommit(bare, repo, file, content2)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	errCreateCommit = CreateCommit(bare, repo, file, content3)
+	c.Assert(errCreateCommit, gocheck.IsNil)
+	history, err := GetLogs(repo, "master", 3, "README")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(history.Commits, gocheck.HasLen, 3)
+	c.Assert(history.Commits[0].Ref, gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[0].Parent, gocheck.HasLen, 1)
+	c.Assert(history.Commits[0].Parent[0], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[0].Committer.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[0].Committer.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[0].Author.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[0].Author.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[0].Subject, gocheck.Equals, "will bark")
+	c.Assert(history.Commits[0].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
+	c.Assert(history.Commits[1].Ref, gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[1].Parent, gocheck.HasLen, 1)
+	c.Assert(history.Commits[1].Parent[0], gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[1].Committer.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[1].Committer.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[1].Author.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[1].Author.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[1].Subject, gocheck.Equals, "will\tbark")
+	c.Assert(history.Commits[1].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
+	c.Assert(history.Commits[2].Ref, gocheck.Matches, "[a-f0-9]{40}")
+	c.Assert(history.Commits[2].Parent, gocheck.HasLen, 0)
+	c.Assert(history.Commits[2].Committer.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[2].Committer.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[2].Author.Name, gocheck.Equals, "doge")
+	c.Assert(history.Commits[2].Author.Email, gocheck.Equals, "much@email.com")
+	c.Assert(history.Commits[2].Subject, gocheck.Equals, "")
+	c.Assert(history.Commits[2].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
+	c.Assert(history.Next, gocheck.Equals, "")
+}
+
+func (s *S) TestGetLogsWhenOutputInvalid(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Add("git", "-")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	_, err = GetLogs(repo, "master", 3, "README")
+	c.Assert(err.Error(), gocheck.Equals, "Error when trying to obtain the log of repository gandalf-test-repo (Invalid git log output [-]).")
+}
+
+func (s *S) TestGetLogsWhenOutputEmpty(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Add("git", "\n")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	history, err := GetLogs(repo, "master", 1, "README")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(history.Commits, gocheck.HasLen, 0)
+	c.Assert(history.Next, gocheck.HasLen, 0)
+}
+
+func (s *S) TestGetLogsWhenGitError(c *gocheck.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, gocheck.IsNil)
+	tmpdir, err := commandmocker.Error("git", "much error", 1)
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	expectedErr := fmt.Sprintf("Error when trying to obtain the log of repository %s (exit status 1).", repo)
+	_, err = GetLogs(repo, "master", 1, "README")
+	c.Assert(err.Error(), gocheck.Equals, expectedErr)
+}
+
+func (s *S) TestGetLogsWhenRepoInvalid(c *gocheck.C) {
+	expectedErr := fmt.Sprintf("Error when trying to obtain the log of repository invalid-repo (Repository does not exist).")
+	_, err := GetLogs("invalid-repo", "master", 1, "README")
+	c.Assert(err.Error(), gocheck.Equals, expectedErr)
 }
