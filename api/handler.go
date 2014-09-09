@@ -319,6 +319,15 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("WORKING"))
 }
 
+func getMimeType(path string, content []byte) string {
+	extension := filepath.Ext(path)
+	mimeType := mime.TypeByExtension(extension)
+	if mimeType == "" {
+		mimeType = http.DetectContentType(content)
+	}
+	return mimeType
+}
+
 func getFileContents(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	path := r.URL.Query().Get("path")
@@ -336,12 +345,7 @@ func getFileContents(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	extension := filepath.Ext(path)
-	mimeType := mime.TypeByExtension(extension)
-	if mimeType == "" {
-		mimeType = "text/plain; charset=utf-8"
-	}
-	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Type", getMimeType(path, contents))
 	w.Header().Set("Content-Length", strconv.Itoa(len(contents)))
 	w.Write(contents)
 }

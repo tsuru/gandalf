@@ -987,6 +987,26 @@ func (s *S) TestGetFileContentsWithoutExtension(c *gocheck.C) {
 	c.Assert(recorder.Header()["Content-Length"][0], gocheck.Equals, "6")
 }
 
+func (s *S) TestGetBinaryFileContentsWithoutExtension(c *gocheck.C) {
+	url := "/repository/repo/contents?path=my-binary-file"
+	expected := new(bytes.Buffer)
+	expected.Write([]byte{10, 20, 30, 0, 9, 200})
+	repository.Retriever = &repository.MockContentRetriever{
+		ResultContents: expected.Bytes(),
+	}
+	defer func() {
+		repository.Retriever = nil
+	}()
+	request, err := http.NewRequest("GET", url, nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Body, gocheck.DeepEquals, expected)
+	c.Assert(recorder.Header()["Content-Type"][0], gocheck.Equals, "application/octet-stream")
+	c.Assert(recorder.Header()["Content-Length"][0], gocheck.Equals, "6")
+}
+
 func (s *S) TestGetFileContentsWithRef(c *gocheck.C) {
 	url := "/repository/repo/contents?path=README.txt&ref=other"
 	expected := "result"
@@ -1591,4 +1611,26 @@ func (s *S) TestLogsWithPath(c *gocheck.C) {
 	c.Assert(obj.Next, gocheck.Equals, "b231c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9")
 	c.Assert(obj.Commits, gocheck.HasLen, 1)
 	c.Assert(obj.Commits[0], gocheck.DeepEquals, commits[0])
+}
+
+func (s *S) TestGetMimeTypeFromExtension(c *gocheck.C) {
+	path := "my-text-file.txt"
+	content := new(bytes.Buffer)
+	content.WriteString("")
+	c.Assert(getMimeType(path, content.Bytes()), gocheck.Equals, "text/plain; charset=utf-8")
+	path = "my-text-file.sh"
+	content = new(bytes.Buffer)
+	content.WriteString("")
+	c.Assert(getMimeType(path, content.Bytes()), gocheck.Equals, "application/x-sh")
+}
+
+func (s *S) TestGetMimeTypeFromContent(c *gocheck.C) {
+	path := "README"
+	content := new(bytes.Buffer)
+	content.WriteString("thou shalt not pass")
+	c.Assert(getMimeType(path, content.Bytes()), gocheck.Equals, "text/plain; charset=utf-8")
+	path = "my-binary-file"
+	content = new(bytes.Buffer)
+	content.Write([]byte{10, 20, 30, 0, 9, 200})
+	c.Assert(getMimeType(path, content.Bytes()), gocheck.Equals, "application/octet-stream")
 }
