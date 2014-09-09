@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1621,7 +1622,8 @@ func (s *S) TestGetMimeTypeFromExtension(c *gocheck.C) {
 	path = "my-text-file.sh"
 	content = new(bytes.Buffer)
 	content.WriteString("")
-	c.Assert(getMimeType(path, content.Bytes()), gocheck.Equals, "application/x-sh")
+	expected := mime.TypeByExtension(".sh")
+	c.Assert(getMimeType(path, content.Bytes()), gocheck.Equals, expected)
 }
 
 func (s *S) TestGetMimeTypeFromContent(c *gocheck.C) {
