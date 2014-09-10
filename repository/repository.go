@@ -285,6 +285,22 @@ func (r *Repository) isValid() (bool, error) {
 	return true, nil
 }
 
+// SetAccess gives full or read-only permission for users in all specified repositories.
+// It redefines all users permissions, replacing the respective user collection
+func SetAccess(rNames, uNames []string, readOnly bool) error {
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if readOnly {
+		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$set": bson.M{"readonlyusers": uNames}})
+	} else {
+		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$set": bson.M{"users": uNames}})
+	}
+	return err
+}
+
 // GrantAccess gives full or read-only permission for users in all specified repositories.
 // If any of the repositories/users does not exist, GrantAccess just skips it.
 func GrantAccess(rNames, uNames []string, readOnly bool) error {
