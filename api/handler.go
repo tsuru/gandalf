@@ -64,6 +64,7 @@ func SetupRouter() *pat.Router {
 	router.Post("/user", http.HandlerFunc(newUser))
 	router.Delete("/user/{name}", http.HandlerFunc(removeUser))
 	router.Delete("/repository/revoke", http.HandlerFunc(revokeAccess))
+	router.Put("/repository/set", http.HandlerFunc(setAccess))
 	router.Get("/repository/{name:[^/]*/?[^/]+}/archive", http.HandlerFunc(getArchive))
 	router.Get("/repository/{name:[^/]*/?[^/]+}/contents", http.HandlerFunc(getFileContents))
 	router.Get("/repository/{name:[^/]*/?[^/]+}/tree", http.HandlerFunc(getTree))
@@ -80,6 +81,24 @@ func SetupRouter() *pat.Router {
 	router.Get("/healthcheck", http.HandlerFunc(healthCheck))
 	router.Post("/hook/{name}", http.HandlerFunc(addHook))
 	return router
+}
+
+func setAccess(w http.ResponseWriter, r *http.Request) {
+	repositories, users, err := accessParameters(r.Body)
+	readOnly := r.URL.Query().Get("readonly") == "yes"
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := repository.SetAccess(repositories, users, readOnly); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if readOnly {
+		fmt.Fprintf(w, "Successfully set read-only access to users \"%s\" into repository \"%s\"", users, repositories)
+	} else {
+		fmt.Fprintf(w, "Successfully set full access to users \"%s\" into repository \"%s\"", users, repositories)
+	}
 }
 
 func grantAccess(w http.ResponseWriter, r *http.Request) {

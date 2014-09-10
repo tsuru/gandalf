@@ -41,6 +41,10 @@ func post(url string, b io.Reader, c *gocheck.C) (*httptest.ResponseRecorder, *h
 	return request("POST", url, b, c)
 }
 
+func put(url string, b io.Reader, c *gocheck.C) (*httptest.ResponseRecorder, *http.Request) {
+	return request("PUT", url, b, c)
+}
+
 func del(url string, b io.Reader, c *gocheck.C) (*httptest.ResponseRecorder, *http.Request) {
 	return request("DELETE", url, b, c)
 }
@@ -336,6 +340,67 @@ func (s *S) TestNewRepositoryShouldReturnErrorWhenBodyIsEmpty(c *gocheck.C) {
 	recorder, request := post("/repository", b, c)
 	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 400)
+}
+
+func (s *S) TestSetAccessShouldReturnErrorWhenBodyIsEmpty(c *gocheck.C) {
+	b := strings.NewReader("")
+	recorder, request := put("/repository/set", b, c)
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, 400)
+}
+
+func (s *S) TestSetAccessUpdatesReposDocument(c *gocheck.C) {
+	u, err := user.New("pippin", map[string]string{})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "pippin"})
+	c.Assert(err, gocheck.IsNil)
+	r := repository.Repository{Name: "onerepo", Users: []string{"oneuser"}}
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
+	r2 := repository.Repository{Name: "otherepo", Users: []string{"otheruser"}}
+	err = conn.Repository().Insert(&r2)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
+	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["%s"]}`, r.Name, r2.Name, u.Name))
+	rec, req := put("/repository/set", b, c)
+	s.router.ServeHTTP(rec, req)
+	var repos []repository.Repository
+	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(rec.Code, gocheck.Equals, 200)
+	for _, repo := range repos {
+		c.Assert(repo.Users, gocheck.DeepEquals, []string{u.Name})
+	}
+}
+
+func (s *S) TestSetReadonlyAccessUpdatesReposDocument(c *gocheck.C) {
+	u, err := user.New("pippin", map[string]string{})
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "pippin"})
+	c.Assert(err, gocheck.IsNil)
+	r := repository.Repository{Name: "onerepo", ReadOnlyUsers: []string{"oneuser"}}
+	err = conn.Repository().Insert(&r)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r.Name})
+	r2 := repository.Repository{Name: "otherepo", ReadOnlyUsers: []string{"otheruser"}}
+	err = conn.Repository().Insert(&r2)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
+	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories": ["%s", "%s"], "users": ["%s"]}`, r.Name, r2.Name, u.Name))
+	rec, req := put("/repository/set?readonly=yes", b, c)
+	s.router.ServeHTTP(rec, req)
+	var repos []repository.Repository
+	err = conn.Repository().Find(bson.M{"_id": bson.M{"$in": []string{r.Name, r2.Name}}}).All(&repos)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(rec.Code, gocheck.Equals, 200)
+	for _, repo := range repos {
+		c.Assert(repo.ReadOnlyUsers, gocheck.DeepEquals, []string{u.Name})
+	}
 }
 
 func (s *S) TestGrantAccessUpdatesReposDocument(c *gocheck.C) {

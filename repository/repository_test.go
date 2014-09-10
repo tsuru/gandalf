@@ -512,6 +512,68 @@ func (s *S) TestReadWriteURLUseUidFromConfigFile(c *gocheck.C) {
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("test@%s:f#.git", host))
 }
 
+func (s *S) TestSetAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("proj1", []string{"someuser"}, []string{"otheruser"}, true)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
+	r2, err := New("proj2", []string{"otheruser"}, []string{"someuser"}, true)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().RemoveId(r2.Name)
+	u := struct {
+		Name string `bson:"_id"`
+	}{Name: "lolcat"}
+	err = conn.User().Insert(&u)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().RemoveId(u.Name)
+	err = SetAccess([]string{r.Name, r2.Name}, []string{u.Name}, false)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r2.Name).One(&r2)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(r.Users, gocheck.DeepEquals, []string{u.Name})
+	c.Assert(r2.Users, gocheck.DeepEquals, []string{u.Name})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{"someuser"})
+}
+
+func (s *S) TestSetReadonlyAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("proj1", []string{"someuser"}, []string{"otheruser"}, true)
+	c.Assert(err, gocheck.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
+	r2, err := New("proj2", []string{"otheruser"}, []string{"someuser"}, true)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Repository().RemoveId(r2.Name)
+	u := struct {
+		Name string `bson:"_id"`
+	}{Name: "lolcat"}
+	err = conn.User().Insert(&u)
+	c.Assert(err, gocheck.IsNil)
+	defer conn.User().RemoveId(u.Name)
+	err = SetAccess([]string{r.Name, r2.Name}, []string{u.Name}, true)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r.Name).One(&r)
+	c.Assert(err, gocheck.IsNil)
+	err = conn.Repository().FindId(r2.Name).One(&r2)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(r.Users, gocheck.DeepEquals, []string{"someuser"})
+	c.Assert(r2.Users, gocheck.DeepEquals, []string{"otheruser"})
+	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{u.Name})
+	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{u.Name})
+}
+
 func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)

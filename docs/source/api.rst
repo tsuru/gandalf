@@ -51,6 +51,27 @@ Repository retrieval
 
 Retrieves information about a repository.
 
+Access set in repository
+--------------------------
+
+Redefines collections of users with read and write access into a repository. Specify ``readonly=yes`` if you'd like to set read-only access.
+
+* Method: PUT
+* URI: /repository/set
+* Format: JSON
+
+Example URL for **read/write** access (http://gandalf-server omitted for clarity)::
+
+    $ curl -XPUT /repository/set \                  # PUT to /repository/set
+        -d '{"repositories": ["myrepo"], \          # Collection of repositories
+            "users": ["john", "james"]}'            # Users with read/write access
+
+Example URL for **read-only** access (http://gandalf-server omitted for clarity)::
+
+    $ curl -XPUT /repository/set?readonly=yes \     # PUT to /repository/set
+        -d '{"repositories": ["myrepo"], \          # Collection of repositories
+            "users": ["bob", "alice"]}'             # Users with read-only access
+
 Access grant in repository
 --------------------------
 
