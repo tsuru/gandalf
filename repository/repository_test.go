@@ -389,30 +389,83 @@ func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistInDat
 	c.Assert(err, gocheck.ErrorMatches, "^Could not remove repository: not found$")
 }
 
-func (s *S) TestRename(c *gocheck.C) {
+func (s *S) TestUpdate(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
-	repository, err := New("freedom", []string{"fss@corp.globo.com"}, []string{"andrews@corp.globo.com"}, true)
-	c.Check(err, gocheck.IsNil)
-	commandmocker.Remove(tmpdir)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("freedom", []string{"c"}, []string{"d"}, false)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
+	expected := Repository{
+		Name:          "freedom",
+		Users:         []string{"a", "b"},
+		ReadOnlyUsers: []string{"c", "d"},
+		IsPublic:      true,
+	}
+	err = Update(r.Name, expected)
+	c.Assert(err, gocheck.IsNil)
+	repo, err := Get("freedom")
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(repo, gocheck.DeepEquals, expected)
+}
+
+func (s *S) TestUpdateWithRenaming(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err := New("freedom", []string{"c"}, []string{"d"}, false)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r.Name)
 	rfs := &fstesting.RecordingFs{}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
-	err = Rename(repository.Name, "free")
+	expected := Repository{
+		Name:          "freedom2",
+		Users:         []string{"a", "b"},
+		ReadOnlyUsers: []string{"c", "d"},
+		IsPublic:      true,
+	}
+	err = Update(r.Name, expected)
 	c.Assert(err, gocheck.IsNil)
-	_, err = Get("freedom")
+	repo, err := Get("freedom")
 	c.Assert(err, gocheck.NotNil)
-	repo, err := Get("free")
+	repo, err = Get("freedom2")
 	c.Assert(err, gocheck.IsNil)
-	repository.Name = "free"
-	c.Assert(repo, gocheck.DeepEquals, *repository)
-	action := "rename " + barePath("freedom") + " " + barePath("free")
+	c.Assert(repo, gocheck.DeepEquals, expected)
+	oldPath := path.Join(bareLocation(), "freedom.git")
+	newPath := path.Join(bareLocation(), "freedom2.git")
+	action := fmt.Sprintf("rename %s %s", oldPath, newPath)
 	c.Assert(rfs.HasAction(action), gocheck.Equals, true)
 }
 
-func (s *S) TestRenameNotFound(c *gocheck.C) {
-	err := Rename("something", "free")
-	c.Assert(err, gocheck.NotNil)
+func (s *S) TestUpdateErrsWithAlreadyExists(c *gocheck.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, gocheck.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r1, err := New("freedom", []string{"free"}, []string{}, false)
+	c.Assert(err, gocheck.IsNil)
+	r2, err := New("subjection", []string{"subdued"}, []string{}, false)
+	conn, err := db.Conn()
+	c.Assert(err, gocheck.IsNil)
+	defer conn.Close()
+	defer conn.Repository().RemoveId(r1.Name)
+	defer conn.Repository().RemoveId(r2.Name)
+	update := Repository{
+		Name: "subjection",
+	}
+	err = Update(r1.Name, update)
+	c.Assert(err, gocheck.ErrorMatches, "^insertDocument :: caused by :: 11000 E11000 duplicate key error .+$")
+}
+
+func (s *S) TestUpdateErrsWhenNotFound(c *gocheck.C) {
+	update := Repository{}
+	err := Update("nonexistent", update)
+	c.Assert(err, gocheck.ErrorMatches, "not found")
+
 }
 
 func (s *S) TestReadOnlyURL(c *gocheck.C) {
@@ -510,68 +563,6 @@ func (s *S) TestReadWriteURLUseUidFromConfigFile(c *gocheck.C) {
 	defer config.Set("uid", uid)
 	remote := (&Repository{Name: "f#"}).ReadWriteURL()
 	c.Assert(remote, gocheck.Equals, fmt.Sprintf("test@%s:f#.git", host))
-}
-
-func (s *S) TestSetAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, gocheck.IsNil)
-	defer commandmocker.Remove(tmpdir)
-	r, err := New("proj1", []string{"someuser"}, []string{"otheruser"}, true)
-	c.Assert(err, gocheck.IsNil)
-	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
-	defer conn.Close()
-	defer conn.Repository().RemoveId(r.Name)
-	r2, err := New("proj2", []string{"otheruser"}, []string{"someuser"}, true)
-	c.Assert(err, gocheck.IsNil)
-	defer conn.Repository().RemoveId(r2.Name)
-	u := struct {
-		Name string `bson:"_id"`
-	}{Name: "lolcat"}
-	err = conn.User().Insert(&u)
-	c.Assert(err, gocheck.IsNil)
-	defer conn.User().RemoveId(u.Name)
-	err = SetAccess([]string{r.Name, r2.Name}, []string{u.Name}, false)
-	c.Assert(err, gocheck.IsNil)
-	err = conn.Repository().FindId(r.Name).One(&r)
-	c.Assert(err, gocheck.IsNil)
-	err = conn.Repository().FindId(r2.Name).One(&r2)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(r.Users, gocheck.DeepEquals, []string{u.Name})
-	c.Assert(r2.Users, gocheck.DeepEquals, []string{u.Name})
-	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{"otheruser"})
-	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{"someuser"})
-}
-
-func (s *S) TestSetReadonlyAccessShouldAddUserToListOfRepositories(c *gocheck.C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, gocheck.IsNil)
-	defer commandmocker.Remove(tmpdir)
-	r, err := New("proj1", []string{"someuser"}, []string{"otheruser"}, true)
-	c.Assert(err, gocheck.IsNil)
-	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
-	defer conn.Close()
-	defer conn.Repository().RemoveId(r.Name)
-	r2, err := New("proj2", []string{"otheruser"}, []string{"someuser"}, true)
-	c.Assert(err, gocheck.IsNil)
-	defer conn.Repository().RemoveId(r2.Name)
-	u := struct {
-		Name string `bson:"_id"`
-	}{Name: "lolcat"}
-	err = conn.User().Insert(&u)
-	c.Assert(err, gocheck.IsNil)
-	defer conn.User().RemoveId(u.Name)
-	err = SetAccess([]string{r.Name, r2.Name}, []string{u.Name}, true)
-	c.Assert(err, gocheck.IsNil)
-	err = conn.Repository().FindId(r.Name).One(&r)
-	c.Assert(err, gocheck.IsNil)
-	err = conn.Repository().FindId(r2.Name).One(&r2)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(r.Users, gocheck.DeepEquals, []string{"someuser"})
-	c.Assert(r2.Users, gocheck.DeepEquals, []string{"otheruser"})
-	c.Assert(r.ReadOnlyUsers, gocheck.DeepEquals, []string{u.Name})
-	c.Assert(r2.ReadOnlyUsers, gocheck.DeepEquals, []string{u.Name})
 }
 
 func (s *S) TestGrantAccessShouldAddUserToListOfRepositories(c *gocheck.C) {

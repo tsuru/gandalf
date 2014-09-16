@@ -64,7 +64,6 @@ func SetupRouter() *pat.Router {
 	router.Post("/user", http.HandlerFunc(newUser))
 	router.Delete("/user/{name}", http.HandlerFunc(removeUser))
 	router.Delete("/repository/revoke", http.HandlerFunc(revokeAccess))
-	router.Put("/repository/set", http.HandlerFunc(setAccess))
 	router.Get("/repository/{name:[^/]*/?[^/]+}/archive", http.HandlerFunc(getArchive))
 	router.Get("/repository/{name:[^/]*/?[^/]+}/contents", http.HandlerFunc(getFileContents))
 	router.Get("/repository/{name:[^/]*/?[^/]+}/tree", http.HandlerFunc(getTree))
@@ -77,28 +76,10 @@ func SetupRouter() *pat.Router {
 	router.Post("/repository", http.HandlerFunc(newRepository))
 	router.Get("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(getRepository))
 	router.Delete("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(removeRepository))
-	router.Put("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(renameRepository))
+	router.Put("/repository/{name:[^/]*/?[^/]+}", http.HandlerFunc(updateRepository))
 	router.Get("/healthcheck", http.HandlerFunc(healthCheck))
 	router.Post("/hook/{name}", http.HandlerFunc(addHook))
 	return router
-}
-
-func setAccess(w http.ResponseWriter, r *http.Request) {
-	repositories, users, err := accessParameters(r.Body)
-	readOnly := r.URL.Query().Get("readonly") == "yes"
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if err := repository.SetAccess(repositories, users, readOnly); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	if readOnly {
-		fmt.Fprintf(w, "Successfully set read-only access to users \"%s\" into repository \"%s\"", users, repositories)
-	} else {
-		fmt.Fprintf(w, "Successfully set full access to users \"%s\" into repository \"%s\"", users, repositories)
-	}
 }
 
 func grantAccess(w http.ResponseWriter, r *http.Request) {
@@ -253,15 +234,19 @@ func removeRepository(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Repository \"%s\" successfully removed\n", name)
 }
 
-func renameRepository(w http.ResponseWriter, r *http.Request) {
-	var p struct{ Name string }
+func updateRepository(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get(":name")
+	repo, err := repository.Get(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	defer r.Body.Close()
-	err := parseBody(r.Body, &p)
+	err = parseBody(r.Body, &repo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	name := r.URL.Query().Get(":name")
-	err = repository.Rename(name, p.Name)
+	err = repository.Update(name, repo)
 	if err != nil && err.Error() == "not found" {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	} else if err != nil {
