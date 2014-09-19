@@ -178,32 +178,45 @@ func Remove(name string) error {
 	return nil
 }
 
-// Rename renames a repository.
-func Rename(oldName, newName string) error {
-	log.Debugf("Renaming repository %q to %q", oldName, newName)
-	repo, err := Get(oldName)
+// Update update a repository data.
+func Update(name string, newData Repository) error {
+	log.Debugf("Updating repository %q data", name)
+	repo, err := Get(name)
 	if err != nil {
-		log.Errorf("repository.Rename: Repository %q not found: %s", oldName, err)
+		log.Errorf("repository.Update: Repository %q not found: %s", name, err)
 		return err
 	}
-	newRepo := repo
-	newRepo.Name = newName
 	conn, err := db.Conn()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	err = conn.Repository().Insert(newRepo)
-	if err != nil {
-		log.Errorf("repository.Rename: Error adding new repository %q: %s", newName, err)
-		return err
+	if len(newData.Name) > 0 && newData.Name != repo.Name {
+		oldName := repo.Name
+		log.Debugf("Renaming repository %q to %q", oldName, newData.Name)
+		err = conn.Repository().Insert(newData)
+		if err != nil {
+			log.Errorf("repository.Rename: Error adding new repository %q: %s", newData.Name, err)
+			return err
+		}
+		err = conn.Repository().RemoveId(oldName)
+		if err != nil {
+			log.Errorf("repository.Rename: Error removing old repository %q: %s", oldName, err)
+			return err
+		}
+		err = fs.Filesystem().Rename(barePath(oldName), barePath(newData.Name))
+		if err != nil {
+			log.Errorf("repository.Rename: Error renaming old repository in filesystem %q: %s", oldName, err)
+			return err
+		}
+	} else {
+		err = conn.Repository().UpdateId(repo.Name, newData)
+		if err != nil {
+			log.Errorf("repository.Update: Error updating repository data %q: %s", repo.Name, err)
+			return err
+		}
 	}
-	err = conn.Repository().RemoveId(oldName)
-	if err != nil {
-		log.Errorf("repository.Rename: Error removing old repository %q: %s", oldName, err)
-		return err
-	}
-	return fs.Filesystem().Rename(barePath(oldName), barePath(newName))
+	return nil
 }
 
 // ReadWriteURL formats the git ssh url and return it. If no remote is configured in
@@ -283,22 +296,6 @@ func (r *Repository) isValid() (bool, error) {
 		return false, errors.New("Validation Error: repository should have at least one user")
 	}
 	return true, nil
-}
-
-// SetAccess gives full or read-only permission for users in all specified repositories.
-// It redefines all users permissions, replacing the respective user collection
-func SetAccess(rNames, uNames []string, readOnly bool) error {
-	conn, err := db.Conn()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	if readOnly {
-		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$set": bson.M{"readonlyusers": uNames}})
-	} else {
-		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$set": bson.M{"users": uNames}})
-	}
-	return err
 }
 
 // GrantAccess gives full or read-only permission for users in all specified repositories.
