@@ -14,7 +14,7 @@ import (
 	"github.com/tsuru/gandalf/api"
 )
 
-const version = "0.5.0"
+const version = "0.5.1"
 
 func main() {
 	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
