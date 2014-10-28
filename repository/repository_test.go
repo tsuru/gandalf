@@ -25,6 +25,7 @@ import (
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/multipartzip"
 	fstesting "github.com/tsuru/tsuru/fs/testing"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
 )
@@ -458,7 +459,7 @@ func (s *S) TestUpdateErrsWithAlreadyExists(c *gocheck.C) {
 		Name: "subjection",
 	}
 	err = Update(r1.Name, update)
-	c.Assert(err, gocheck.ErrorMatches, "^insertDocument :: caused by :: 11000 E11000 duplicate key error .+$")
+	c.Assert(mgo.IsDup(err), gocheck.Equals, true)
 }
 
 func (s *S) TestUpdateErrsWhenNotFound(c *gocheck.C) {
