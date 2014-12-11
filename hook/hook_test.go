@@ -77,6 +77,22 @@ func (s *S) TestCanAddNewHook(c *gocheck.C) {
 	c.Assert(string(content), gocheck.Equals, "some content")
 }
 
+func (s *S) TestCanAddNewHookInOldRepository(c *gocheck.C) {
+	s.rfs = &testingfs.RecordingFs{}
+	fs.Fsystem = s.rfs
+	bareTemplate, _ := config.GetString("git:bare:template")
+	err := fs.Fsystem.RemoveAll(bareTemplate + "/hooks")
+	c.Assert(err, gocheck.IsNil)
+	hook_content := strings.NewReader("some content")
+	err = Add("test-can-add-new-hook", []string{}, hook_content)
+	c.Assert(err, gocheck.IsNil)
+	file, err := fs.Filesystem().OpenFile("/home/git/bare-template/hooks/test-can-add-new-hook", os.O_RDONLY, 0755)
+	defer file.Close()
+	content, err := ioutil.ReadAll(file)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(string(content), gocheck.Equals, "some content")
+}
+
 func (s *S) TestCanAddNewRepository(c *gocheck.C) {
 	hook_content := strings.NewReader("some content")
 	err := Add("test-can-add-new-repository-hook", []string{"some-repo"}, hook_content)
