@@ -43,7 +43,11 @@ func Add(name string, repos []string, body io.Reader) error {
 			repo += ".git"
 			s = []string{path, repo, "hooks", name}
 			scriptPath = strings.Join(s, "/")
-			err := createHookFile(scriptPath, body)
+			err = fs.Filesystem().MkdirAll(scriptPath+"hooks", 0755)
+			if err != nil {
+				return err
+			}
+			err = createHookFile(scriptPath, body)
 			if err != nil {
 				return err
 			}
