@@ -7,7 +7,6 @@ package hook
 import (
 	"io/ioutil"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/tsuru/commandmocker"
@@ -56,8 +55,8 @@ func (s *S) TearDownSuite(c *gocheck.C) {
 }
 
 func (s *S) TestCanCreateHookFile(c *gocheck.C) {
-	hook_content := strings.NewReader("some content")
-	err := createHookFile("/tmp/repositories/some-repo.git/hooks/test-can-create-hook-file", hook_content)
+	hookContent := []byte("some content")
+	err := createHookFile("/tmp/repositories/some-repo.git/hooks/test-can-create-hook-file", hookContent)
 	c.Assert(err, gocheck.IsNil)
 	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/test-can-create-hook-file", os.O_RDONLY, 0755)
 	defer file.Close()
@@ -67,8 +66,8 @@ func (s *S) TestCanCreateHookFile(c *gocheck.C) {
 }
 
 func (s *S) TestCanAddNewHook(c *gocheck.C) {
-	hook_content := strings.NewReader("some content")
-	err := Add("test-can-add-new-hook", []string{}, hook_content)
+	hookContent := []byte("some content")
+	err := Add("test-can-add-new-hook", []string{}, hookContent)
 	c.Assert(err, gocheck.IsNil)
 	file, err := fs.Filesystem().OpenFile("/home/git/bare-template/hooks/test-can-add-new-hook", os.O_RDONLY, 0755)
 	defer file.Close()
@@ -83,8 +82,8 @@ func (s *S) TestCanAddNewHookInOldRepository(c *gocheck.C) {
 	bareTemplate, _ := config.GetString("git:bare:template")
 	err := fs.Fsystem.RemoveAll(bareTemplate + "/hooks")
 	c.Assert(err, gocheck.IsNil)
-	hook_content := strings.NewReader("some content")
-	err = Add("test-can-add-new-hook", []string{}, hook_content)
+	hookContent := []byte("some content")
+	err = Add("test-can-add-new-hook", []string{}, hookContent)
 	c.Assert(err, gocheck.IsNil)
 	file, err := fs.Filesystem().OpenFile("/home/git/bare-template/hooks/test-can-add-new-hook", os.O_RDONLY, 0755)
 	defer file.Close()
@@ -94,8 +93,8 @@ func (s *S) TestCanAddNewHookInOldRepository(c *gocheck.C) {
 }
 
 func (s *S) TestCanAddNewRepository(c *gocheck.C) {
-	hook_content := strings.NewReader("some content")
-	err := Add("test-can-add-new-repository-hook", []string{"some-repo"}, hook_content)
+	hookContent := []byte("some content")
+	err := Add("test-can-add-new-repository-hook", []string{"some-repo"}, hookContent)
 	c.Assert(err, gocheck.IsNil)
 	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/test-can-add-new-repository-hook", os.O_RDONLY, 0755)
 	defer file.Close()
