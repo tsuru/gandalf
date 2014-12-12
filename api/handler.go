@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/pat"
 	"github.com/tsuru/config"
@@ -276,17 +275,16 @@ func addHook(w http.ResponseWriter, r *http.Request) {
 	}
 	repos := []string{}
 	if err := json.Unmarshal(body, &params); err != nil {
-		content := strings.NewReader(string(body))
-		if err := hook.Add(name, repos, content); err != nil {
+		if err := hook.Add(name, repos, body); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-	}
-	content := strings.NewReader(params.Content)
-	repos = params.Repositories
-	if err := hook.Add(name, repos, content); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	} else {
+		repos = params.Repositories
+		if err := hook.Add(name, repos, []byte(params.Content)); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	if len(repos) > 0 {
 		fmt.Fprint(w, "hook ", name, " successfully created for ", repos, "\n")

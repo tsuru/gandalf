@@ -5,7 +5,6 @@
 package hook
 
 import (
-	"io"
 	"os"
 	"strings"
 
@@ -13,13 +12,13 @@ import (
 	"github.com/tsuru/gandalf/fs"
 )
 
-func createHookFile(path string, body io.Reader) error {
-	file, err := fs.Filesystem().OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
+func createHookFile(path string, content []byte) error {
+	file, err := fs.Filesystem().OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	_, err = io.Copy(file, body)
+	_, err = file.Write(content)
 	if err != nil {
 		return err
 	}
@@ -27,12 +26,12 @@ func createHookFile(path string, body io.Reader) error {
 }
 
 // Adds a hook script.
-func Add(name string, repos []string, body io.Reader) error {
-	config_param := "git:bare:template"
+func Add(name string, repos []string, content []byte) error {
+	configParam := "git:bare:template"
 	if len(repos) > 0 {
-		config_param = "git:bare:location"
+		configParam = "git:bare:location"
 	}
-	path, err := config.GetString(config_param)
+	path, err := config.GetString(configParam)
 	if err != nil {
 		return err
 	}
@@ -47,13 +46,13 @@ func Add(name string, repos []string, body io.Reader) error {
 			if err != nil {
 				return err
 			}
-			err = createHookFile(scriptPath, body)
+			err = createHookFile(scriptPath, content)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		return createHookFile(scriptPath, body)
+		return createHookFile(scriptPath, content)
 	}
 	return nil
 }
