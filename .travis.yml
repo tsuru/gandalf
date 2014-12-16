@@ -15,5 +15,6 @@ before_script:
   - if [ "$TRAVIS_REPO_SLUG" != "tsuru/gandalf" ]; then cd ..; mv gandalf ../tsuru; cd ../tsuru/gandalf; fi
 script:
   - make test GO_EXTRAFLAGS=-x
+  - rm -rf Godeps
   - ./check-fmt.sh
 services: mongodb

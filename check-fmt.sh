@@ -18,9 +18,26 @@ then
     do
         echo "- ${file}"
     done
+    echo
     status=1
 fi
 
+go get golang.org/x/tools/cmd/goimports
+out=`goimports -l .`
+if [ "${out}" != "" ]
+then
+    echo "ERROR: there are files that need to be formatted with goimports"
+    echo
+    echo "Files:"
+    for file in $out
+    do
+        echo "- ${file}"
+    done
+    status=1
+fi
+
+
+go get golang.org/x/tools/cmd/vet
 `go vet ./... > .vet 2>&1`
 out=`cat .vet`
 if [ "${out}" != "" ]
@@ -33,5 +50,5 @@ END
     status=1
 fi
 
-rm .vet || /bin/true
+rm .vet || true
 exit $status
