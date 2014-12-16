@@ -286,7 +286,20 @@ Where:
         * `pre-receive`
         * `update`
 
-Example URL (http://gandalf-server omitted for clarity)::
+Example URL for bare repository (http://gandalf-server omitted for clarity)::
+
+    $ curl -d '{"content": "content of my post-receive hook"}' localhost:8000/repository/hook/post-receive
+
+You should see the following:
+
+.. highlight:: bash
+
+::
+
+    hook post-receive successfully created
+
+
+Example URL for one or more repositories (http://gandalf-server omitted for clarity)::
 
     $ curl -d '{"repositories": ["some-repo"], "content": "content of my update hook"}' localhost:8000/repository/hook/update
 
@@ -296,7 +309,7 @@ You should see the following:
 
 ::
 
-    hook update successfully created for [some-repo]
+    hook update successfully created for some-repo
 
 Commit
 ------
