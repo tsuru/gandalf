@@ -25,12 +25,15 @@ func main() {
 		fmt.Printf("gandalf-webserver version %s\n", version)
 		return
 	}
+	log.Printf("Opening config file: %s ...\n", *configFile)
 	err := config.ReadAndWatchConfigFile(*configFile)
 	if err != nil {
-		msg := `Could not find gandalf config file. Searched on %s.
-For an example conf check gandalf/etc/gandalf.conf file.\n %s`
-		log.Panicf(msg, *configFile, err)
+		msg := `Could not open gandalf config file at %s (%s).
+  For an example, see: gandalf/etc/gandalf.conf
+  Note that you can specify a different config file with the --config option -- e.g.: --config=./etc/gandalf.conf`
+		log.Fatalf(msg, *configFile, err)
 	}
+	log.Printf("Successfully read config file: %s\n", *configFile)
 	router := api.SetupRouter()
 	bind, err := config.GetString("bind")
 	if err != nil {
