@@ -41,6 +41,12 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 		}
 	}
 	if !*dry {
+		bareLocation, err := config.GetString("git:bare:location")
+		if err != nil {
+			panic("You should configure a git:bare:location for gandalf.")
+		}
+		log.Printf("Repository location: %s\n", bareLocation)
+		log.Printf("gandalf-webserver %s listening on %s\n", version, bind)
 		log.Fatal(http.ListenAndServe(bind, router))
 	}
 }
