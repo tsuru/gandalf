@@ -57,7 +57,7 @@ Now we already have access to myproject, let's create a git repository locally t
     $ git commit -m "first commit"
     $ git push gandalf master
 
-You ould see the usual git output.
+You should see the usual git output.
 
 Removing a user and a repository
 ================================
