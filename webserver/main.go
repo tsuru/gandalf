@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/codegangsta/negroni"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/api"
 )
@@ -32,6 +33,13 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 		log.Panicf(msg, *configFile, err)
 	}
 	router := api.SetupRouter()
+	n := negroni.New()
+	n.Use(api.NewLoggerMiddleware())
+	n.Use(api.NewResponseHeaderMiddleware("Server", "gandalf-webserver/"+version))
+	n.Use(api.NewResponseHeaderMiddleware("X-Gandalf-Version", version))
+	n.Use(api.NewResponseHeaderMiddleware("Cache-Control", "private, max-age=0"))
+	n.Use(api.NewResponseHeaderMiddleware("Expires", "-1"))
+	n.UseHandler(router)
 	bind, err := config.GetString("bind")
 	if err != nil {
 		var perr error
@@ -41,6 +49,6 @@ For an example conf check gandalf/etc/gandalf.conf file.\n %s`
 		}
 	}
 	if !*dry {
-		log.Fatal(http.ListenAndServe(bind, router))
+		log.Fatal(http.ListenAndServe(bind, n))
 	}
 }
