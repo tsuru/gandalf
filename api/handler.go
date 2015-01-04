@@ -334,6 +334,10 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	database["url"] = dburl
 	database["name"] = dbname
 	git := make(map[string]interface{})
+	gitVersion, err := repository.GitVersion()
+	if err == nil && gitVersion != "" {
+		git["version"] = gitVersion
+	}
 	git["bare_location"] = bareLocation
 	git["bare_template"] = bareTemplate
 	result["database"] = database
