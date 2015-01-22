@@ -2197,7 +2197,7 @@ func (s *S) TestGetLogsWithAllSortsOfSubjects(c *gocheck.C) {
 	c.Assert(history.Commits[1].Author.Name, gocheck.Equals, "doge")
 	c.Assert(history.Commits[1].Author.Email, gocheck.Equals, "much@email.com")
 	c.Assert(history.Commits[1].Subject, gocheck.Equals, "will\tbark")
-	c.Assert(history.Commits[1].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
+	c.Assert(history.Commits[1].CreatedAt, gocheck.Equals, history.Commits[1].Author.Date)
 	c.Assert(history.Commits[2].Ref, gocheck.Matches, "[a-f0-9]{40}")
 	c.Assert(history.Commits[2].Parent, gocheck.HasLen, 0)
 	c.Assert(history.Commits[2].Committer.Name, gocheck.Equals, "doge")
@@ -2205,7 +2205,7 @@ func (s *S) TestGetLogsWithAllSortsOfSubjects(c *gocheck.C) {
 	c.Assert(history.Commits[2].Author.Name, gocheck.Equals, "doge")
 	c.Assert(history.Commits[2].Author.Email, gocheck.Equals, "much@email.com")
 	c.Assert(history.Commits[2].Subject, gocheck.Equals, "")
-	c.Assert(history.Commits[2].CreatedAt, gocheck.Equals, history.Commits[0].Author.Date)
+	c.Assert(history.Commits[2].CreatedAt, gocheck.Equals, history.Commits[2].Author.Date)
 	c.Assert(history.Next, gocheck.Equals, "")
 }
 
