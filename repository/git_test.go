@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -11,7 +11,7 @@ import (
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/fs"
-	"github.com/tsuru/tsuru/fs/testing"
+	"github.com/tsuru/tsuru/fs/fstest"
 	"launchpad.net/gocheck"
 )
 
@@ -80,7 +80,7 @@ func (s *S) TestNewBareShouldNotPassTemplateOptionWhenItsNotSetInConfig(c *goche
 }
 
 func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *gocheck.C) {
-	rfs := &testing.RecordingFs{FileContent: "foo"}
+	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	err := removeBare("myBare")
@@ -90,8 +90,8 @@ func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *gocheck.C) {
 }
 
 func (s *S) TestRemoveBareShouldReturnDescriptiveErrorWhenRemovalFails(c *gocheck.C) {
-	rfs := &testing.RecordingFs{FileContent: "foo"}
-	fs.Fsystem = &testing.FileNotFoundFs{RecordingFs: *rfs}
+	rfs := &fstest.RecordingFs{FileContent: "foo"}
+	fs.Fsystem = &fstest.FileNotFoundFs{RecordingFs: *rfs}
 	defer func() { fs.Fsystem = nil }()
 	err := removeBare("fooo")
 	c.Assert(err, gocheck.ErrorMatches, "^Could not remove git bare repository: .*")

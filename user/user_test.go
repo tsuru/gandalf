@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -14,7 +14,7 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/repository"
-	fstesting "github.com/tsuru/tsuru/fs/testing"
+	"github.com/tsuru/tsuru/fs/fstest"
 	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
 )
@@ -22,7 +22,7 @@ import (
 func Test(t *testing.T) { gocheck.TestingT(t) }
 
 type S struct {
-	rfs *fstesting.RecordingFs
+	rfs *fstest.RecordingFs
 }
 
 var _ = gocheck.Suite(&S{})
@@ -44,7 +44,7 @@ func (s *S) SetUpSuite(c *gocheck.C) {
 }
 
 func (s *S) SetUpTest(c *gocheck.C) {
-	s.rfs = &fstesting.RecordingFs{}
+	s.rfs = &fstest.RecordingFs{}
 	fs.Fsystem = s.rfs
 }
 

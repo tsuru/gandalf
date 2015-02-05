@@ -24,7 +24,7 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/multipartzip"
-	fstesting "github.com/tsuru/tsuru/fs/testing"
+	"github.com/tsuru/tsuru/fs/fstest"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
@@ -226,7 +226,7 @@ func (s *S) TestNewShouldCreateNamesakeRepositories(c *gocheck.C) {
 }
 
 func (s *S) TestNewPublicRepository(c *gocheck.C) {
-	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	tmpdir, err := commandmocker.Add("git", "$*")
@@ -352,7 +352,7 @@ func (s *S) TestRemoveShouldRemoveBareRepositoryFromFileSystem(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	r, err := New("myRepo", []string{"pumpkin"}, []string{""}, false)
@@ -367,7 +367,7 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *gocheck.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, gocheck.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	r, err := New("myRepo", []string{"pumpkin"}, []string{""}, false)
@@ -382,7 +382,7 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *gocheck.C) {
 }
 
 func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistInDatabase(c *gocheck.C) {
-	rfs := &fstesting.RecordingFs{FileContent: "foo"}
+	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	r := &Repository{Name: "fooBar"}
@@ -421,7 +421,7 @@ func (s *S) TestUpdateWithRenaming(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	defer conn.Close()
 	defer conn.Repository().RemoveId(r.Name)
-	rfs := &fstesting.RecordingFs{}
+	rfs := &fstest.RecordingFs{}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	expected := Repository{

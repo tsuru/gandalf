@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -13,7 +13,7 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/user"
-	testingfs "github.com/tsuru/tsuru/fs/testing"
+	"github.com/tsuru/tsuru/fs/fstest"
 	"gopkg.in/mgo.v2/bson"
 	"launchpad.net/gocheck"
 )
@@ -22,7 +22,7 @@ func Test(t *testing.T) { gocheck.TestingT(t) }
 
 type S struct {
 	tmpdir string
-	rfs    *testingfs.RecordingFs
+	rfs    *fstest.RecordingFs
 	router *pat.Router
 }
 
@@ -39,7 +39,7 @@ func (s *S) SetUpSuite(c *gocheck.C) {
 }
 
 func (s *S) SetUpTest(c *gocheck.C) {
-	s.rfs = &testingfs.RecordingFs{}
+	s.rfs = &fstest.RecordingFs{}
 	fs.Fsystem = s.rfs
 	bareTemplate, _ := config.GetString("git:bare:template")
 	fs.Fsystem.MkdirAll(bareTemplate+"/hooks", 0755)
