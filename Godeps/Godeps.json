@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/tsuru/gandalf",
-	"GoVersion": "devel +bfe2cc97b9e1 Fri Aug 01 06:21:08 2014 -0700",
+	"GoVersion": "devel +c768a84 Wed Feb 4 10:16:38 2015 +0000",
 	"Packages": [
 		"./..."
 	],
