@@ -5,7 +5,7 @@
 package gandalftest
 
 import (
-	"net/http"
+	"net"
 	"testing"
 
 	"launchpad.net/gocheck"
@@ -17,11 +17,46 @@ type S struct{}
 
 var _ = gocheck.Suite(&S{})
 
-func (s *S) TestGandalfServerShouldRespondeToCalls(c *gocheck.C) {
-	h := TestHandler{}
-	ts := TestServer(&h)
-	defer ts.Close()
-	_, err := http.Get(ts.URL + "/test-server")
+func (s *S) TestNewServerFreePort(c *gocheck.C) {
+	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, gocheck.IsNil)
-	c.Assert(h.Url, gocheck.Equals, "/test-server")
+	defer server.Stop()
+	conn, err := net.Dial("tcp", server.listener.Addr().String())
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(conn.Close(), gocheck.IsNil)
+}
+
+func (s *S) TestNewServerSpecificPort(c *gocheck.C) {
+	server, err := NewServer("127.0.0.1:8599")
+	c.Assert(err, gocheck.IsNil)
+	defer server.Stop()
+	conn, err := net.Dial("tcp", server.listener.Addr().String())
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(conn.Close(), gocheck.IsNil)
+}
+
+func (s *S) TestNewServerListenError(c *gocheck.C) {
+	listen, err := net.Listen("tcp", "127.0.0.1:0")
+	c.Assert(err, gocheck.IsNil)
+	defer listen.Close()
+	server, err := NewServer(listen.Addr().String())
+	c.Assert(err, gocheck.ErrorMatches, `^.*bind: address already in use$`)
+	c.Assert(server, gocheck.IsNil)
+}
+
+func (s *S) TestServerStop(c *gocheck.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, gocheck.IsNil)
+	err = server.Stop()
+	c.Assert(err, gocheck.IsNil)
+	_, err = net.Dial("tcp", server.listener.Addr().String())
+	c.Assert(err, gocheck.ErrorMatches, `^.*connection refused$`)
+}
+
+func (s *S) TestURL(c *gocheck.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, gocheck.IsNil)
+	defer server.Stop()
+	expected := "http://" + server.listener.Addr().String() + "/"
+	c.Assert(server.URL(), gocheck.Equals, expected)
 }

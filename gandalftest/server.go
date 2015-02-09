@@ -2,33 +2,43 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package gandalftest provides a fake implementation of the Gandalf API.
 package gandalftest
 
 import (
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"fmt"
+	"net"
 )
 
-type TestHandler struct {
-	Body    []byte
-	Method  string
-	Url     string
-	Content string
-	Header  http.Header
+// GandalfServer is a fake gandalf server. An instance of the client can be
+// pointed to the address generated for this server
+type GandalfServer struct {
+	listener net.Listener
 }
 
-func (h *TestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.Method = r.Method
-	h.Url = r.URL.String()
-	b, _ := ioutil.ReadAll(r.Body)
-	h.Body = b
-	h.Header = r.Header
-	w.Write([]byte(h.Content))
+// NewServer returns an instance of the test server, bound to the specified
+// address. To get a random port, users can specify the :0 port.
+//
+// Examples:
+//
+//     server, err := NewServer("127.0.0.1:8080") // will bind on port 8080
+//     server, err := NewServer("127.0.0.1:0") // will get a random available port
+func NewServer(bind string) (*GandalfServer, error) {
+	listener, err := net.Listen("tcp", bind)
+	if err != nil {
+		return nil, err
+	}
+	server := GandalfServer{listener: listener}
+	return &server, nil
 }
 
-// StartGandalfServer starts a new httptest.Server and returns it
-func TestServer(h http.Handler) *httptest.Server {
-	ts := httptest.NewServer(h)
-	return ts
+// Stop stops the server, cleaning the internal listener and freeing the
+// allocated port.
+func (s *GandalfServer) Stop() error {
+	return s.listener.Close()
+}
+
+// URL returns the URL of the server, in the format "http://<host>:<port>/".
+func (s *GandalfServer) URL() string {
+	return fmt.Sprintf("http://%s/", s.listener.Addr())
 }
