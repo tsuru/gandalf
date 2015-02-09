@@ -25,6 +25,14 @@ type key struct {
 	Body string
 }
 
+// Failure represents a prepared failure, that is used in the PrepareFailure
+// method.
+type Failure struct {
+	Method   string
+	Path     string
+	Response string
+}
+
 // GandalfServer is a fake gandalf server. An instance of the client can be
 // pointed to the address generated for this server
 type GandalfServer struct {
@@ -33,6 +41,7 @@ type GandalfServer struct {
 	users     []string
 	keys      map[string][]key
 	usersLock sync.Mutex
+	failures  chan Failure
 }
 
 // NewServer returns an instance of the test server, bound to the specified
@@ -50,6 +59,7 @@ func NewServer(bind string) (*GandalfServer, error) {
 	server := GandalfServer{
 		listener: listener,
 		keys:     make(map[string][]key),
+		failures: make(chan Failure, 1),
 	}
 	server.buildMuxer()
 	go http.Serve(listener, &server)
@@ -67,9 +77,20 @@ func (s *GandalfServer) URL() string {
 	return fmt.Sprintf("http://%s/", s.listener.Addr())
 }
 
+// PrepareFailure prepares a failure in the server. The next request matching
+// the given URL and request path will fail with a 500 code and the provided
+// response in the body.
+func (s *GandalfServer) PrepareFailure(failure Failure) {
+	s.failures <- failure
+}
+
 // ServeHTTP handler HTTP requests, dealing with prepared failures before
 // dispatching the request to the proper internal handler.
 func (s *GandalfServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if failure, ok := s.getFailure(r.Method, r.URL.Path); ok {
+		http.Error(w, failure.Response, http.StatusInternalServerError)
+		return
+	}
 	s.muxer.ServeHTTP(w, r)
 }
 
@@ -94,4 +115,18 @@ func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
 		keys = append(keys, key{Name: name, Body: body})
 	}
 	s.keys[usr.Name] = keys
+}
+
+func (s *GandalfServer) getFailure(method, path string) (Failure, bool) {
+	var f Failure
+	select {
+	case f = <-s.failures:
+		if f.Method == method && f.Path == path {
+			return f, true
+		}
+		s.failures <- f
+		return f, false
+	default:
+		return f, false
+	}
 }

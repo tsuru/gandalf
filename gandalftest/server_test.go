@@ -74,5 +74,30 @@ func (s *S) TestCreateUser(c *check.C) {
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 	c.Assert(server.users, check.DeepEquals, []string{"someuser"})
-	c.Assert(server.keys, check.DeepEquals, map[string][]key{"someuser": []key{{Name: "rsa", Body: "mykeyrsa"}}})
+	c.Assert(server.keys, check.DeepEquals, map[string][]key{"someuser": {{Name: "rsa", Body: "mykeyrsa"}}})
+}
+
+func (s *S) TestPrepareFailure(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.PrepareFailure(Failure{Method: "POST", Path: "/users", Response: "fatal error"})
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"someuser","Keys":{"rsa":"mykeyrsa"}}`)
+	request, _ := http.NewRequest("POST", "/users", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusInternalServerError)
+	c.Assert(recorder.Body.String(), check.Equals, "fatal error\n")
+}
+
+func (s *S) TestPrepareFailureNotMatching(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.PrepareFailure(Failure{Method: "GET", Path: "/users", Response: "fatal error"})
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"someuser","Keys":{"rsa":"mykeyrsa"}}`)
+	request, _ := http.NewRequest("POST", "/users", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 }
