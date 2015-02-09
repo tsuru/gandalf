@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -16,222 +16,222 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
+	"gopkg.in/check.v1"
 	"gopkg.in/mgo.v2/bson"
-	"launchpad.net/gocheck"
 )
 
-func Test(t *testing.T) { gocheck.TestingT(t) }
+func Test(t *testing.T) { check.TestingT(t) }
 
 type S struct {
 	user *user.User
 	repo *repository.Repository
 }
 
-var _ = gocheck.Suite(&S{})
+var _ = check.Suite(&S{})
 
-func (s *S) SetUpSuite(c *gocheck.C) {
+func (s *S) SetUpSuite(c *check.C) {
 	var err error
 	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	err = config.ReadConfigFile("../etc/gandalf.conf")
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	config.Set("database:name", "gandalf_bin_tests")
 	s.user, err = user.New("testuser", map[string]string{})
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	// does not uses repository.New to avoid creation of bare git repo
 	s.repo = &repository.Repository{Name: "myapp", Users: []string{s.user.Name}}
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	err = conn.Repository().Insert(s.repo)
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 }
 
-func (s *S) TearDownSuite(c *gocheck.C) {
+func (s *S) TearDownSuite(c *check.C) {
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	conn.User().Database.DropDatabase()
 }
 
-func (s *S) TestHasWritePermissionSholdReturnTrueWhenUserCanWriteInRepo(c *gocheck.C) {
+func (s *S) TestHasWritePermissionSholdReturnTrueWhenUserCanWriteInRepo(c *check.C) {
 	allowed := hasWritePermission(s.user, s.repo)
-	c.Assert(allowed, gocheck.Equals, true)
+	c.Assert(allowed, check.Equals, true)
 }
 
-func (s *S) TestHasWritePermissionShouldReturnFalseWhenUserCannotWriteinRepo(c *gocheck.C) {
+func (s *S) TestHasWritePermissionShouldReturnFalseWhenUserCannotWriteinRepo(c *check.C) {
 	r := &repository.Repository{Name: "myotherapp"}
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	conn.Repository().Insert(&r)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	allowed := hasWritePermission(s.user, r)
-	c.Assert(allowed, gocheck.Equals, false)
+	c.Assert(allowed, check.Equals, false)
 }
 
-func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsPublic(c *gocheck.C) {
+func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsPublic(c *check.C) {
 	r := &repository.Repository{Name: "myotherapp", IsPublic: true}
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	conn.Repository().Insert(&r)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	allowed := hasReadPermission(s.user, r)
-	c.Assert(allowed, gocheck.Equals, true)
+	c.Assert(allowed, check.Equals, true)
 }
 
-func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToRead(c *gocheck.C) {
+func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToRead(c *check.C) {
 	user, err := user.New("readonlyuser", map[string]string{})
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	repo := &repository.Repository{
 		Name:          "otherapp",
 		Users:         []string{s.user.Name},
 		ReadOnlyUsers: []string{user.Name},
 	}
 	allowed := hasReadPermission(user, repo)
-	c.Assert(allowed, gocheck.Equals, true)
+	c.Assert(allowed, check.Equals, true)
 }
 
-func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToReadAndWrite(c *gocheck.C) {
+func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToReadAndWrite(c *check.C) {
 	allowed := hasReadPermission(s.user, s.repo)
-	c.Assert(allowed, gocheck.Equals, true)
+	c.Assert(allowed, check.Equals, true)
 }
 
-func (s *S) TestHasReadPermissionShouldReturnFalseWhenUserDoesNotHavePermissionToReadWriteAndRepoIsNotPublic(c *gocheck.C) {
+func (s *S) TestHasReadPermissionShouldReturnFalseWhenUserDoesNotHavePermissionToReadWriteAndRepoIsNotPublic(c *check.C) {
 	r := &repository.Repository{Name: "myotherapp", IsPublic: false}
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	conn.Repository().Insert(&r)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	allowed := hasReadPermission(s.user, r)
-	c.Assert(allowed, gocheck.Equals, false)
+	c.Assert(allowed, check.Equals, false)
 }
 
-func (s *S) TestActionShouldReturnTheCommandBeingExecutedBySSH_ORIGINAL_COMMANDEnvVar(c *gocheck.C) {
+func (s *S) TestActionShouldReturnTheCommandBeingExecutedBySSH_ORIGINAL_COMMANDEnvVar(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "test-cmd")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	cmd := action()
-	c.Assert(cmd, gocheck.Equals, "test-cmd")
+	c.Assert(cmd, check.Equals, "test-cmd")
 }
 
-func (s *S) TestActionShouldReturnEmptyWhenEnvVarIsNotSet(c *gocheck.C) {
+func (s *S) TestActionShouldReturnEmptyWhenEnvVarIsNotSet(c *check.C) {
 	cmd := action()
-	c.Assert(cmd, gocheck.Equals, "")
+	c.Assert(cmd, check.Equals, "")
 }
 
-func (s *S) TestRequestedRepositoryShouldGetArgumentInSSH_ORIGINAL_COMMANDAndRetrieveTheEquivalentDatabaseRepository(c *gocheck.C) {
+func (s *S) TestRequestedRepositoryShouldGetArgumentInSSH_ORIGINAL_COMMANDAndRetrieveTheEquivalentDatabaseRepository(c *check.C) {
 	r := repository.Repository{Name: "foo"}
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	err = conn.Repository().Insert(&r)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	repo, err := requestedRepository()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(repo.Name, gocheck.Equals, r.Name)
+	c.Assert(err, check.IsNil)
+	c.Assert(repo.Name, check.Equals, r.Name)
 }
 
-func (s *S) TestRequestedRepositoryShouldDeduceCorrectlyRepositoryNameWithDash(c *gocheck.C) {
+func (s *S) TestRequestedRepositoryShouldDeduceCorrectlyRepositoryNameWithDash(c *check.C) {
 	r := repository.Repository{Name: "foo-bar"}
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	err = conn.Repository().Insert(&r)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foo-bar.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	repo, err := requestedRepository()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(repo.Name, gocheck.Equals, r.Name)
+	c.Assert(err, check.IsNil)
+	c.Assert(repo.Name, check.Equals, r.Name)
 }
 
-func (s *S) TestRequestedRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhatIsExpected(c *gocheck.C) {
+func (s *S) TestRequestedRepositoryShouldReturnErrorWhenCommandDoesNotPassesWhatIsExpected(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, err := requestedRepository()
-	c.Assert(err, gocheck.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
+	c.Assert(err, check.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
-func (s *S) TestRequestedRepositoryShouldReturnErrorWhenThereIsNoCommandPassedToSSH_ORIGINAL_COMMAND(c *gocheck.C) {
+func (s *S) TestRequestedRepositoryShouldReturnErrorWhenThereIsNoCommandPassedToSSH_ORIGINAL_COMMAND(c *check.C) {
 	_, err := requestedRepository()
-	c.Assert(err, gocheck.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
+	c.Assert(err, check.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
-func (s *S) TestRequestedRepositoryShouldReturnFormatedErrorWhenRepositoryDoesNotExist(c *gocheck.C) {
+func (s *S) TestRequestedRepositoryShouldReturnFormatedErrorWhenRepositoryDoesNotExist(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'inexistent-repo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, err := requestedRepository()
-	c.Assert(err, gocheck.ErrorMatches, "^Repository not found$")
+	c.Assert(err, check.ErrorMatches, "^Repository not found$")
 }
 
-func (s *S) TestRequestedRepositoryShouldReturnEmptyRepositoryStructOnError(c *gocheck.C) {
+func (s *S) TestRequestedRepositoryShouldReturnEmptyRepositoryStructOnError(c *check.C) {
 	repo, err := requestedRepository()
-	c.Assert(err, gocheck.NotNil)
-	c.Assert(repo.Name, gocheck.Equals, "")
+	c.Assert(err, check.NotNil)
+	c.Assert(repo.Name, check.Equals, "")
 }
 
-func (s *S) TestParseGitCommand(c *gocheck.C) {
+func (s *S) TestParseGitCommand(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'foobar.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, name, err := parseGitCommand()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(name, gocheck.Equals, "foobar")
+	c.Assert(err, check.IsNil)
+	c.Assert(name, check.Equals, "foobar")
 }
 
-func (s *S) TestParseGitCommandWithSlash(c *gocheck.C) {
+func (s *S) TestParseGitCommandWithSlash(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/foobar.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, name, err := parseGitCommand()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(name, gocheck.Equals, "foobar")
+	c.Assert(err, check.IsNil)
+	c.Assert(name, check.Equals, "foobar")
 }
 
-func (s *S) TestParseGitCommandShouldReturnErrorWhenTheresNoMatch(c *gocheck.C) {
+func (s *S) TestParseGitCommandShouldReturnErrorWhenTheresNoMatch(c *check.C) {
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack foobar")
 	_, name, err := parseGitCommand()
-	c.Assert(err, gocheck.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
-	c.Assert(name, gocheck.Equals, "")
+	c.Assert(err, check.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
+	c.Assert(name, check.Equals, "")
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack ../foobar")
 	_, name, err = parseGitCommand()
-	c.Assert(err, gocheck.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
-	c.Assert(name, gocheck.Equals, "")
+	c.Assert(err, check.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
+	c.Assert(name, check.Equals, "")
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack /etc")
 	_, name, err = parseGitCommand()
-	c.Assert(err, gocheck.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
-	c.Assert(name, gocheck.Equals, "")
+	c.Assert(err, check.ErrorMatches, "You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.")
+	c.Assert(name, check.Equals, "")
 }
 
-func (s *S) TestParseGitCommandReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(c *gocheck.C) {
+func (s *S) TestParseGitCommandReturnsErrorWhenSSH_ORIGINAL_COMMANDIsNotAGitCommand(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "rm -rf /")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, _, err := parseGitCommand()
-	c.Assert(err, gocheck.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
+	c.Assert(err, check.ErrorMatches, "^You've tried to execute some weird command, I'm deliberately denying you to do that, get over it.$")
 }
 
-func (s *S) TestParseGitCommandDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *gocheck.C) {
+func (s *S) TestParseGitCommandDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommand(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'my-repo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, _, err := parseGitCommand()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 }
 
-func (s *S) TestParseGitCommandDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommandWithDashInName(c *gocheck.C) {
+func (s *S) TestParseGitCommandDoNotReturnsErrorWhenSSH_ORIGINAL_COMMANDIsAValidGitCommandWithDashInName(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/my-repo.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	_, _, err := parseGitCommand()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 }
 
-func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermission(c *gocheck.C) {
+func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermission(c *check.C) {
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	defer commandmocker.Remove(dir)
 	os.Args = []string{"gandalf", s.user.Name}
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myapp.git'")
@@ -241,16 +241,16 @@ func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermissi
 	}()
 	stdout := &bytes.Buffer{}
 	executeAction(hasWritePermission, "You don't have access to write in this repository.", stdout)
-	c.Assert(commandmocker.Ran(dir), gocheck.Equals, true)
+	c.Assert(commandmocker.Ran(dir), check.Equals, true)
 	p, err := config.GetString("git:bare:location")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	expected := path.Join(p, "myapp.git")
-	c.Assert(stdout.String(), gocheck.Equals, expected)
+	c.Assert(stdout.String(), check.Equals, expected)
 }
 
-func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExist(c *gocheck.C) {
+func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExist(c *check.C) {
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	defer commandmocker.Remove(dir)
 	os.Args = []string{"gandalf", "god"}
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myapp.git'")
@@ -261,12 +261,12 @@ func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExi
 	stdout := new(bytes.Buffer)
 	errorMsg := "You don't have access to write in this repository."
 	executeAction(hasWritePermission, errorMsg, stdout)
-	c.Assert(commandmocker.Ran(dir), gocheck.Equals, false)
+	c.Assert(commandmocker.Ran(dir), check.Equals, false)
 }
 
-func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenRepositoryDoesNotExist(c *gocheck.C) {
+func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenRepositoryDoesNotExist(c *check.C) {
 	dir, err := commandmocker.Add("git-receive-pack", "$*")
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	defer commandmocker.Remove(dir)
 	os.Args = []string{"gandalf", s.user.Name}
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'ghostapp.git'")
@@ -277,38 +277,38 @@ func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenRepositoryDoes
 	stdout := &bytes.Buffer{}
 	errorMsg := "You don't have access to write in this repository."
 	executeAction(hasWritePermission, errorMsg, stdout)
-	c.Assert(commandmocker.Ran(dir), gocheck.Equals, false)
+	c.Assert(commandmocker.Ran(dir), check.Equals, false)
 }
 
-func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositoryPath(c *gocheck.C) {
+func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositoryPath(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'myproject.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	cmd, err := formatCommand()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	p, err := config.GetString("git:bare:location")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	expected := path.Join(p, "myproject.git")
-	c.Assert(cmd, gocheck.DeepEquals, []string{"git-receive-pack", expected})
+	c.Assert(cmd, check.DeepEquals, []string{"git-receive-pack", expected})
 }
 
-func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositoryPathWithNamespace(c *gocheck.C) {
+func (s *S) TestFormatCommandShouldReceiveAGitCommandAndCanonizalizeTheRepositoryPathWithNamespace(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack 'me/myproject.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	cmd, err := formatCommand()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	p, err := config.GetString("git:bare:location")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	expected := path.Join(p, "me/myproject.git")
-	c.Assert(cmd, gocheck.DeepEquals, []string{"git-receive-pack", expected})
+	c.Assert(cmd, check.DeepEquals, []string{"git-receive-pack", expected})
 }
 
-func (s *S) TestFormatCommandShouldReceiveAGitCommandProjectWithDash(c *gocheck.C) {
+func (s *S) TestFormatCommandShouldReceiveAGitCommandProjectWithDash(c *check.C) {
 	os.Setenv("SSH_ORIGINAL_COMMAND", "git-receive-pack '/myproject.git'")
 	defer os.Setenv("SSH_ORIGINAL_COMMAND", "")
 	cmd, err := formatCommand()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	p, err := config.GetString("git:bare:location")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	expected := path.Join(p, "myproject.git")
-	c.Assert(cmd, gocheck.DeepEquals, []string{"git-receive-pack", expected})
+	c.Assert(cmd, check.DeepEquals, []string{"git-receive-pack", expected})
 }

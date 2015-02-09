@@ -8,55 +8,55 @@ import (
 	"net"
 	"testing"
 
-	"launchpad.net/gocheck"
+	"gopkg.in/check.v1"
 )
 
-func Test(t *testing.T) { gocheck.TestingT(t) }
+func Test(t *testing.T) { check.TestingT(t) }
 
 type S struct{}
 
-var _ = gocheck.Suite(&S{})
+var _ = check.Suite(&S{})
 
-func (s *S) TestNewServerFreePort(c *gocheck.C) {
+func (s *S) TestNewServerFreePort(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer server.Stop()
 	conn, err := net.Dial("tcp", server.listener.Addr().String())
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(conn.Close(), gocheck.IsNil)
+	c.Assert(err, check.IsNil)
+	c.Assert(conn.Close(), check.IsNil)
 }
 
-func (s *S) TestNewServerSpecificPort(c *gocheck.C) {
+func (s *S) TestNewServerSpecificPort(c *check.C) {
 	server, err := NewServer("127.0.0.1:8599")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer server.Stop()
 	conn, err := net.Dial("tcp", server.listener.Addr().String())
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(conn.Close(), gocheck.IsNil)
+	c.Assert(err, check.IsNil)
+	c.Assert(conn.Close(), check.IsNil)
 }
 
-func (s *S) TestNewServerListenError(c *gocheck.C) {
+func (s *S) TestNewServerListenError(c *check.C) {
 	listen, err := net.Listen("tcp", "127.0.0.1:0")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer listen.Close()
 	server, err := NewServer(listen.Addr().String())
-	c.Assert(err, gocheck.ErrorMatches, `^.*bind: address already in use$`)
-	c.Assert(server, gocheck.IsNil)
+	c.Assert(err, check.ErrorMatches, `^.*bind: address already in use$`)
+	c.Assert(server, check.IsNil)
 }
 
-func (s *S) TestServerStop(c *gocheck.C) {
+func (s *S) TestServerStop(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	err = server.Stop()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	_, err = net.Dial("tcp", server.listener.Addr().String())
-	c.Assert(err, gocheck.ErrorMatches, `^.*connection refused$`)
+	c.Assert(err, check.ErrorMatches, `^.*connection refused$`)
 }
 
-func (s *S) TestURL(c *gocheck.C) {
+func (s *S) TestURL(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer server.Stop()
 	expected := "http://" + server.listener.Addr().String() + "/"
-	c.Assert(server.URL(), gocheck.Equals, expected)
+	c.Assert(server.URL(), check.Equals, expected)
 }

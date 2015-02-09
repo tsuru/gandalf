@@ -12,87 +12,87 @@ import (
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/tsuru/fs/fstest"
-	"launchpad.net/gocheck"
+	"gopkg.in/check.v1"
 )
 
-func (s *S) TestBareLocationValuShouldComeFromGandalfConf(c *gocheck.C) {
+func (s *S) TestBareLocationValuShouldComeFromGandalfConf(c *check.C) {
 	bare = ""
 	config.Set("git:bare:location", "/home/gandalf")
 	l := bareLocation()
-	c.Assert(l, gocheck.Equals, "/home/gandalf")
+	c.Assert(l, check.Equals, "/home/gandalf")
 }
 
-func (s *S) TestBareLocationShouldResetBareValue(c *gocheck.C) {
+func (s *S) TestBareLocationShouldResetBareValue(c *check.C) {
 	l := bareLocation()
 	config.Set("git:bare:location", "fooo/baaar")
-	c.Assert(bareLocation(), gocheck.Equals, l)
+	c.Assert(bareLocation(), check.Equals, l)
 }
 
-func (s *S) TestNewBareShouldCreateADir(c *gocheck.C) {
+func (s *S) TestNewBareShouldCreateADir(c *check.C) {
 	dir, err := commandmocker.Add("git", "$*")
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	defer commandmocker.Remove(dir)
 	err = newBare("myBare")
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(commandmocker.Ran(dir), gocheck.Equals, true)
+	c.Assert(err, check.IsNil)
+	c.Assert(commandmocker.Ran(dir), check.Equals, true)
 }
 
-func (s *S) TestNewBareShouldReturnMeaningfullErrorWhenBareCreationFails(c *gocheck.C) {
+func (s *S) TestNewBareShouldReturnMeaningfullErrorWhenBareCreationFails(c *check.C) {
 	dir, err := commandmocker.Error("git", "cmd output", 1)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer commandmocker.Remove(dir)
 	err = newBare("foo")
-	c.Check(err, gocheck.NotNil)
+	c.Check(err, check.NotNil)
 	got := err.Error()
 	expected := "Could not create git bare repository: exit status 1. cmd output"
-	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(got, check.Equals, expected)
 }
 
-func (s *S) TestNewBareShouldPassTemplateOptionWhenItExistsOnConfig(c *gocheck.C) {
+func (s *S) TestNewBareShouldPassTemplateOptionWhenItExistsOnConfig(c *check.C) {
 	bareTemplate := "/var/templates"
 	bareLocation, err := config.GetString("git:bare:location")
 	config.Set("git:bare:template", bareTemplate)
 	defer config.Unset("git:bare:template")
 	barePath := path.Join(bareLocation, "foo.git")
 	dir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer commandmocker.Remove(dir)
 	err = newBare("foo")
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(commandmocker.Ran(dir), gocheck.Equals, true)
+	c.Assert(err, check.IsNil)
+	c.Assert(commandmocker.Ran(dir), check.Equals, true)
 	expected := fmt.Sprintf("init %s --bare --template=%s", barePath, bareTemplate)
-	c.Assert(commandmocker.Output(dir), gocheck.Equals, expected)
+	c.Assert(commandmocker.Output(dir), check.Equals, expected)
 }
 
-func (s *S) TestNewBareShouldNotPassTemplateOptionWhenItsNotSetInConfig(c *gocheck.C) {
+func (s *S) TestNewBareShouldNotPassTemplateOptionWhenItsNotSetInConfig(c *check.C) {
 	config.Unset("git:bare:template")
 	bareLocation, err := config.GetString("git:bare:location")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	barePath := path.Join(bareLocation, "foo.git")
 	dir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer commandmocker.Remove(dir)
 	err = newBare("foo")
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(commandmocker.Ran(dir), gocheck.Equals, true)
+	c.Assert(err, check.IsNil)
+	c.Assert(commandmocker.Ran(dir), check.Equals, true)
 	expected := fmt.Sprintf("init %s --bare", barePath)
-	c.Assert(commandmocker.Output(dir), gocheck.Equals, expected)
+	c.Assert(commandmocker.Output(dir), check.Equals, expected)
 }
 
-func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *gocheck.C) {
+func (s *S) TestRemoveBareShouldRemoveBareDirFromFileSystem(c *check.C) {
 	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	err := removeBare("myBare")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	action := "removeall " + path.Join(bareLocation(), "myBare.git")
-	c.Assert(rfs.HasAction(action), gocheck.Equals, true)
+	c.Assert(rfs.HasAction(action), check.Equals, true)
 }
 
-func (s *S) TestRemoveBareShouldReturnDescriptiveErrorWhenRemovalFails(c *gocheck.C) {
+func (s *S) TestRemoveBareShouldReturnDescriptiveErrorWhenRemovalFails(c *check.C) {
 	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = &fstest.FileNotFoundFs{RecordingFs: *rfs}
 	defer func() { fs.Fsystem = nil }()
 	err := removeBare("fooo")
-	c.Assert(err, gocheck.ErrorMatches, "^Could not remove git bare repository: .*")
+	c.Assert(err, check.ErrorMatches, "^Could not remove git bare repository: .*")
 }

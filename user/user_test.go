@@ -15,128 +15,128 @@ import (
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/tsuru/fs/fstest"
+	"gopkg.in/check.v1"
 	"gopkg.in/mgo.v2/bson"
-	"launchpad.net/gocheck"
 )
 
-func Test(t *testing.T) { gocheck.TestingT(t) }
+func Test(t *testing.T) { check.TestingT(t) }
 
 type S struct {
 	rfs *fstest.RecordingFs
 }
 
-var _ = gocheck.Suite(&S{})
+var _ = check.Suite(&S{})
 
-func (s *S) authKeysContent(c *gocheck.C) string {
+func (s *S) authKeysContent(c *check.C) string {
 	authFile := path.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
 	f, err := fs.Filesystem().OpenFile(authFile, os.O_RDWR, 0755)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer f.Close()
 	b, err := ioutil.ReadAll(f)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	return string(b)
 }
 
-func (s *S) SetUpSuite(c *gocheck.C) {
+func (s *S) SetUpSuite(c *check.C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
-	c.Check(err, gocheck.IsNil)
+	c.Check(err, check.IsNil)
 	config.Set("database:name", "gandalf_user_tests")
 }
 
-func (s *S) SetUpTest(c *gocheck.C) {
+func (s *S) SetUpTest(c *check.C) {
 	s.rfs = &fstest.RecordingFs{}
 	fs.Fsystem = s.rfs
 }
 
-func (s *S) TearDownTest(c *gocheck.C) {
+func (s *S) TearDownTest(c *check.C) {
 	s.rfs.Remove(authKey())
 }
 
-func (s *S) TearDownSuite(c *gocheck.C) {
+func (s *S) TearDownSuite(c *check.C) {
 	fs.Fsystem = nil
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	conn.User().Database.DropDatabase()
 }
 
-func (s *S) TestNewUserReturnsAStructFilled(c *gocheck.C) {
+func (s *S) TestNewUserReturnsAStructFilled(c *check.C) {
 	u, err := New("someuser", map[string]string{"somekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
-	c.Assert(u.Name, gocheck.Equals, "someuser")
+	c.Assert(u.Name, check.Equals, "someuser")
 	var key Key
 	err = conn.Key().Find(bson.M{"name": "somekey"}).One(&key)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(key.Name, gocheck.Equals, "somekey")
-	c.Assert(key.Body, gocheck.Equals, body)
-	c.Assert(key.Comment, gocheck.Equals, comment)
-	c.Assert(key.UserName, gocheck.Equals, u.Name)
+	c.Assert(err, check.IsNil)
+	c.Assert(key.Name, check.Equals, "somekey")
+	c.Assert(key.Body, check.Equals, body)
+	c.Assert(key.Comment, check.Equals, comment)
+	c.Assert(key.UserName, check.Equals, u.Name)
 }
 
-func (s *S) TestNewDuplicateUser(c *gocheck.C) {
+func (s *S) TestNewDuplicateUser(c *check.C) {
 	u, err := New("someuser", map[string]string{"somekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
 	u, err = New("someuser", map[string]string{"somekey": rawKey})
-	c.Assert(err, gocheck.ErrorMatches, "Could not create user: user already exists")
+	c.Assert(err, check.ErrorMatches, "Could not create user: user already exists")
 }
 
-func (s *S) TestNewDuplicateUserDifferentKey(c *gocheck.C) {
+func (s *S) TestNewDuplicateUserDifferentKey(c *check.C) {
 	u, err := New("someuser", map[string]string{"somekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
 	u, err = New("someuser", map[string]string{"somedifferentkey": rawKey + "fakeKey"})
-	c.Assert(err, gocheck.ErrorMatches, "Could not create user: user already exists")
+	c.Assert(err, check.ErrorMatches, "Could not create user: user already exists")
 }
 
-func (s *S) TestNewUserShouldStoreUserInDatabase(c *gocheck.C) {
+func (s *S) TestNewUserShouldStoreUserInDatabase(c *check.C) {
 	u, err := New("someuser", map[string]string{"somekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
 	err = conn.User().FindId(u.Name).One(&u)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(u.Name, gocheck.Equals, "someuser")
+	c.Assert(err, check.IsNil)
+	c.Assert(u.Name, check.Equals, "someuser")
 	n, err := conn.Key().Find(bson.M{"name": "somekey"}).Count()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(n, gocheck.Equals, 1)
+	c.Assert(err, check.IsNil)
+	c.Assert(n, check.Equals, 1)
 }
 
-func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *gocheck.C) {
+func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *check.C) {
 	_, err := New("", map[string]string{})
-	c.Assert(err, gocheck.NotNil)
+	c.Assert(err, check.NotNil)
 	got := err.Error()
 	expected := "Validation Error: user name is not valid"
-	c.Assert(got, gocheck.Equals, expected)
+	c.Assert(got, check.Equals, expected)
 }
 
-func (s *S) TestNewWritesKeyInAuthorizedKeys(c *gocheck.C) {
+func (s *S) TestNewWritesKeyInAuthorizedKeys(c *check.C) {
 	u, err := New("piccolo", map[string]string{"somekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
 	var key Key
 	err = conn.Key().Find(bson.M{"name": "somekey"}).One(&key)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	keys := s.authKeysContent(c)
-	c.Assert(keys, gocheck.Equals, key.format())
+	c.Assert(keys, check.Equals, key.format())
 }
 
-func (s *S) TestIsValid(c *gocheck.C) {
+func (s *S) TestIsValid(c *check.C) {
 	var tests = []struct {
 		input    string
 		expected bool
@@ -158,191 +158,191 @@ func (s *S) TestIsValid(c *gocheck.C) {
 	}
 }
 
-func (s *S) TestRemove(c *gocheck.C) {
+func (s *S) TestRemove(c *check.C) {
 	u, err := New("someuser", map[string]string{})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	err = Remove(u.Name)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	lenght, err := conn.User().FindId(u.Name).Count()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(lenght, gocheck.Equals, 0)
+	c.Assert(err, check.IsNil)
+	c.Assert(lenght, check.Equals, 0)
 }
 
-func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *gocheck.C) {
+func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *check.C) {
 	u, err := New("gandalf", map[string]string{"somekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
 	err = Remove(u.Name)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	got := s.authKeysContent(c)
-	c.Assert(got, gocheck.Equals, "")
+	c.Assert(got, check.Equals, "")
 }
 
-func (s *S) TestRemoveInexistentUserReturnsDescriptiveMessage(c *gocheck.C) {
+func (s *S) TestRemoveInexistentUserReturnsDescriptiveMessage(c *check.C) {
 	err := Remove("otheruser")
-	c.Assert(err, gocheck.ErrorMatches, "Could not remove user: not found")
+	c.Assert(err, check.ErrorMatches, "Could not remove user: not found")
 }
 
-func (s *S) TestRemoveDoesNotRemovesUserWhenUserIsTheOnlyOneAssciatedWithOneRepository(c *gocheck.C) {
+func (s *S) TestRemoveDoesNotRemovesUserWhenUserIsTheOnlyOneAssciatedWithOneRepository(c *check.C) {
 	u, err := New("silver", map[string]string{})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	r := s.createRepo("run", []string{u.Name}, c)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	err = Remove(u.Name)
-	c.Assert(err, gocheck.ErrorMatches, "^Could not remove user: user is the only one with access to at least one of it's repositories$")
+	c.Assert(err, check.ErrorMatches, "^Could not remove user: user is the only one with access to at least one of it's repositories$")
 }
 
-func (s *S) TestRemoveRevokesAccessToReposWithMoreThanOneUserAssociated(c *gocheck.C) {
+func (s *S) TestRemoveRevokesAccessToReposWithMoreThanOneUserAssociated(c *check.C) {
 	u, r, r2 := s.userPlusRepos(c)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Repository().Remove(bson.M{"_id": r.Name})
 	defer conn.Repository().Remove(bson.M{"_id": r2.Name})
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	err = Remove(u.Name)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	s.retrieveRepos(r, r2, c)
-	c.Assert(r.Users, gocheck.DeepEquals, []string{"slot"})
-	c.Assert(r2.Users, gocheck.DeepEquals, []string{"cnot"})
+	c.Assert(r.Users, check.DeepEquals, []string{"slot"})
+	c.Assert(r2.Users, check.DeepEquals, []string{"cnot"})
 }
 
-func (s *S) retrieveRepos(r, r2 *repository.Repository, c *gocheck.C) {
+func (s *S) retrieveRepos(r, r2 *repository.Repository, c *check.C) {
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	err = conn.Repository().FindId(r.Name).One(&r)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	err = conn.Repository().FindId(r2.Name).One(&r2)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 }
 
-func (s *S) userPlusRepos(c *gocheck.C) (*User, *repository.Repository, *repository.Repository) {
+func (s *S) userPlusRepos(c *check.C) (*User, *repository.Repository, *repository.Repository) {
 	u, err := New("silver", map[string]string{})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	r := s.createRepo("run", []string{u.Name, "slot"}, c)
 	r2 := s.createRepo("stay", []string{u.Name, "cnot"}, c)
 	return u, &r, &r2
 }
 
-func (s *S) createRepo(name string, users []string, c *gocheck.C) repository.Repository {
+func (s *S) createRepo(name string, users []string, c *check.C) repository.Repository {
 	r := repository.Repository{Name: name, Users: users}
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	err = conn.Repository().Insert(&r)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	return r
 }
 
-func (s *S) TestHandleAssociatedRepositoriesShouldRevokeAccessToRepoWithMoreThanOneUserAssociated(c *gocheck.C) {
+func (s *S) TestHandleAssociatedRepositoriesShouldRevokeAccessToRepoWithMoreThanOneUserAssociated(c *check.C) {
 	u, r, r2 := s.userPlusRepos(c)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Repository().RemoveId(r.Name)
 	defer conn.Repository().RemoveId(r2.Name)
 	defer conn.User().RemoveId(u.Name)
 	err = u.handleAssociatedRepositories()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	s.retrieveRepos(r, r2, c)
-	c.Assert(r.Users, gocheck.DeepEquals, []string{"slot"})
-	c.Assert(r2.Users, gocheck.DeepEquals, []string{"cnot"})
+	c.Assert(r.Users, check.DeepEquals, []string{"slot"})
+	c.Assert(r2.Users, check.DeepEquals, []string{"cnot"})
 }
 
-func (s *S) TestHandleAssociateRepositoriesReturnsErrorWhenUserIsOnlyOneWithAccessToAtLeastOneRepo(c *gocheck.C) {
+func (s *S) TestHandleAssociateRepositoriesReturnsErrorWhenUserIsOnlyOneWithAccessToAtLeastOneRepo(c *check.C) {
 	u, err := New("umi", map[string]string{})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	r := s.createRepo("proj1", []string{"umi"}, c)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().RemoveId(u.Name)
 	defer conn.Repository().RemoveId(r.Name)
 	err = u.handleAssociatedRepositories()
 	expected := "^Could not remove user: user is the only one with access to at least one of it's repositories$"
-	c.Assert(err, gocheck.ErrorMatches, expected)
+	c.Assert(err, check.ErrorMatches, expected)
 }
 
-func (s *S) TestAddKeyShouldSaveTheKeyInTheDatabase(c *gocheck.C) {
+func (s *S) TestAddKeyShouldSaveTheKeyInTheDatabase(c *check.C) {
 	u, err := New("umi", map[string]string{})
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().RemoveId(u.Name)
 	k := map[string]string{"somekey": rawKey}
 	err = AddKey("umi", k)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
 	var key Key
 	err = conn.Key().Find(bson.M{"name": "somekey"}).One(&key)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(key.Name, gocheck.Equals, "somekey")
-	c.Assert(key.Body, gocheck.Equals, body)
-	c.Assert(key.Comment, gocheck.Equals, comment)
-	c.Assert(key.UserName, gocheck.Equals, u.Name)
+	c.Assert(err, check.IsNil)
+	c.Assert(key.Name, check.Equals, "somekey")
+	c.Assert(key.Body, check.Equals, body)
+	c.Assert(key.Comment, check.Equals, comment)
+	c.Assert(key.UserName, check.Equals, u.Name)
 }
 
-func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *gocheck.C) {
+func (s *S) TestAddKeyShouldWriteKeyInAuthorizedKeys(c *check.C) {
 	u, err := New("umi", map[string]string{})
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().RemoveId(u.Name)
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
 	k := map[string]string{"somekey": rawKey}
 	err = AddKey("umi", k)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	var key Key
 	err = conn.Key().Find(bson.M{"name": "somekey"}).One(&key)
 	content := s.authKeysContent(c)
-	c.Assert(content, gocheck.Equals, key.format())
+	c.Assert(content, check.Equals, key.format())
 }
 
-func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExist(c *gocheck.C) {
+func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExist(c *check.C) {
 	err := AddKey("umi", map[string]string{"somekey": "ssh-rsa mykey umi@host"})
-	c.Assert(err, gocheck.Equals, ErrUserNotFound)
+	c.Assert(err, check.Equals, ErrUserNotFound)
 }
 
-func (s *S) TestRemoveKeyShouldRemoveKeyFromTheDatabase(c *gocheck.C) {
+func (s *S) TestRemoveKeyShouldRemoveKeyFromTheDatabase(c *check.C) {
 	u, err := New("luke", map[string]string{"homekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.User().RemoveId(u.Name)
 	err = RemoveKey("luke", "homekey")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	count, err := conn.Key().Find(bson.M{"name": "homekey", "username": u.Name}).Count()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(count, gocheck.Equals, 0)
+	c.Assert(err, check.IsNil)
+	c.Assert(count, check.Equals, 0)
 }
 
-func (s *S) TestRemoveKeyShouldRemoveFromAuthorizedKeysFile(c *gocheck.C) {
+func (s *S) TestRemoveKeyShouldRemoveFromAuthorizedKeysFile(c *check.C) {
 	u, err := New("luke", map[string]string{"homekey": rawKey})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	defer conn.User().RemoveId(u.Name)
 	defer conn.Key().Remove(bson.M{"name": "homekey"})
 	err = RemoveKey("luke", "homekey")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	content := s.authKeysContent(c)
-	c.Assert(content, gocheck.Equals, "")
+	c.Assert(content, check.Equals, "")
 }
 
-func (s *S) TestRemoveUnknownKeyFromUser(c *gocheck.C) {
+func (s *S) TestRemoveUnknownKeyFromUser(c *check.C) {
 	u, err := New("luke", map[string]string{})
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	defer conn.User().RemoveId(u.Name)
 	err = RemoveKey("luke", "homekey")
-	c.Assert(err, gocheck.Equals, ErrKeyNotFound)
+	c.Assert(err, check.Equals, ErrKeyNotFound)
 }
 
-func (s *S) TestRemoveKeyShouldReturnFormatedErrorMsgWhenUserDoesNotExist(c *gocheck.C) {
+func (s *S) TestRemoveKeyShouldReturnFormatedErrorMsgWhenUserDoesNotExist(c *check.C) {
 	err := RemoveKey("luke", "homekey")
-	c.Assert(err, gocheck.Equals, ErrUserNotFound)
+	c.Assert(err, check.Equals, ErrUserNotFound)
 }
