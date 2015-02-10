@@ -14,6 +14,7 @@ import (
 
 	"github.com/gorilla/pat"
 	"github.com/tsuru/gandalf/repository"
+	"golang.org/x/crypto/ssh"
 )
 
 type user struct {
@@ -99,6 +100,7 @@ func (s *GandalfServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
+	s.muxer.Post("/user/{name}/key", http.HandlerFunc(s.addKeys))
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
@@ -195,6 +197,40 @@ func (s *GandalfServer) getRepository(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (s *GandalfServer) addKeys(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get(":name")
+	var keys map[string]string
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(&keys)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	s.usersLock.Lock()
+	defer s.usersLock.Unlock()
+	userKeys, ok := s.keys[username]
+	if !ok {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+	for name, body := range keys {
+		if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(body)); err != nil {
+			http.Error(w, fmt.Sprintf("key %q is not valid", name), http.StatusBadRequest)
+			return
+		}
+		for _, userKey := range userKeys {
+			if name == userKey.Name {
+				http.Error(w, fmt.Sprintf("key %q already exists", name), http.StatusConflict)
+				return
+			}
+		}
+	}
+	for name, body := range keys {
+		userKeys = append(userKeys, key{Name: name, Body: body})
+	}
+	s.keys[username] = userKeys
 }
 
 func (s *GandalfServer) findUser(name string) (username string, index int) {

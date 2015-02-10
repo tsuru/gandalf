@@ -6,6 +6,7 @@ package gandalftest
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -216,6 +217,60 @@ func (s *S) TestGetRepositoryNotFound(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "repository not found\n")
 }
 
+func (s *S) TestAddKeys(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"myuser"}
+	server.keys["myuser"] = nil
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(fmt.Sprintf(`{"mykey":%q}`, publicKey))
+	request, _ := http.NewRequest("POST", "/user/myuser/key", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.keys["myuser"], check.DeepEquals, []key{{Name: "mykey", Body: publicKey}})
+}
+
+func (s *S) TestAddKeysUserNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(fmt.Sprintf(`{"mykey":%q}`, publicKey))
+	request, _ := http.NewRequest("POST", "/user/myuser/key", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "user not found\n")
+}
+
+func (s *S) TestAddKeysDuplicate(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"myuser"}
+	server.keys["myuser"] = []key{{Name: "mykey", Body: "irrelevant"}}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(fmt.Sprintf(`{"mykey":%q}`, publicKey))
+	request, _ := http.NewRequest("POST", "/user/myuser/key", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
+	c.Assert(recorder.Body.String(), check.Equals, `key "mykey" already exists`+"\n")
+}
+
+func (s *S) TestAddKeysInvalid(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"myuser"}
+	server.keys["myuser"] = nil
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"mykey":"some-invalid-key"}`)
+	request, _ := http.NewRequest("POST", "/user/myuser/key", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, `key "mykey" is not valid`+"\n")
+}
+
 func (s *S) TestPrepareFailure(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
@@ -240,3 +295,5 @@ func (s *S) TestPrepareFailureNotMatching(c *check.C) {
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 }
+
+const publicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDD91CO+YIU6nIb+l+JewPMLbUB9IZx4g6IUuqyLbmCi+8DNliEjE/KWUISPlkPWoDK4ibEY/gZPLPRMT3acA+2cAf3uApBwegvDgtDv1lgtTbkMc8QJaT044Vg+JtVDFraXU4T8fn/apVMMXro0Kr/DaLzUsxSigGrCIRyT1vkMCnya8oaQHu1Qa/wnOjd6tZzvzIsxJirAbQvzlLOb89c7LTPhUByySTQmgSnoNR6ZdPpjDwnaQgyAjbsPKjhkQ1AkcxOxBi0GwwSCO7aZ+T3F/mJ1bUhEE5BMh+vO3HQ3gGkc1xeQW4H7ZL33sJkP0Tb9zslaE1lT+fuOi7NBUK5 f@somewhere"
