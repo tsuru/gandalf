@@ -99,6 +99,13 @@ func (s *GandalfServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.muxer.ServeHTTP(w, r)
 }
 
+// Users return the list of users registered in the server.
+func (s *GandalfServer) Users() []string {
+	s.usersLock.RLock()
+	defer s.usersLock.RUnlock()
+	return s.users
+}
+
 func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
 	s.muxer.Post("/user/{name}/key", http.HandlerFunc(s.addKeys))

@@ -67,6 +67,14 @@ func (s *S) TestURL(c *check.C) {
 	c.Assert(server.URL(), check.Equals, expected)
 }
 
+func (s *S) TestUsers(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"abc", "def"}
+	c.Assert(server.Users(), check.DeepEquals, server.users)
+}
+
 func (s *S) TestCreateUser(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
