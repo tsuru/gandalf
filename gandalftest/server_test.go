@@ -70,11 +70,56 @@ func (s *S) TestCreateUser(c *check.C) {
 	defer server.Stop()
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"Name":"someuser","Keys":{"rsa":"mykeyrsa"}}`)
-	request, _ := http.NewRequest("POST", "/users", body)
+	request, _ := http.NewRequest("POST", "/user", body)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 	c.Assert(server.users, check.DeepEquals, []string{"someuser"})
 	c.Assert(server.keys, check.DeepEquals, map[string][]key{"someuser": {{Name: "rsa", Body: "mykeyrsa"}}})
+}
+
+func (s *S) TestCreateDuplicateUser(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"someuser","Keys":{"rsa":"mykeyrsa"}}`)
+	request, _ := http.NewRequest("POST", "/user", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	recorder = httptest.NewRecorder()
+	body = strings.NewReader(`{"Name":"someuser","Keys":{"rsa":"mykeyrsa"}}`)
+	request, _ = http.NewRequest("POST", "/user", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
+	c.Assert(recorder.Body.String(), check.Equals, "user already exists\n")
+}
+
+func (s *S) TestRemoveUser(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"someuser","Keys":{"rsa":"mykeyrsa"}}`)
+	request, _ := http.NewRequest("POST", "/user", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	recorder = httptest.NewRecorder()
+	request, _ = http.NewRequest("DELETE", "/user/someuser", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.users, check.HasLen, 0)
+	c.Assert(server.keys, check.HasLen, 0)
+}
+
+func (s *S) TestRemoveUserNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("DELETE", "/user/someuser", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "user not found\n")
 }
 
 func (s *S) TestPrepareFailure(c *check.C) {

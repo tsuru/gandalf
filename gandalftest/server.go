@@ -97,6 +97,7 @@ func (s *GandalfServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
+	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
 }
 
 func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
@@ -110,11 +111,36 @@ func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.users = append(s.users, usr.Name)
+	if _, ok := s.keys[usr.Name]; ok {
+		http.Error(w, "user already exists", http.StatusConflict)
+		return
+	}
 	keys := make([]key, 0, len(usr.Keys))
 	for name, body := range usr.Keys {
 		keys = append(keys, key{Name: name, Body: body})
 	}
 	s.keys[usr.Name] = keys
+}
+
+func (s *GandalfServer) removeUser(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get(":name")
+	s.usersLock.Lock()
+	defer s.usersLock.Unlock()
+	index := -1
+	for i, user := range s.users {
+		if user == username {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+	last := len(s.users) - 1
+	s.users[index] = s.users[last]
+	s.users = s.users[:last]
+	delete(s.keys, username)
 }
 
 func (s *GandalfServer) getFailure(method, path string) (Failure, bool) {
