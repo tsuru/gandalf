@@ -112,6 +112,25 @@ func (s *S) TestReadOnlyGrants(c *check.C) {
 	c.Assert(server.ReadOnlyGrants(), check.DeepEquals, expected)
 }
 
+func (s *S) TestKeys(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.keys = map[string][]key{
+		"myuser":   {{Name: "some-key", Body: "some-body"}, {Name: "other", Body: "other-body"}},
+		"youruser": nil,
+	}
+	myKeys, err := server.Keys("myuser")
+	c.Assert(err, check.IsNil)
+	c.Assert(myKeys, check.DeepEquals, map[string]string{"some-key": "some-body", "other": "other-body"})
+	yourKeys, err := server.Keys("youruser")
+	c.Assert(err, check.IsNil)
+	c.Assert(yourKeys, check.HasLen, 0)
+	unknownKeys, err := server.Keys("unknown")
+	c.Assert(unknownKeys, check.IsNil)
+	c.Assert(err.Error(), check.Equals, "user not found")
+}
+
 func (s *S) TestReset(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)

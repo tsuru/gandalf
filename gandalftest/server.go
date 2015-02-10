@@ -148,6 +148,22 @@ func (s *GandalfServer) ReadOnlyGrants() map[string][]string {
 	return result
 }
 
+// Keys returns all the keys registered for the given users, or an error if the
+// user doesn't exist.
+func (s *GandalfServer) Keys(user string) (map[string]string, error) {
+	s.usersLock.RLock()
+	defer s.usersLock.RUnlock()
+	keys, ok := s.keys[user]
+	if !ok {
+		return nil, fmt.Errorf("user not found")
+	}
+	keyMap := make(map[string]string, len(keys))
+	for _, key := range keys {
+		keyMap[key.Name] = key.Body
+	}
+	return keyMap, nil
+}
+
 // Reset resets all internal information of the server, like keys, repositories, users and prepared failures.
 func (s *GandalfServer) Reset() {
 	s.usersLock.Lock()
