@@ -624,6 +624,17 @@ func (s *S) TestRevokeAccessMissingRepositories(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "missing repositories\n")
 }
 
+func (s *S) TestHealthCheck(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/healthcheck", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), check.Equals, "WORKING")
+}
+
 func (s *S) TestPrepareFailure(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)

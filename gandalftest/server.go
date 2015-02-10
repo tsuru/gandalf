@@ -194,6 +194,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
 	s.muxer.Delete("/repository/{name}", http.HandlerFunc(s.removeRepository))
 	s.muxer.Get("/repository/{name}", http.HandlerFunc(s.getRepository))
+	s.muxer.Get("/healthcheck", http.HandlerFunc(s.healthcheck))
 }
 
 func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
@@ -454,6 +455,10 @@ func (s *GandalfServer) listKeys(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (s *GandalfServer) healthcheck(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("WORKING"))
 }
 
 func (s *GandalfServer) findUser(name string) (userName string, index int) {
