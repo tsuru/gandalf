@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tsuru/gandalf/repository"
 	"gopkg.in/check.v1"
 )
 
@@ -120,6 +121,48 @@ func (s *S) TestRemoveUserNotFound(c *check.C) {
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
 	c.Assert(recorder.Body.String(), check.Equals, "user not found\n")
+}
+
+func (s *S) TestCreateRepository(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"myrepo","Users":["user1","user2"],"ReadOnlyUsers":["user3"],"IsPublic":true}`)
+	request, _ := http.NewRequest("POST", "/repository", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.repos, check.HasLen, 1)
+	c.Assert(server.repos[0].Name, check.Equals, "myrepo")
+	c.Assert(server.repos[0].Users, check.DeepEquals, []string{"user1", "user2"})
+	c.Assert(server.repos[0].ReadOnlyUsers, check.DeepEquals, []string{"user3"})
+	c.Assert(server.repos[0].IsPublic, check.Equals, true)
+}
+
+func (s *S) TestCreateRepositoryDuplicateName(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo"}}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"somerepo","IsPublic":false}`)
+	request, _ := http.NewRequest("POST", "/repository", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
+	c.Assert(recorder.Body.String(), check.Equals, "repository already exists\n")
+}
+
+func (s *S) TestCreateRepositoryUserNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"myrepo","Users":["user1","user2"],"ReadOnlyUsers":["user3"],"IsPublic":true}`)
+	request, _ := http.NewRequest("POST", "/repository", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, `user "user1" not found`+"\n")
 }
 
 func (s *S) TestPrepareFailure(c *check.C) {

@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/pat"
+	"github.com/tsuru/gandalf/repository"
 )
 
 type user struct {
@@ -40,7 +41,9 @@ type GandalfServer struct {
 	muxer     *pat.Router
 	users     []string
 	keys      map[string][]key
-	usersLock sync.Mutex
+	repos     []repository.Repository
+	usersLock sync.RWMutex
+	repoLock  sync.Mutex
 	failures  chan Failure
 }
 
@@ -98,6 +101,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
+	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
 }
 
 func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
@@ -126,13 +130,7 @@ func (s *GandalfServer) removeUser(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get(":name")
 	s.usersLock.Lock()
 	defer s.usersLock.Unlock()
-	index := -1
-	for i, user := range s.users {
-		if user == username {
-			index = i
-			break
-		}
-	}
+	_, index := s.findUser(username)
 	if index < 0 {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
@@ -141,6 +139,42 @@ func (s *GandalfServer) removeUser(w http.ResponseWriter, r *http.Request) {
 	s.users[index] = s.users[last]
 	s.users = s.users[:last]
 	delete(s.keys, username)
+}
+
+func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request) {
+	var repo repository.Repository
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(&repo)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	users := append(repo.Users, repo.ReadOnlyUsers...)
+	for _, username := range users {
+		_, index := s.findUser(username)
+		if index < 0 {
+			http.Error(w, fmt.Sprintf("user %q not found", username), http.StatusBadRequest)
+			return
+		}
+	}
+	s.repoLock.Lock()
+	defer s.repoLock.Unlock()
+	for _, r := range s.repos {
+		if r.Name == repo.Name {
+			http.Error(w, "repository already exists", http.StatusConflict)
+			return
+		}
+	}
+	s.repos = append(s.repos, repo)
+}
+
+func (s *GandalfServer) findUser(name string) (username string, index int) {
+	for i, user := range s.users {
+		if user == name {
+			return user, i
+		}
+	}
+	return "", -1
 }
 
 func (s *GandalfServer) getFailure(method, path string) (Failure, bool) {
