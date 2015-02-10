@@ -308,6 +308,34 @@ func (s *S) TestRemoveKeyKeyNotFound(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "key not found\n")
 }
 
+func (s *S) TestListKeys(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"myuser"}
+	server.keys["myuser"] = []key{{Name: "theirkey", Body: "irrelevant"}, {Name: "mykey", Body: "not irrelevant"}}
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/user/myuser/keys", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	var result map[string]string
+	expected := map[string]string{"theirkey": "irrelevant", "mykey": "not irrelevant"}
+	err = json.NewDecoder(recorder.Body).Decode(&result)
+	c.Assert(err, check.IsNil)
+	c.Assert(result, check.DeepEquals, expected)
+}
+
+func (s *S) TestListKeysUserNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/user/myuser/keys", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "user not found\n")
+}
+
 func (s *S) TestPrepareFailure(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)

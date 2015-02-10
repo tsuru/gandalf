@@ -102,6 +102,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
 	s.muxer.Post("/user/{name}/key", http.HandlerFunc(s.addKeys))
 	s.muxer.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(s.removeKey))
+	s.muxer.Get("/user/{name}/keys", http.HandlerFunc(s.listKeys))
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
@@ -258,6 +259,25 @@ func (s *GandalfServer) removeKey(w http.ResponseWriter, r *http.Request) {
 	last := len(userKeys) - 1
 	userKeys[index] = userKeys[last]
 	s.keys[userName] = userKeys[:last]
+}
+
+func (s *GandalfServer) listKeys(w http.ResponseWriter, r *http.Request) {
+	userName := r.URL.Query().Get(":name")
+	s.usersLock.RLock()
+	defer s.usersLock.RUnlock()
+	keys, ok := s.keys[userName]
+	if !ok {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+	keysMap := make(map[string]string, len(keys))
+	for _, k := range keys {
+		keysMap[k.Name] = k.Body
+	}
+	err := json.NewEncoder(w).Encode(keysMap)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *GandalfServer) findUser(name string) (userName string, index int) {
