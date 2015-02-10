@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tsuru/gandalf/repository"
 	"gopkg.in/check.v1"
 )
 
@@ -79,7 +78,7 @@ func (s *S) TestRepositories(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "something"}, {Name: "otherthing"}}
+	server.repos = []Repository{{Name: "something"}, {Name: "otherthing"}}
 	c.Assert(server.Repositories(), check.DeepEquals, server.repos)
 }
 
@@ -89,7 +88,7 @@ func (s *S) TestReset(c *check.C) {
 	defer server.Stop()
 	server.users = []string{"user1", "user2"}
 	server.keys = map[string][]key{"user1": {{Name: "wat"}}}
-	server.repos = []repository.Repository{{Name: "something"}, {Name: "otherthing"}}
+	server.repos = []Repository{{Name: "something"}, {Name: "otherthing"}}
 	server.PrepareFailure(Failure{Method: "POST", Path: "/user"})
 	server.Reset()
 	c.Assert(server.users, check.HasLen, 0)
@@ -177,7 +176,7 @@ func (s *S) TestCreateRepositoryDuplicateName(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo"}}
+	server.repos = []Repository{{Name: "somerepo"}}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"Name":"somerepo","IsPublic":false}`)
 	request, _ := http.NewRequest("POST", "/repository", body)
@@ -202,7 +201,7 @@ func (s *S) TestRemoveRepository(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo"}}
+	server.repos = []Repository{{Name: "somerepo"}}
 	recorder := httptest.NewRecorder()
 	request, _ := http.NewRequest("DELETE", "/repository/somerepo", nil)
 	server.ServeHTTP(recorder, request)
@@ -222,16 +221,16 @@ func (s *S) TestRemoveRepositoryNotFound(c *check.C) {
 }
 
 func (s *S) TestGetRepository(c *check.C) {
-	repo := repository.Repository{Name: "somerepo"}
+	repo := Repository{Name: "somerepo"}
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{repo}
+	server.repos = []Repository{repo}
 	recorder := httptest.NewRecorder()
 	request, _ := http.NewRequest("GET", "/repository/somerepo", nil)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
-	var got repository.Repository
+	var got Repository
 	err = json.NewDecoder(recorder.Body).Decode(&got)
 	c.Assert(err, check.IsNil)
 	c.Assert(got, check.DeepEquals, repo)
@@ -371,7 +370,7 @@ func (s *S) TestGrantAccess(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.repos = []Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
 	server.users = []string{"user1", "user2", "user3"}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"users":["user1","user2"],"repositories":["somerepo","myrepo"]}`)
@@ -387,7 +386,7 @@ func (s *S) TestGrantAccessReadOnly(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.repos = []Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
 	server.users = []string{"user1", "user2", "user3"}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"users":["user1","user2"],"repositories":["somerepo","myrepo"]}`)
@@ -403,7 +402,7 @@ func (s *S) TestGrantAccessUserNotFound(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.repos = []Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
 	server.users = []string{"user1", "user2", "user3"}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"users":["user2","user4"],"repositories":["somerepo","myrepo"]}`)
@@ -420,7 +419,7 @@ func (s *S) TestGrantAccessRepositoryNotFound(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.repos = []Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
 	server.users = []string{"user1", "user2", "user3"}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"users":["user2","user3"],"repositories":["somerepo","watrepo"]}`)
@@ -437,7 +436,7 @@ func (s *S) TestGrantAccessRepositoryMissingUsers(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.repos = []Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
 	server.users = []string{"user1", "user2", "user3"}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"repositories":["somerepo","watrepo"]}`)
@@ -451,7 +450,7 @@ func (s *S) TestGrantAccessRepositoryMissingRepositories(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.repos = []Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
 	server.users = []string{"user1", "user2", "user3"}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"users":["user1","user2"]}`)
@@ -465,7 +464,7 @@ func (s *S) TestRevokeAccess(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{
+	server.repos = []Repository{
 		{Name: "somerepo", Users: []string{"user1", "user3"}},
 		{Name: "otherrepo", Users: []string{"user2", "user3"}},
 		{Name: "myrepo", Users: []string{"user1", "user2"}},
@@ -485,7 +484,7 @@ func (s *S) TestRevokeAccessReadOnly(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{
+	server.repos = []Repository{
 		{Name: "somerepo", ReadOnlyUsers: []string{"user1", "user3"}},
 		{Name: "otherrepo", ReadOnlyUsers: []string{"user2", "user3"}},
 		{Name: "myrepo", ReadOnlyUsers: []string{"user1", "user2"}},
@@ -505,7 +504,7 @@ func (s *S) TestRevokeAccessUserNotFound(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{
+	server.repos = []Repository{
 		{Name: "somerepo", Users: []string{"user1", "user3"}},
 		{Name: "otherrepo", Users: []string{"user2", "user3"}},
 		{Name: "myrepo", Users: []string{"user1", "user2"}},
@@ -523,7 +522,7 @@ func (s *S) TestRevokeAccessRepositoryNotFound(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{
+	server.repos = []Repository{
 		{Name: "somerepo", Users: []string{"user1", "user3"}},
 		{Name: "otherrepo", Users: []string{"user2", "user3"}},
 		{Name: "myrepo", Users: []string{"user1", "user2"}},
@@ -541,7 +540,7 @@ func (s *S) TestRevokeAccessMissingUsers(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{
+	server.repos = []Repository{
 		{Name: "somerepo", Users: []string{"user1", "user3"}},
 		{Name: "otherrepo", Users: []string{"user2", "user3"}},
 		{Name: "myrepo", Users: []string{"user1", "user2"}},
@@ -559,7 +558,7 @@ func (s *S) TestRevokeAccessMissingRepositories(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
-	server.repos = []repository.Repository{
+	server.repos = []Repository{
 		{Name: "somerepo", Users: []string{"user1", "user3"}},
 		{Name: "otherrepo", Users: []string{"user2", "user3"}},
 		{Name: "myrepo", Users: []string{"user1", "user2"}},

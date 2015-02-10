@@ -13,10 +13,18 @@ import (
 	"sync"
 
 	"github.com/gorilla/pat"
-	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/tsuru/errors"
 	"golang.org/x/crypto/ssh"
 )
+
+type Repository struct {
+	Name          string   `json:"name"`
+	Users         []string `json:"users"`
+	ReadOnlyUsers []string `json:",omit"`
+	ReadOnlyURL   string   `json:"git_url"`
+	ReadWriteURL  string   `json:"ssh_url"`
+	IsPublic      bool     `json:"ispublic"`
+}
 
 type user struct {
 	Name string
@@ -43,7 +51,7 @@ type GandalfServer struct {
 	muxer     *pat.Router
 	users     []string
 	keys      map[string][]key
-	repos     []repository.Repository
+	repos     []Repository
 	usersLock sync.RWMutex
 	repoLock  sync.RWMutex
 	failures  chan Failure
@@ -107,7 +115,7 @@ func (s *GandalfServer) Users() []string {
 }
 
 // Repository returns the list of repositories registered in the server.
-func (s *GandalfServer) Repositories() []repository.Repository {
+func (s *GandalfServer) Repositories() []Repository {
 	s.repoLock.RLock()
 	defer s.repoLock.RUnlock()
 	return s.repos
@@ -183,7 +191,7 @@ func (s *GandalfServer) removeUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request) {
-	var repo repository.Repository
+	var repo Repository
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&repo)
 	if err != nil {
@@ -414,7 +422,7 @@ func (s *GandalfServer) findUser(name string) (userName string, index int) {
 	return "", -1
 }
 
-func (s *GandalfServer) checkUserAccess(repo repository.Repository, user string, readOnly bool) int {
+func (s *GandalfServer) checkUserAccess(repo Repository, user string, readOnly bool) int {
 	list := repo.Users
 	if readOnly {
 		list = repo.ReadOnlyUsers
@@ -427,7 +435,7 @@ func (s *GandalfServer) checkUserAccess(repo repository.Repository, user string,
 	return -1
 }
 
-func (s *GandalfServer) findRepository(name string) (repository.Repository, int) {
+func (s *GandalfServer) findRepository(name string) (Repository, int) {
 	s.repoLock.RLock()
 	defer s.repoLock.RUnlock()
 	for i, repo := range s.repos {
@@ -435,7 +443,7 @@ func (s *GandalfServer) findRepository(name string) (repository.Repository, int)
 			return repo, i
 		}
 	}
-	return repository.Repository{}, -1
+	return Repository{}, -1
 }
 
 func (s *GandalfServer) getFailure(method, path string) (Failure, bool) {
