@@ -159,6 +159,7 @@ func (s *S) TestCreateRepository(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
+	server.Host = "localhost"
 	server.users = []string{"user1", "user2", "user3"}
 	recorder := httptest.NewRecorder()
 	body := strings.NewReader(`{"Name":"myrepo","Users":["user1","user2"],"ReadOnlyUsers":["user3"],"IsPublic":true}`)
@@ -170,6 +171,8 @@ func (s *S) TestCreateRepository(c *check.C) {
 	c.Assert(server.repos[0].Users, check.DeepEquals, []string{"user1", "user2"})
 	c.Assert(server.repos[0].ReadOnlyUsers, check.DeepEquals, []string{"user3"})
 	c.Assert(server.repos[0].IsPublic, check.Equals, true)
+	c.Assert(server.repos[0].ReadOnlyURL, check.Equals, "git://localhost/myrepo.git")
+	c.Assert(server.repos[0].ReadWriteURL, check.Equals, "git@localhost:myrepo.git")
 }
 
 func (s *S) TestCreateRepositoryDuplicateName(c *check.C) {

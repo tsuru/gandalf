@@ -47,6 +47,9 @@ type Failure struct {
 // GandalfServer is a fake gandalf server. An instance of the client can be
 // pointed to the address generated for this server
 type GandalfServer struct {
+	// Host is used for building repositories URLs.
+	Host string
+
 	listener  net.Listener
 	muxer     *pat.Router
 	users     []string
@@ -214,6 +217,8 @@ func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+	repo.ReadOnlyURL = fmt.Sprintf("git://%s/%s.git", s.Host, repo.Name)
+	repo.ReadWriteURL = fmt.Sprintf("git@%s:%s.git", s.Host, repo.Name)
 	s.repos = append(s.repos, repo)
 }
 
