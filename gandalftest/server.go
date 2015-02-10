@@ -102,6 +102,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
+	s.muxer.Delete("/repository/{name}", http.HandlerFunc(s.removeRepository))
 }
 
 func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
@@ -166,6 +167,26 @@ func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request)
 		}
 	}
 	s.repos = append(s.repos, repo)
+}
+
+func (s *GandalfServer) removeRepository(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get(":name")
+	s.repoLock.Lock()
+	defer s.repoLock.Unlock()
+	index := -1
+	for i, repo := range s.repos {
+		if repo.Name == name {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
+	last := len(s.repos) - 1
+	s.repos[index] = s.repos[last]
+	s.repos = s.repos[:last]
 }
 
 func (s *GandalfServer) findUser(name string) (username string, index int) {

@@ -165,6 +165,29 @@ func (s *S) TestCreateRepositoryUserNotFound(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, `user "user1" not found`+"\n")
 }
 
+func (s *S) TestRemoveRepository(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo"}}
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("DELETE", "/repository/somerepo", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.repos, check.HasLen, 0)
+}
+
+func (s *S) TestRemoveRepositoryNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("DELETE", "/repository/somerepo", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "repository not found\n")
+}
+
 func (s *S) TestPrepareFailure(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
