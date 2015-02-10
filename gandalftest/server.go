@@ -101,6 +101,7 @@ func (s *GandalfServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
 	s.muxer.Post("/user/{name}/key", http.HandlerFunc(s.addKeys))
+	s.muxer.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(s.removeKey))
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
@@ -131,8 +132,8 @@ func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *GandalfServer) removeUser(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get(":name")
-	_, index := s.findUser(username)
+	userName := r.URL.Query().Get(":name")
+	_, index := s.findUser(userName)
 	if index < 0 {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
@@ -142,7 +143,7 @@ func (s *GandalfServer) removeUser(w http.ResponseWriter, r *http.Request) {
 	last := len(s.users) - 1
 	s.users[index] = s.users[last]
 	s.users = s.users[:last]
-	delete(s.keys, username)
+	delete(s.keys, userName)
 }
 
 func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request) {
@@ -154,10 +155,10 @@ func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	users := append(repo.Users, repo.ReadOnlyUsers...)
-	for _, username := range users {
-		_, index := s.findUser(username)
+	for _, userName := range users {
+		_, index := s.findUser(userName)
 		if index < 0 {
-			http.Error(w, fmt.Sprintf("user %q not found", username), http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("user %q not found", userName), http.StatusBadRequest)
 			return
 		}
 	}
@@ -200,7 +201,7 @@ func (s *GandalfServer) getRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *GandalfServer) addKeys(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get(":name")
+	userName := r.URL.Query().Get(":name")
 	var keys map[string]string
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(&keys)
@@ -210,7 +211,7 @@ func (s *GandalfServer) addKeys(w http.ResponseWriter, r *http.Request) {
 	}
 	s.usersLock.Lock()
 	defer s.usersLock.Unlock()
-	userKeys, ok := s.keys[username]
+	userKeys, ok := s.keys[userName]
 	if !ok {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
@@ -230,10 +231,36 @@ func (s *GandalfServer) addKeys(w http.ResponseWriter, r *http.Request) {
 	for name, body := range keys {
 		userKeys = append(userKeys, key{Name: name, Body: body})
 	}
-	s.keys[username] = userKeys
+	s.keys[userName] = userKeys
 }
 
-func (s *GandalfServer) findUser(name string) (username string, index int) {
+func (s *GandalfServer) removeKey(w http.ResponseWriter, r *http.Request) {
+	userName := r.URL.Query().Get(":name")
+	keyName := r.URL.Query().Get(":keyname")
+	s.usersLock.Lock()
+	defer s.usersLock.Unlock()
+	userKeys, ok := s.keys[userName]
+	if !ok {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+	index := -1
+	for i, userKey := range userKeys {
+		if userKey.Name == keyName {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		http.Error(w, "key not found", http.StatusNotFound)
+		return
+	}
+	last := len(userKeys) - 1
+	userKeys[index] = userKeys[last]
+	s.keys[userName] = userKeys[:last]
+}
+
+func (s *GandalfServer) findUser(name string) (userName string, index int) {
 	s.usersLock.RLock()
 	defer s.usersLock.RUnlock()
 	for i, user := range s.users {
