@@ -82,6 +82,36 @@ func (s *S) TestRepositories(c *check.C) {
 	c.Assert(server.Repositories(), check.DeepEquals, server.repos)
 }
 
+func (s *S) TestGrants(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []Repository{
+		{Name: "something", Users: []string{"user1", "user2"}},
+		{Name: "otherthing", Users: []string{"user2", "user3"}},
+	}
+	expected := map[string][]string{
+		"something":  {"user1", "user2"},
+		"otherthing": {"user2", "user3"},
+	}
+	c.Assert(server.Grants(), check.DeepEquals, expected)
+}
+
+func (s *S) TestReadOnlyGrants(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []Repository{
+		{Name: "something", ReadOnlyUsers: []string{"user1", "user2"}},
+		{Name: "otherthing", ReadOnlyUsers: []string{"user2", "user3"}},
+	}
+	expected := map[string][]string{
+		"something":  {"user1", "user2"},
+		"otherthing": {"user2", "user3"},
+	}
+	c.Assert(server.ReadOnlyGrants(), check.DeepEquals, expected)
+}
+
 func (s *S) TestReset(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)

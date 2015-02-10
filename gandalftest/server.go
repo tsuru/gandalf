@@ -124,6 +124,30 @@ func (s *GandalfServer) Repositories() []Repository {
 	return s.repos
 }
 
+// Grants returns a map of grant in repositories, mapping the name of the
+// repository to the slice of users that have access to it.
+func (s *GandalfServer) Grants() map[string][]string {
+	s.repoLock.RLock()
+	defer s.repoLock.RUnlock()
+	result := make(map[string][]string, len(s.repos))
+	for _, repo := range s.repos {
+		result[repo.Name] = repo.Users
+	}
+	return result
+}
+
+// ReadOnlyGrants returns a map of read-only grants in repositories, mapping
+// the name of the repository to the slice of users that have access to it.
+func (s *GandalfServer) ReadOnlyGrants() map[string][]string {
+	s.repoLock.RLock()
+	defer s.repoLock.RUnlock()
+	result := make(map[string][]string, len(s.repos))
+	for _, repo := range s.repos {
+		result[repo.Name] = repo.ReadOnlyUsers
+	}
+	return result
+}
+
 // Reset resets all internal information of the server, like keys, repositories, users and prepared failures.
 func (s *GandalfServer) Reset() {
 	s.usersLock.Lock()
