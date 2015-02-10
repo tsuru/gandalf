@@ -336,6 +336,100 @@ func (s *S) TestListKeysUserNotFound(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "user not found\n")
 }
 
+func (s *S) TestGrantAccess(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user2"],"repositories":["somerepo","myrepo"]}`)
+	request, _ := http.NewRequest("POST", "/repository/grant", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.repos[0].Users, check.DeepEquals, []string{"user1", "user2"})
+	c.Assert(server.repos[1].Users, check.HasLen, 0)
+	c.Assert(server.repos[2].Users, check.DeepEquals, []string{"user1", "user2"})
+}
+
+func (s *S) TestGrantAccessReadOnly(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user2"],"repositories":["somerepo","myrepo"]}`)
+	request, _ := http.NewRequest("POST", "/repository/grant?readonly=yes", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.repos[0].ReadOnlyUsers, check.DeepEquals, []string{"user1", "user2"})
+	c.Assert(server.repos[1].ReadOnlyUsers, check.HasLen, 0)
+	c.Assert(server.repos[2].ReadOnlyUsers, check.DeepEquals, []string{"user1", "user2"})
+}
+
+func (s *S) TestGrantAccessUserNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user2","user4"],"repositories":["somerepo","myrepo"]}`)
+	request, _ := http.NewRequest("POST", "/repository/grant", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, `user "user4" not found`+"\n")
+	c.Assert(server.repos[0].Users, check.DeepEquals, []string{"user1"})
+	c.Assert(server.repos[1].Users, check.HasLen, 0)
+	c.Assert(server.repos[2].Users, check.HasLen, 0)
+}
+
+func (s *S) TestGrantAccessRepositoryNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo", Users: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user2","user3"],"repositories":["somerepo","watrepo"]}`)
+	request, _ := http.NewRequest("POST", "/repository/grant", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, `repository "watrepo" not found`+"\n")
+	c.Assert(server.repos[0].Users, check.DeepEquals, []string{"user1"})
+	c.Assert(server.repos[1].Users, check.HasLen, 0)
+	c.Assert(server.repos[2].Users, check.HasLen, 0)
+}
+
+func (s *S) TestGrantAccessRepositoryMissingUsers(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"repositories":["somerepo","watrepo"]}`)
+	request, _ := http.NewRequest("POST", "/repository/grant", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "missing users\n")
+}
+
+func (s *S) TestGrantAccessRepositoryMissingRepositories(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "somerepo", ReadOnlyUsers: []string{"user1"}}, {Name: "otherrepo"}, {Name: "myrepo"}}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user2"]}`)
+	request, _ := http.NewRequest("POST", "/repository/grant", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "missing repositories\n")
+}
+
 func (s *S) TestPrepareFailure(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)

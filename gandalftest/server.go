@@ -105,6 +105,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer.Get("/user/{name}/keys", http.HandlerFunc(s.listKeys))
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
+	s.muxer.Post("/repository/grant", http.HandlerFunc(s.grantAccess))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
 	s.muxer.Delete("/repository/{name}", http.HandlerFunc(s.removeRepository))
 	s.muxer.Get("/repository/{name}", http.HandlerFunc(s.getRepository))
@@ -201,6 +202,56 @@ func (s *GandalfServer) getRepository(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *GandalfServer) grantAccess(w http.ResponseWriter, r *http.Request) {
+	readOnly := r.URL.Query().Get("readonly") == "yes"
+	defer r.Body.Close()
+	var params map[string][]string
+	err := json.NewDecoder(r.Body).Decode(&params)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	users := params["users"]
+	if len(users) < 1 {
+		http.Error(w, "missing users", http.StatusBadRequest)
+		return
+	}
+	repositories := params["repositories"]
+	if len(repositories) < 1 {
+		http.Error(w, "missing repositories", http.StatusBadRequest)
+		return
+	}
+	for _, user := range users {
+		_, index := s.findUser(user)
+		if index < 0 {
+			http.Error(w, fmt.Sprintf("user %q not found", user), http.StatusNotFound)
+			return
+		}
+	}
+	for _, repository := range repositories {
+		_, index := s.findRepository(repository)
+		if index < 0 {
+			http.Error(w, fmt.Sprintf("repository %q not found", repository), http.StatusNotFound)
+			return
+		}
+	}
+	for _, repository := range repositories {
+		repo, index := s.findRepository(repository)
+		for _, user := range users {
+			if !s.checkUserAccess(repo, user, readOnly) {
+				if readOnly {
+					repo.ReadOnlyUsers = append(repo.ReadOnlyUsers, user)
+				} else {
+					repo.Users = append(repo.Users, user)
+				}
+			}
+		}
+		s.repoLock.Lock()
+		s.repos[index] = repo
+		s.repoLock.Unlock()
+	}
+}
+
 func (s *GandalfServer) addKeys(w http.ResponseWriter, r *http.Request) {
 	userName := r.URL.Query().Get(":name")
 	var keys map[string]string
@@ -289,6 +340,19 @@ func (s *GandalfServer) findUser(name string) (userName string, index int) {
 		}
 	}
 	return "", -1
+}
+
+func (s *GandalfServer) checkUserAccess(repo repository.Repository, user string, readOnly bool) bool {
+	list := repo.Users
+	if readOnly {
+		list = repo.ReadOnlyUsers
+	}
+	for _, userName := range list {
+		if userName == user {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *GandalfServer) findRepository(name string) (repository.Repository, int) {
