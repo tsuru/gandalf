@@ -99,11 +99,18 @@ func (s *GandalfServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.muxer.ServeHTTP(w, r)
 }
 
-// Users return the list of users registered in the server.
+// Users returns the list of users registered in the server.
 func (s *GandalfServer) Users() []string {
 	s.usersLock.RLock()
 	defer s.usersLock.RUnlock()
 	return s.users
+}
+
+// Repository returns the list of repositories registered in the server.
+func (s *GandalfServer) Repositories() []repository.Repository {
+	s.repoLock.RLock()
+	defer s.repoLock.RUnlock()
+	return s.repos
 }
 
 func (s *GandalfServer) buildMuxer() {

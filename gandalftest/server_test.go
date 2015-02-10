@@ -75,6 +75,14 @@ func (s *S) TestUsers(c *check.C) {
 	c.Assert(server.Users(), check.DeepEquals, server.users)
 }
 
+func (s *S) TestRepositories(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{{Name: "something"}, {Name: "otherthing"}}
+	c.Assert(server.Repositories(), check.DeepEquals, server.repos)
+}
+
 func (s *S) TestCreateUser(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
