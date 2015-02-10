@@ -39,6 +39,7 @@ type key struct {
 // Failure represents a prepared failure, that is used in the PrepareFailure
 // method.
 type Failure struct {
+	Code     int
 	Method   string
 	Path     string
 	Response string
@@ -104,7 +105,11 @@ func (s *GandalfServer) PrepareFailure(failure Failure) {
 // dispatching the request to the proper internal handler.
 func (s *GandalfServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if failure, ok := s.getFailure(r.Method, r.URL.Path); ok {
-		http.Error(w, failure.Response, http.StatusInternalServerError)
+		code := failure.Code
+		if code == 0 {
+			code = http.StatusInternalServerError
+		}
+		http.Error(w, failure.Response, code)
 		return
 	}
 	s.muxer.ServeHTTP(w, r)

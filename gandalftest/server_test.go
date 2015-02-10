@@ -648,6 +648,19 @@ func (s *S) TestPrepareFailure(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "fatal error\n")
 }
 
+func (s *S) TestPrepareFailureWithCode(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.PrepareFailure(Failure{Code: http.StatusBadRequest, Method: "POST", Path: "/users", Response: "fatal error"})
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"someuser","Keys":{"rsa":"mykeyrsa"}}`)
+	request, _ := http.NewRequest("POST", "/users", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "fatal error\n")
+}
+
 func (s *S) TestPrepareFailureNotMatching(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
