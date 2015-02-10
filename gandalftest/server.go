@@ -14,6 +14,7 @@ import (
 
 	"github.com/gorilla/pat"
 	"github.com/tsuru/gandalf/repository"
+	"github.com/tsuru/tsuru/errors"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -106,6 +107,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer.Post("/user", http.HandlerFunc(s.createUser))
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
 	s.muxer.Post("/repository/grant", http.HandlerFunc(s.grantAccess))
+	s.muxer.Delete("/repository/revoke", http.HandlerFunc(s.revokeAccess))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
 	s.muxer.Delete("/repository/{name}", http.HandlerFunc(s.removeRepository))
 	s.muxer.Get("/repository/{name}", http.HandlerFunc(s.getRepository))
@@ -204,41 +206,15 @@ func (s *GandalfServer) getRepository(w http.ResponseWriter, r *http.Request) {
 
 func (s *GandalfServer) grantAccess(w http.ResponseWriter, r *http.Request) {
 	readOnly := r.URL.Query().Get("readonly") == "yes"
-	defer r.Body.Close()
-	var params map[string][]string
-	err := json.NewDecoder(r.Body).Decode(&params)
+	repositories, users, err := s.validateAccessRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Message, err.Code)
 		return
-	}
-	users := params["users"]
-	if len(users) < 1 {
-		http.Error(w, "missing users", http.StatusBadRequest)
-		return
-	}
-	repositories := params["repositories"]
-	if len(repositories) < 1 {
-		http.Error(w, "missing repositories", http.StatusBadRequest)
-		return
-	}
-	for _, user := range users {
-		_, index := s.findUser(user)
-		if index < 0 {
-			http.Error(w, fmt.Sprintf("user %q not found", user), http.StatusNotFound)
-			return
-		}
-	}
-	for _, repository := range repositories {
-		_, index := s.findRepository(repository)
-		if index < 0 {
-			http.Error(w, fmt.Sprintf("repository %q not found", repository), http.StatusNotFound)
-			return
-		}
 	}
 	for _, repository := range repositories {
 		repo, index := s.findRepository(repository)
 		for _, user := range users {
-			if !s.checkUserAccess(repo, user, readOnly) {
+			if s.checkUserAccess(repo, user, readOnly) < 0 {
 				if readOnly {
 					repo.ReadOnlyUsers = append(repo.ReadOnlyUsers, user)
 				} else {
@@ -250,6 +226,70 @@ func (s *GandalfServer) grantAccess(w http.ResponseWriter, r *http.Request) {
 		s.repos[index] = repo
 		s.repoLock.Unlock()
 	}
+}
+
+func (s *GandalfServer) revokeAccess(w http.ResponseWriter, r *http.Request) {
+	readOnly := r.URL.Query().Get("readonly") == "yes"
+	repositories, users, err := s.validateAccessRequest(r)
+	if err != nil {
+		http.Error(w, err.Message, err.Code)
+		return
+	}
+	for _, repository := range repositories {
+		repo, index := s.findRepository(repository)
+		for _, user := range users {
+			if index := s.checkUserAccess(repo, user, readOnly); index > -1 {
+				if readOnly {
+					last := len(repo.ReadOnlyUsers) - 1
+					repo.ReadOnlyUsers[index] = repo.ReadOnlyUsers[last]
+					repo.ReadOnlyUsers = repo.ReadOnlyUsers[:last]
+				} else {
+					last := len(repo.Users) - 1
+					repo.Users[index] = repo.Users[last]
+					repo.Users = repo.Users[:last]
+				}
+			}
+		}
+		s.repoLock.Lock()
+		s.repos[index] = repo
+		s.repoLock.Unlock()
+	}
+}
+
+func (s *GandalfServer) validateAccessRequest(r *http.Request) (repositories []string, users []string, err *errors.HTTP) {
+	defer r.Body.Close()
+	var params map[string][]string
+	jerr := json.NewDecoder(r.Body).Decode(&params)
+	if jerr != nil {
+		return nil, nil, &errors.HTTP{Code: http.StatusBadRequest, Message: jerr.Error()}
+	}
+	users = params["users"]
+	if len(users) < 1 {
+		return nil, nil, &errors.HTTP{Code: http.StatusBadRequest, Message: "missing users"}
+	}
+	repositories = params["repositories"]
+	if len(repositories) < 1 {
+		return nil, nil, &errors.HTTP{Code: http.StatusBadRequest, Message: "missing repositories"}
+	}
+	for _, user := range users {
+		_, index := s.findUser(user)
+		if index < 0 {
+			return nil, nil, &errors.HTTP{
+				Code:    http.StatusNotFound,
+				Message: fmt.Sprintf("user %q not found", user),
+			}
+		}
+	}
+	for _, repository := range repositories {
+		_, index := s.findRepository(repository)
+		if index < 0 {
+			return nil, nil, &errors.HTTP{
+				Code:    http.StatusNotFound,
+				Message: fmt.Sprintf("repository %q not found", repository),
+			}
+		}
+	}
+	return repositories, users, nil
 }
 
 func (s *GandalfServer) addKeys(w http.ResponseWriter, r *http.Request) {
@@ -342,17 +382,17 @@ func (s *GandalfServer) findUser(name string) (userName string, index int) {
 	return "", -1
 }
 
-func (s *GandalfServer) checkUserAccess(repo repository.Repository, user string, readOnly bool) bool {
+func (s *GandalfServer) checkUserAccess(repo repository.Repository, user string, readOnly bool) int {
 	list := repo.Users
 	if readOnly {
 		list = repo.ReadOnlyUsers
 	}
-	for _, userName := range list {
+	for i, userName := range list {
 		if userName == user {
-			return true
+			return i
 		}
 	}
-	return false
+	return -1
 }
 
 func (s *GandalfServer) findRepository(name string) (repository.Repository, int) {

@@ -430,6 +430,118 @@ func (s *S) TestGrantAccessRepositoryMissingRepositories(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "missing repositories\n")
 }
 
+func (s *S) TestRevokeAccess(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{
+		{Name: "somerepo", Users: []string{"user1", "user3"}},
+		{Name: "otherrepo", Users: []string{"user2", "user3"}},
+		{Name: "myrepo", Users: []string{"user1", "user2"}},
+	}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user2"],"repositories":["somerepo","myrepo"]}`)
+	request, _ := http.NewRequest("DELETE", "/repository/revoke", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.repos[0].Users, check.DeepEquals, []string{"user3"})
+	c.Assert(server.repos[1].Users, check.DeepEquals, []string{"user2","user3"})
+	c.Assert(server.repos[2].Users, check.HasLen, 0)
+}
+
+func (s *S) TestRevokeAccessReadOnly(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{
+		{Name: "somerepo", ReadOnlyUsers: []string{"user1", "user3"}},
+		{Name: "otherrepo", ReadOnlyUsers: []string{"user2", "user3"}},
+		{Name: "myrepo", ReadOnlyUsers: []string{"user1", "user2"}},
+	}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user2"],"repositories":["somerepo","myrepo"]}`)
+	request, _ := http.NewRequest("DELETE", "/repository/revoke?readonly=yes", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.repos[0].ReadOnlyUsers, check.DeepEquals, []string{"user3"})
+	c.Assert(server.repos[1].ReadOnlyUsers, check.DeepEquals, []string{"user2","user3"})
+	c.Assert(server.repos[2].ReadOnlyUsers, check.HasLen, 0)
+}
+
+func (s *S) TestRevokeAccessUserNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{
+		{Name: "somerepo", Users: []string{"user1", "user3"}},
+		{Name: "otherrepo", Users: []string{"user2", "user3"}},
+		{Name: "myrepo", Users: []string{"user1", "user2"}},
+	}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user4"],"repositories":["somerepo","myrepo"]}`)
+	request, _ := http.NewRequest("DELETE", "/repository/revoke", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, `user "user4" not found`+"\n")
+}
+
+func (s *S) TestRevokeAccessRepositoryNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{
+		{Name: "somerepo", Users: []string{"user1", "user3"}},
+		{Name: "otherrepo", Users: []string{"user2", "user3"}},
+		{Name: "myrepo", Users: []string{"user1", "user2"}},
+	}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user2"],"repositories":["somerepo","sumrepo"]}`)
+	request, _ := http.NewRequest("DELETE", "/repository/revoke", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, `repository "sumrepo" not found`+"\n")
+}
+
+func (s *S) TestRevokeAccessMissingUsers(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{
+		{Name: "somerepo", Users: []string{"user1", "user3"}},
+		{Name: "otherrepo", Users: []string{"user2", "user3"}},
+		{Name: "myrepo", Users: []string{"user1", "user2"}},
+	}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"repositories":["somerepo","myrepo"]}`)
+	request, _ := http.NewRequest("DELETE", "/repository/revoke", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "missing users\n")
+}
+
+func (s *S) TestRevokeAccessMissingRepositories(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{
+		{Name: "somerepo", Users: []string{"user1", "user3"}},
+		{Name: "otherrepo", Users: []string{"user2", "user3"}},
+		{Name: "myrepo", Users: []string{"user1", "user2"}},
+	}
+	server.users = []string{"user1", "user2", "user3"}
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"users":["user1","user2"]}`)
+	request, _ := http.NewRequest("DELETE", "/repository/revoke", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "missing repositories\n")
+}
+
 func (s *S) TestPrepareFailure(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
