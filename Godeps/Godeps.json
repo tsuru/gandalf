@@ -6,11 +6,6 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "code.google.com/p/go.crypto/ssh",
-			"Comment": "null-209",
-			"Rev": "23b39e4e860172e1983ded00a9d2f7e42b7683d0"
-		},
-		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "708054d61e5a2918b9f4e9700000ee611dcf03f5"
 		},
@@ -53,6 +48,10 @@
 			"ImportPath": "github.com/tsuru/tsuru/safe",
 			"Comment": "0.9.0-431-ga83fbc0",
 			"Rev": "a83fbc036f0a4e68e188486d70a13850bf91a2d0"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh",
+			"Rev": "1fbbd62cfec66bd39d91e97749579579d4d3037e"
 		},
 		{
 			"ImportPath": "gopkg.in/check.v1",

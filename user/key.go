@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -17,10 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	"code.google.com/p/go.crypto/ssh"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
+	"golang.org/x/crypto/ssh"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
