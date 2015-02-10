@@ -113,6 +113,24 @@ func (s *GandalfServer) Repositories() []repository.Repository {
 	return s.repos
 }
 
+// Reset resets all internal information of the server, like keys, repositories, users and prepared failures.
+func (s *GandalfServer) Reset() {
+	s.usersLock.Lock()
+	s.users = nil
+	s.keys = make(map[string][]key)
+	s.usersLock.Unlock()
+	s.repoLock.Lock()
+	s.repos = nil
+	s.repoLock.Unlock()
+	for {
+		select {
+		case <-s.failures:
+		default:
+			return
+		}
+	}
+}
+
 func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
 	s.muxer.Post("/user/{name}/key", http.HandlerFunc(s.addKeys))

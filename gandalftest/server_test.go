@@ -83,6 +83,21 @@ func (s *S) TestRepositories(c *check.C) {
 	c.Assert(server.Repositories(), check.DeepEquals, server.repos)
 }
 
+func (s *S) TestReset(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"user1", "user2"}
+	server.keys = map[string][]key{"user1": {{Name: "wat"}}}
+	server.repos = []repository.Repository{{Name: "something"}, {Name: "otherthing"}}
+	server.PrepareFailure(Failure{Method: "POST", Path: "/user"})
+	server.Reset()
+	c.Assert(server.users, check.HasLen, 0)
+	c.Assert(server.keys, check.HasLen, 0)
+	c.Assert(server.repos, check.HasLen, 0)
+	c.Assert(server.failures, check.HasLen, 0)
+}
+
 func (s *S) TestCreateUser(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
@@ -462,7 +477,7 @@ func (s *S) TestRevokeAccess(c *check.C) {
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 	c.Assert(server.repos[0].Users, check.DeepEquals, []string{"user3"})
-	c.Assert(server.repos[1].Users, check.DeepEquals, []string{"user2","user3"})
+	c.Assert(server.repos[1].Users, check.DeepEquals, []string{"user2", "user3"})
 	c.Assert(server.repos[2].Users, check.HasLen, 0)
 }
 
@@ -482,7 +497,7 @@ func (s *S) TestRevokeAccessReadOnly(c *check.C) {
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 	c.Assert(server.repos[0].ReadOnlyUsers, check.DeepEquals, []string{"user3"})
-	c.Assert(server.repos[1].ReadOnlyUsers, check.DeepEquals, []string{"user2","user3"})
+	c.Assert(server.repos[1].ReadOnlyUsers, check.DeepEquals, []string{"user2", "user3"})
 	c.Assert(server.repos[2].ReadOnlyUsers, check.HasLen, 0)
 }
 
