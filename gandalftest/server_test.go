@@ -5,6 +5,7 @@
 package gandalftest
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -183,6 +184,33 @@ func (s *S) TestRemoveRepositoryNotFound(c *check.C) {
 	defer server.Stop()
 	recorder := httptest.NewRecorder()
 	request, _ := http.NewRequest("DELETE", "/repository/somerepo", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "repository not found\n")
+}
+
+func (s *S) TestGetRepository(c *check.C) {
+	repo := repository.Repository{Name: "somerepo"}
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []repository.Repository{repo}
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/repository/somerepo", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	var got repository.Repository
+	err = json.NewDecoder(recorder.Body).Decode(&got)
+	c.Assert(err, check.IsNil)
+	c.Assert(got, check.DeepEquals, repo)
+}
+
+func (s *S) TestGetRepositoryNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/repository/somerepo", nil)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
 	c.Assert(recorder.Body.String(), check.Equals, "repository not found\n")

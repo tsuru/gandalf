@@ -43,7 +43,7 @@ type GandalfServer struct {
 	keys      map[string][]key
 	repos     []repository.Repository
 	usersLock sync.RWMutex
-	repoLock  sync.Mutex
+	repoLock  sync.RWMutex
 	failures  chan Failure
 }
 
@@ -103,6 +103,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer.Delete("/user/{name}", http.HandlerFunc(s.removeUser))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
 	s.muxer.Delete("/repository/{name}", http.HandlerFunc(s.removeRepository))
+	s.muxer.Get("/repository/{name}", http.HandlerFunc(s.getRepository))
 }
 
 func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
@@ -129,13 +130,13 @@ func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
 
 func (s *GandalfServer) removeUser(w http.ResponseWriter, r *http.Request) {
 	username := r.URL.Query().Get(":name")
-	s.usersLock.Lock()
-	defer s.usersLock.Unlock()
 	_, index := s.findUser(username)
 	if index < 0 {
 		http.Error(w, "user not found", http.StatusNotFound)
 		return
 	}
+	s.usersLock.Lock()
+	defer s.usersLock.Unlock()
 	last := len(s.users) - 1
 	s.users[index] = s.users[last]
 	s.users = s.users[:last]
@@ -171,31 +172,51 @@ func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request)
 
 func (s *GandalfServer) removeRepository(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
-	s.repoLock.Lock()
-	defer s.repoLock.Unlock()
-	index := -1
-	for i, repo := range s.repos {
-		if repo.Name == name {
-			index = i
-			break
-		}
-	}
+	_, index := s.findRepository(name)
 	if index < 0 {
 		http.Error(w, "repository not found", http.StatusNotFound)
 		return
 	}
+	s.repoLock.Lock()
+	defer s.repoLock.Unlock()
 	last := len(s.repos) - 1
 	s.repos[index] = s.repos[last]
 	s.repos = s.repos[:last]
 }
 
+func (s *GandalfServer) getRepository(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get(":name")
+	repo, index := s.findRepository(name)
+	if index < 0 {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
+	err := json.NewEncoder(w).Encode(repo)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func (s *GandalfServer) findUser(name string) (username string, index int) {
+	s.usersLock.RLock()
+	defer s.usersLock.RUnlock()
 	for i, user := range s.users {
 		if user == name {
 			return user, i
 		}
 	}
 	return "", -1
+}
+
+func (s *GandalfServer) findRepository(name string) (repository.Repository, int) {
+	s.repoLock.RLock()
+	defer s.repoLock.RUnlock()
+	for i, repo := range s.repos {
+		if repo.Name == name {
+			return repo, i
+		}
+	}
+	return repository.Repository{}, -1
 }
 
 func (s *GandalfServer) getFailure(method, path string) (Failure, bool) {
