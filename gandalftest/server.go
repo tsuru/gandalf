@@ -18,12 +18,13 @@ import (
 )
 
 type Repository struct {
-	Name          string   `json:"name"`
-	Users         []string `json:"users"`
-	ReadOnlyUsers []string `json:",omit"`
-	ReadOnlyURL   string   `json:"git_url"`
-	ReadWriteURL  string   `json:"ssh_url"`
-	IsPublic      bool     `json:"ispublic"`
+	Name          string      `json:"name"`
+	Users         []string    `json:"users"`
+	ReadOnlyUsers []string    `json:"readonlyusers"`
+	ReadOnlyURL   string      `json:"git_url"`
+	ReadWriteURL  string      `json:"ssh_url"`
+	IsPublic      bool        `json:"ispublic"`
+	Diffs         chan string `json:"-"`
 }
 
 type user struct {
@@ -169,6 +170,17 @@ func (s *GandalfServer) Keys(user string) (map[string]string, error) {
 	return keyMap, nil
 }
 
+// PrepareDiff prepares a diff for the given repository and writes it to the
+// next getDiff call in the server.
+func (s *GandalfServer) PrepareDiff(repository, content string) {
+	if repo, index := s.findRepository(repository); index > -1 {
+		repo.Diffs <- content
+		s.repoLock.Lock()
+		s.repos[index] = repo
+		s.repoLock.Unlock()
+	}
+}
+
 // Reset resets all internal information of the server, like keys, repositories, users and prepared failures.
 func (s *GandalfServer) Reset() {
 	s.usersLock.Lock()
@@ -197,6 +209,7 @@ func (s *GandalfServer) buildMuxer() {
 	s.muxer.Post("/repository/grant", http.HandlerFunc(s.grantAccess))
 	s.muxer.Delete("/repository/revoke", http.HandlerFunc(s.revokeAccess))
 	s.muxer.Post("/repository", http.HandlerFunc(s.createRepository))
+	s.muxer.Get("/repository/{name}/diff/commits", http.HandlerFunc(s.getDiff))
 	s.muxer.Delete("/repository/{name}", http.HandlerFunc(s.removeRepository))
 	s.muxer.Get("/repository/{name}", http.HandlerFunc(s.getRepository))
 	s.muxer.Get("/healthcheck", http.HandlerFunc(s.healthcheck))
@@ -247,6 +260,7 @@ func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	repo.Diffs = make(chan string, 1)
 	users := append(repo.Users, repo.ReadOnlyUsers...)
 	for _, userName := range users {
 		_, index := s.findUser(userName)
@@ -293,6 +307,24 @@ func (s *GandalfServer) getRepository(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (s *GandalfServer) getDiff(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get(":name")
+	repo, index := s.findRepository(name)
+	if index < 0 {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
+	var content string
+	select {
+	case content = <-repo.Diffs:
+	default:
+	}
+	fmt.Fprint(w, content)
+	s.repoLock.Lock()
+	s.repos[index] = repo
+	s.repoLock.Unlock()
 }
 
 func (s *GandalfServer) grantAccess(w http.ResponseWriter, r *http.Request) {

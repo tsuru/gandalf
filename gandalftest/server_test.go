@@ -299,6 +299,44 @@ func (s *S) TestGetRepositoryNotFound(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "repository not found\n")
 }
 
+func (s *S) TestGetDiff(c *check.C) {
+	repo := Repository{Name: "somerepo", Diffs: make(chan string, 1)}
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []Repository{repo}
+	server.PrepareDiff(repo.Name, "some diff")
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/repository/somerepo/diff/commits?previous_commit=10&last_commit=11", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), check.Equals, "some diff")
+}
+
+func (s *S) TestGetDiffUnprepared(c *check.C) {
+	repo := Repository{Name: "somerepo", Diffs: make(chan string, 1)}
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []Repository{repo}
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/repository/somerepo/diff/commits?previous_commit=10&last_commit=11", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(recorder.Body.String(), check.Equals, "")
+}
+
+func (s *S) TestGetDiffNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/repository/somerepo/diff/commits?previous_commit=10&last_commit=11", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "repository not found\n")
+}
+
 func (s *S) TestAddKeys(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
