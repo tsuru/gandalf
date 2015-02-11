@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -555,8 +555,7 @@ func (*GitContentRetriever) GetDiff(repo, previousCommit, lastCommit string) ([]
 }
 
 func (*GitContentRetriever) GetTags(repo string) ([]Ref, error) {
-	tags, err := retriever().GetForEachRef(repo, "refs/tags/")
-	return tags, err
+	return retriever().GetForEachRef(repo, "refs/tags/")
 }
 
 func (*GitContentRetriever) TempClone(repo string) (cloneDir string, cleanUp func(), err error) {
