@@ -450,6 +450,14 @@ func (s *S) TestRevokeAccessUpdatesReposDocument(c *check.C) {
 	}
 }
 
+func (s *S) TestGrantAccessRepositoryNotFound(c *check.C) {
+	r := repository.Repository{Name: "super-repo", Users: []string{"Umi", "Luke"}}
+	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories":[%q],"users": ["someuser"]}`, r.Name))
+	rec, req := post("/repository/grant?readonly=yes", b, c)
+	s.router.ServeHTTP(rec, req)
+	c.Assert(rec.Code, check.Equals, http.StatusNotFound)
+}
+
 func (s *S) TestRevokeAccessReadOnlyUpdatesReposDocument(c *check.C) {
 	r := repository.Repository{Name: "onerepo", ReadOnlyUsers: []string{"Umi", "Luke"}}
 	conn, err := db.Conn()
