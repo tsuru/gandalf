@@ -312,10 +312,13 @@ func GrantAccess(rNames, uNames []string, readOnly bool) error {
 	} else {
 		info, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
 	}
+	if err != nil {
+		return err
+	}
 	if info.Updated < 1 {
 		return mgo.ErrNotFound
 	}
-	return err
+	return nil
 }
 
 // RevokeAccess revokes write permission from users in all specified
