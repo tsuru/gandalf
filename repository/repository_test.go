@@ -665,6 +665,11 @@ func (s *S) TestGrantAccessShouldSkipDuplicatedUsers(c *check.C) {
 	c.Assert(r.Users, check.DeepEquals, []string{"umi", "luke", "pade"})
 }
 
+func (s *S) TestGrantAccessNotFound(c *check.C) {
+	err := GrantAccess([]string{"super-repo"}, []string{"someuser"}, false)
+	c.Assert(err, check.Equals, mgo.ErrNotFound)
+}
+
 func (s *S) TestRevokeAccessShouldRemoveUserFromAllRepositories(c *check.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, check.IsNil)

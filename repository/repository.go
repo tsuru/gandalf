@@ -306,10 +306,14 @@ func GrantAccess(rNames, uNames []string, readOnly bool) error {
 		return err
 	}
 	defer conn.Close()
+	var info *mgo.ChangeInfo
 	if readOnly {
-		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"readonlyusers": bson.M{"$each": uNames}}})
+		info, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"readonlyusers": bson.M{"$each": uNames}}})
 	} else {
-		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
+		info, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$addToSet": bson.M{"users": bson.M{"$each": uNames}}})
+	}
+	if info.Updated < 1 {
+		return mgo.ErrNotFound
 	}
 	return err
 }
