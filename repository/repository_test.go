@@ -720,6 +720,11 @@ func (s *S) TestRevokeReadOnlyAccessShouldRemoveUserFromAllRepositories(c *check
 	c.Assert(r2.ReadOnlyUsers, check.DeepEquals, []string{"someuser"})
 }
 
+func (s *S) TestRevokeAccessNotFound(c *check.C) {
+	err := RevokeAccess([]string{"super-repo"}, []string{"someuser"}, false)
+	c.Assert(err, check.Equals, mgo.ErrNotFound)
+}
+
 func (s *S) TestConflictingRepositoryNameShouldReturnExplicitError(c *check.C) {
 	tmpdir, err := commandmocker.Add("git", "$*")
 	c.Assert(err, check.IsNil)

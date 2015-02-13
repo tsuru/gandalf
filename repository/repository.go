@@ -326,12 +326,19 @@ func RevokeAccess(rNames, uNames []string, readOnly bool) error {
 		return err
 	}
 	defer conn.Close()
+	var info *mgo.ChangeInfo
 	if readOnly {
-		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"readonlyusers": uNames}})
+		info, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"readonlyusers": uNames}})
 	} else {
-		_, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
+		info, err = conn.Repository().UpdateAll(bson.M{"_id": bson.M{"$in": rNames}}, bson.M{"$pullAll": bson.M{"users": uNames}})
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	if info.Updated < 1 {
+		return mgo.ErrNotFound
+	}
+	return nil
 }
 
 func GetArchiveUrl(repo, ref, format string) string {
