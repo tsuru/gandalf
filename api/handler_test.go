@@ -427,6 +427,13 @@ func (s *S) TestGrantAccessReadOnlyUpdatesReposDocument(c *check.C) {
 	}
 }
 
+func (s *S) TestGrantAccessRepositoryNotFound(c *check.C) {
+	b := bytes.NewBufferString(`{"repositories":["super-repo"],"users":["someuser"]}`)
+	rec, req := post("/repository/grant?readonly=yes", b, c)
+	s.router.ServeHTTP(rec, req)
+	c.Assert(rec.Code, check.Equals, http.StatusNotFound)
+}
+
 func (s *S) TestRevokeAccessUpdatesReposDocument(c *check.C) {
 	r := repository.Repository{Name: "onerepo", Users: []string{"Umi", "Luke"}}
 	conn, err := db.Conn()
@@ -450,14 +457,6 @@ func (s *S) TestRevokeAccessUpdatesReposDocument(c *check.C) {
 	}
 }
 
-func (s *S) TestGrantAccessRepositoryNotFound(c *check.C) {
-	r := repository.Repository{Name: "super-repo", Users: []string{"Umi", "Luke"}}
-	b := bytes.NewBufferString(fmt.Sprintf(`{"repositories":[%q],"users": ["someuser"]}`, r.Name))
-	rec, req := post("/repository/grant?readonly=yes", b, c)
-	s.router.ServeHTTP(rec, req)
-	c.Assert(rec.Code, check.Equals, http.StatusNotFound)
-}
-
 func (s *S) TestRevokeAccessReadOnlyUpdatesReposDocument(c *check.C) {
 	r := repository.Repository{Name: "onerepo", ReadOnlyUsers: []string{"Umi", "Luke"}}
 	conn, err := db.Conn()
@@ -479,6 +478,13 @@ func (s *S) TestRevokeAccessReadOnlyUpdatesReposDocument(c *check.C) {
 	for _, repo := range repos {
 		c.Assert(repo.ReadOnlyUsers, check.DeepEquals, []string{"Luke"})
 	}
+}
+
+func (s *S) TestRevokeAccessRepositoryNotFound(c *check.C) {
+	b := bytes.NewBufferString(`{"repositories":["super-repo"],"users":["someuser"]}`)
+	rec, req := del("/repository/revoke", b, c)
+	s.router.ServeHTTP(rec, req)
+	c.Assert(rec.Code, check.Equals, http.StatusNotFound)
 }
 
 func (s *S) TestAddKey(c *check.C) {
