@@ -23,7 +23,6 @@ import (
 	"github.com/tsuru/gandalf/multipartzip"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
-	"gopkg.in/mgo.v2"
 )
 
 var maxMemory uint
@@ -108,7 +107,7 @@ func revokeAccess(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := repository.RevokeAccess(repositories, users, true); err != nil {
 		status := http.StatusInternalServerError
-		if err == mgo.ErrNotFound {
+		if err == repository.ErrRepositoryNotFound {
 			status = http.StatusNotFound
 		}
 		http.Error(w, err.Error(), status)

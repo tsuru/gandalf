@@ -27,6 +27,8 @@ import (
 
 var tempDir string
 
+var ErrRepositoryNotFound = errors.New("repository not found")
+
 func tempDirLocation() string {
 	if tempDir == "" {
 		tempDir, _ = config.GetString("repository:tempDir")
@@ -316,7 +318,7 @@ func GrantAccess(rNames, uNames []string, readOnly bool) error {
 		return err
 	}
 	if info.Updated < 1 {
-		return mgo.ErrNotFound
+		return ErrRepositoryNotFound
 	}
 	return nil
 }
@@ -339,7 +341,7 @@ func RevokeAccess(rNames, uNames []string, readOnly bool) error {
 		return err
 	}
 	if info.Updated < 1 {
-		return mgo.ErrNotFound
+		return ErrRepositoryNotFound
 	}
 	return nil
 }

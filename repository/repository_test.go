@@ -667,7 +667,7 @@ func (s *S) TestGrantAccessShouldSkipDuplicatedUsers(c *check.C) {
 
 func (s *S) TestGrantAccessNotFound(c *check.C) {
 	err := GrantAccess([]string{"super-repo"}, []string{"someuser"}, false)
-	c.Assert(err, check.Equals, mgo.ErrNotFound)
+	c.Assert(err, check.Equals, ErrRepositoryNotFound)
 }
 
 func (s *S) TestRevokeAccessShouldRemoveUserFromAllRepositories(c *check.C) {
@@ -722,7 +722,7 @@ func (s *S) TestRevokeReadOnlyAccessShouldRemoveUserFromAllRepositories(c *check
 
 func (s *S) TestRevokeAccessNotFound(c *check.C) {
 	err := RevokeAccess([]string{"super-repo"}, []string{"someuser"}, false)
-	c.Assert(err, check.Equals, mgo.ErrNotFound)
+	c.Assert(err, check.Equals, ErrRepositoryNotFound)
 }
 
 func (s *S) TestConflictingRepositoryNameShouldReturnExplicitError(c *check.C) {
