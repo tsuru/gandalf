@@ -251,9 +251,9 @@ func (s *S) TestNewPublicRepository(c *check.C) {
 func (s *S) TestNewBreaksOnValidationError(c *check.C) {
 	_, err := New("", []string{"smeagol"}, []string{""}, false)
 	c.Check(err, check.NotNil)
-	expected := "Validation Error: repository name is not valid"
-	got := err.Error()
-	c.Assert(got, check.Equals, expected)
+	e, ok := err.(*InvalidRepositoryError)
+	c.Assert(ok, check.Equals, true)
+	c.Assert(e.message, check.Equals, "repository name is not valid")
 }
 
 func (s *S) TestNewDuplicate(c *check.C) {
@@ -284,9 +284,9 @@ func (s *S) TestRepositoryIsNotValidWithoutAName(c *check.C) {
 	v, err := r.isValid()
 	c.Assert(v, check.Equals, false)
 	c.Check(err, check.NotNil)
-	got := err.Error()
-	expected := "Validation Error: repository name is not valid"
-	c.Assert(got, check.Equals, expected)
+	e, ok := err.(*InvalidRepositoryError)
+	c.Assert(ok, check.Equals, true)
+	c.Assert(e.message, check.Equals, "repository name is not valid")
 }
 
 func (s *S) TestRepositoryIsNotValidWithInvalidName(c *check.C) {
@@ -294,9 +294,9 @@ func (s *S) TestRepositoryIsNotValidWithInvalidName(c *check.C) {
 	v, err := r.isValid()
 	c.Assert(v, check.Equals, false)
 	c.Check(err, check.NotNil)
-	got := err.Error()
-	expected := "Validation Error: repository name is not valid"
-	c.Assert(got, check.Equals, expected)
+	e, ok := err.(*InvalidRepositoryError)
+	c.Assert(ok, check.Equals, true)
+	c.Assert(e.message, check.Equals, "repository name is not valid")
 }
 
 func (s *S) TestRepositoryShoudBeInvalidWIthoutAnyUsers(c *check.C) {
@@ -304,9 +304,9 @@ func (s *S) TestRepositoryShoudBeInvalidWIthoutAnyUsers(c *check.C) {
 	v, err := r.isValid()
 	c.Assert(v, check.Equals, false)
 	c.Assert(err, check.NotNil)
-	got := err.Error()
-	expected := "Validation Error: repository should have at least one user"
-	c.Assert(got, check.Equals, expected)
+	e, ok := err.(*InvalidRepositoryError)
+	c.Assert(ok, check.Equals, true)
+	c.Assert(e.message, check.Equals, "repository should have at least one user")
 }
 
 func (s *S) TestRepositoryShoudBeInvalidWIthInvalidNamespace(c *check.C) {
@@ -314,14 +314,16 @@ func (s *S) TestRepositoryShoudBeInvalidWIthInvalidNamespace(c *check.C) {
 	v, err := r.isValid()
 	c.Assert(v, check.Equals, false)
 	c.Assert(err, check.NotNil)
-	expected := "^Validation Error: repository name is not valid$"
-	c.Assert(err, check.ErrorMatches, expected)
+	e, ok := err.(*InvalidRepositoryError)
+	c.Assert(ok, check.Equals, true)
+	c.Assert(e.message, check.Equals, "repository name is not valid")
 	r = Repository{Name: "../../repositories", Users: []string{}}
 	v, err = r.isValid()
 	c.Assert(v, check.Equals, false)
 	c.Assert(err, check.NotNil)
-	expected = "^Validation Error: repository name is not valid$"
-	c.Assert(err, check.ErrorMatches, expected)
+	e, ok = err.(*InvalidRepositoryError)
+	c.Assert(ok, check.Equals, true)
+	c.Assert(e.message, check.Equals, "repository name is not valid")
 }
 
 func (s *S) TestRepositoryAcceptsValidNamespaces(c *check.C) {

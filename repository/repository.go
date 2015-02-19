@@ -293,14 +293,14 @@ func (r *Repository) isValid() (bool, error) {
 		panic(e)
 	}
 	if !m {
-		return false, errors.New("Validation Error: repository name is not valid")
+		return false, &InvalidRepositoryError{message: "repository name is not valid"}
 	}
 	absPath, err := filepath.Abs(barePath(r.Name))
 	if err != nil || !strings.HasPrefix(absPath, bare) {
-		return false, errors.New("Validation Error: repository name is not valid")
+		return false, &InvalidRepositoryError{message: "repository name is not valid"}
 	}
 	if len(r.Users) == 0 {
-		return false, errors.New("Validation Error: repository should have at least one user")
+		return false, &InvalidRepositoryError{message: "repository should have at least one user"}
 	}
 	return true, nil
 }
@@ -909,4 +909,12 @@ func CommitZip(repo string, z *multipart.FileHeader, c GitCommit) (*Ref, error) 
 
 func GetLogs(repo, hash string, total int, path string) (*GitHistory, error) {
 	return retriever().GetLogs(repo, hash, total, path)
+}
+
+type InvalidRepositoryError struct {
+	message string
+}
+
+func (err *InvalidRepositoryError) Error() string {
+	return err.message
 }
