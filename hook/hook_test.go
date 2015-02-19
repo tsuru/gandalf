@@ -30,7 +30,7 @@ func (s *S) SetUpSuite(c *check.C) {
 	err := config.ReadConfigFile("../etc/gandalf.conf")
 	c.Assert(err, check.IsNil)
 	config.Set("database:url", "127.0.0.1:27017")
-	config.Set("database:name", "gandalf_api_tests")
+	config.Set("database:name", "gandalf_hooks_tests")
 	s.tmpdir, err = commandmocker.Add("git", "")
 	c.Assert(err, check.IsNil)
 }
