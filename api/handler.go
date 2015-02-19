@@ -263,9 +263,10 @@ func updateRepository(w http.ResponseWriter, r *http.Request) {
 	err = parseBody(r.Body, &repo)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	err = repository.Update(name, repo)
-	if err != nil && err.Error() == "not found" {
+	if err != nil && err == repository.ErrRepositoryNotFound {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
