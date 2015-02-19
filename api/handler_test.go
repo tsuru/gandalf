@@ -278,13 +278,29 @@ func (s *S) TestNewRepositoryShouldSaveUserIdInRepository(c *check.C) {
 	c.Assert(len(p.Users), check.Not(check.Equals), 0)
 }
 
+func (s *S) TestNewRepositoryDuplicate(c *check.C) {
+	b := strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
+	recorder, request := post("/repository", b, c)
+	s.router.ServeHTTP(recorder, request)
+	conn, err := db.Conn()
+	c.Assert(err, check.IsNil)
+	defer conn.Close()
+	collection := conn.Repository()
+	defer collection.Remove(bson.M{"_id": "myRepository"})
+	b = strings.NewReader(`{"name": "myRepository", "users": ["r2d2"]}`)
+	recorder, request = post("/repository", b, c)
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
+	c.Assert(recorder.Body.String(), check.Equals, "repository already exists\n")
+}
+
 func (s *S) TestNewRepositoryShouldReturnErrorWhenNoUserIsPassed(c *check.C) {
 	b := strings.NewReader(`{"name": "myRepository"}`)
 	recorder, request := post("/repository", b, c)
 	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, 400)
 	body := readBody(recorder.Body, c)
-	expected := "Validation Error: repository should have at least one user"
+	expected := "repository should have at least one user"
 	got := strings.Replace(body, "\n", "", -1)
 	c.Assert(got, check.Equals, expected)
 }
@@ -295,7 +311,7 @@ func (s *S) TestNewRepositoryShouldReturnErrorWhenNoParametersArePassed(c *check
 	s.router.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, 400)
 	body := readBody(recorder.Body, c)
-	expected := "Validation Error: repository name is not valid"
+	expected := "repository name is not valid"
 	got := strings.Replace(body, "\n", "", -1)
 	c.Assert(got, check.Equals, expected)
 }

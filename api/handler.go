@@ -206,12 +206,19 @@ func newRepository(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	rep, err := repository.New(repo.Name, repo.Users, repo.ReadOnlyUsers, repo.IsPublic)
+	_, err := repository.New(repo.Name, repo.Users, repo.ReadOnlyUsers, repo.IsPublic)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		status := http.StatusInternalServerError
+		if err == repository.ErrRepositoryAlreadyExists {
+			status = http.StatusConflict
+		}
+		if _, ok := err.(*repository.InvalidRepositoryError); ok {
+			status = http.StatusBadRequest
+		}
+		http.Error(w, err.Error(), status)
 		return
 	}
-	fmt.Fprintf(w, "Repository \"%s\" successfully created\n", rep.Name)
+	fmt.Fprintf(w, "Repository \"%s\" successfully created\n", repo.Name)
 }
 
 func getRepository(w http.ResponseWriter, r *http.Request) {
