@@ -162,6 +162,9 @@ func Get(name string) (Repository, error) {
 	}
 	defer conn.Close()
 	err = conn.Repository().FindId(name).One(&r)
+	if err == mgo.ErrNotFound {
+		return r, ErrRepositoryNotFound
+	}
 	return r, err
 }
 

@@ -490,8 +490,7 @@ func (s *S) TestUpdateErrsWithAlreadyExists(c *check.C) {
 func (s *S) TestUpdateErrsWhenNotFound(c *check.C) {
 	update := Repository{}
 	err := Update("nonexistent", update)
-	c.Assert(err, check.ErrorMatches, "not found")
-
+	c.Assert(err, check.Equals, ErrRepositoryNotFound)
 }
 
 func (s *S) TestReadOnlyURL(c *check.C) {
@@ -760,6 +759,11 @@ func (s *S) TestGet(c *check.C) {
 	r, err := Get("somerepo")
 	c.Assert(err, check.IsNil)
 	c.Assert(r, check.DeepEquals, repo)
+}
+
+func (s *S) TestGetNotFound(c *check.C) {
+	_, err := Get("unknown-repository")
+	c.Assert(err, check.Equals, ErrRepositoryNotFound)
 }
 
 func (s *S) TestMarshalJSON(c *check.C) {
