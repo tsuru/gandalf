@@ -224,7 +224,11 @@ func newRepository(w http.ResponseWriter, r *http.Request) {
 func getRepository(w http.ResponseWriter, r *http.Request) {
 	repo, err := repository.Get(r.URL.Query().Get(":name"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		status := http.StatusInternalServerError
+		if err == repository.ErrRepositoryNotFound {
+			status = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), status)
 		return
 	}
 	out, err := json.Marshal(&repo)

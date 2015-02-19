@@ -233,7 +233,7 @@ func (s *S) TestGetRepositoryWithNamespace(c *check.C) {
 func (s *S) TestGetRepositoryDoesNotExist(c *check.C) {
 	recorder, request := get("/repository/doesnotexist", nil, c)
 	s.router.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, check.Equals, 500)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
 }
 
 func (s *S) TestNewRepository(c *check.C) {
