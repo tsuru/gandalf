@@ -174,6 +174,7 @@ func (s *S) TestCreateDuplicateUser(c *check.C) {
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
 	c.Assert(recorder.Body.String(), check.Equals, "user already exists\n")
+	c.Assert(server.Users(), check.DeepEquals, []string{"someuser"})
 }
 
 func (s *S) TestRemoveUser(c *check.C) {

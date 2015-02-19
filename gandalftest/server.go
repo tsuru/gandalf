@@ -225,11 +225,11 @@ func (s *GandalfServer) createUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	s.users = append(s.users, usr.Name)
 	if _, ok := s.keys[usr.Name]; ok {
 		http.Error(w, "user already exists", http.StatusConflict)
 		return
 	}
+	s.users = append(s.users, usr.Name)
 	keys := make([]key, 0, len(usr.Keys))
 	for name, body := range usr.Keys {
 		keys = append(keys, key{Name: name, Body: body})
