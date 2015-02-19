@@ -246,6 +246,7 @@ func (s *S) TestExecuteActionShouldExecuteGitReceivePackWhenUserHasWritePermissi
 	c.Assert(err, check.IsNil)
 	expected := path.Join(p, "myapp.git")
 	c.Assert(stdout.String(), check.Equals, expected)
+	c.Assert(commandmocker.Envs(dir), check.Matches, `(?s).*TSURU_USER=testuser.*`)
 }
 
 func (s *S) TestExecuteActionShouldNotCallSSH_ORIGINAL_COMMANDWhenUserDoesNotExist(c *check.C) {

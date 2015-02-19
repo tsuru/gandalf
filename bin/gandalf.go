@@ -141,6 +141,9 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		cmd := exec.Command(c[0], c[1:]...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = stdout
+		baseEnv := os.Environ()
+		baseEnv = append(baseEnv, "TSURU_USER="+u.Name)
+		cmd.Env = baseEnv
 		stderr := &bytes.Buffer{}
 		cmd.Stderr = stderr
 		err = cmd.Run()
