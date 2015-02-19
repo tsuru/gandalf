@@ -27,7 +27,10 @@ import (
 
 var tempDir string
 
-var ErrRepositoryNotFound = errors.New("repository not found")
+var (
+	ErrRepositoryAlreadyExists = errors.New("repository already exists")
+	ErrRepositoryNotFound      = errors.New("repository not found")
+)
 
 func tempDirLocation() string {
 	if tempDir == "" {
@@ -124,26 +127,28 @@ func New(name string, users, readOnlyUsers []string, isPublic bool) (*Repository
 		log.Errorf("repository.New: Invalid repository %q: %s", name, err)
 		return r, err
 	}
-	if err := newBare(name); err != nil {
-		log.Errorf("repository.New: Error creating bare repository for %q: %s", name, err)
-		return r, err
-	}
-	barePath := barePath(name)
-	if barePath != "" && isPublic {
-		ioutil.WriteFile(barePath+"/git-daemon-export-ok", []byte(""), 0644)
-		if f, err := fs.Filesystem().Create(barePath + "/git-daemon-export-ok"); err == nil {
-			f.Close()
-		}
-	}
 	conn, err := db.Conn()
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
-	err = conn.Repository().Insert(&r)
-	if mgo.IsDup(err) {
-		log.Errorf("repository.New: Duplicate repository %q", name)
-		return r, fmt.Errorf("A repository with this name already exists.")
+	err = conn.Repository().Insert(r)
+	if err != nil {
+		if mgo.IsDup(err) {
+			return nil, ErrRepositoryAlreadyExists
+		}
+		return nil, err
+	}
+	if err := newBare(name); err != nil {
+		log.Errorf("repository.New: Error creating bare repository for %q: %s", name, err)
+		conn.Repository().Remove(bson.M{"_id": r.Name})
+		return r, err
+	}
+	barePath := barePath(name)
+	if barePath != "" && isPublic {
+		if f, err := fs.Filesystem().Create(barePath + "/git-daemon-export-ok"); err == nil {
+			f.Close()
+		}
 	}
 	return r, err
 }

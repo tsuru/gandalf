@@ -256,6 +256,29 @@ func (s *S) TestNewBreaksOnValidationError(c *check.C) {
 	c.Assert(got, check.Equals, expected)
 }
 
+func (s *S) TestNewDuplicate(c *check.C) {
+	tmpdir, err := commandmocker.Add("git", "$*")
+	c.Assert(err, check.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	users := []string{"smeagol", "saruman"}
+	readOnlyUsers := []string{"gollum", "curumo"}
+	r, err := New("myRepo", users, readOnlyUsers, false)
+	c.Assert(err, check.IsNil)
+	conn, err := db.Conn()
+	c.Assert(err, check.IsNil)
+	defer conn.Close()
+	defer conn.Repository().Remove(bson.M{"_id": "myRepo"})
+	err = commandmocker.Remove(tmpdir)
+	c.Assert(err, check.IsNil)
+	tmpdir, err = commandmocker.Add("git", "$*")
+	c.Assert(err, check.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	r, err = New("myRepo", []string{"who"}, nil, false)
+	c.Assert(err, check.Equals, ErrRepositoryAlreadyExists)
+	c.Assert(r, check.IsNil)
+	c.Assert(commandmocker.Ran(tmpdir), check.Equals, false)
+}
+
 func (s *S) TestRepositoryIsNotValidWithoutAName(c *check.C) {
 	r := Repository{Users: []string{"gollum"}, IsPublic: true}
 	v, err := r.isValid()
@@ -723,20 +746,6 @@ func (s *S) TestRevokeReadOnlyAccessShouldRemoveUserFromAllRepositories(c *check
 func (s *S) TestRevokeAccessNotFound(c *check.C) {
 	err := RevokeAccess([]string{"super-repo"}, []string{"someuser"}, false)
 	c.Assert(err, check.Equals, ErrRepositoryNotFound)
-}
-
-func (s *S) TestConflictingRepositoryNameShouldReturnExplicitError(c *check.C) {
-	tmpdir, err := commandmocker.Add("git", "$*")
-	c.Assert(err, check.IsNil)
-	defer commandmocker.Remove(tmpdir)
-	_, err = New("someRepo", []string{"gollum"}, []string{""}, true)
-	conn, err := db.Conn()
-	c.Assert(err, check.IsNil)
-	defer conn.Close()
-	defer conn.Repository().Remove(bson.M{"_id": "someRepo"})
-	c.Assert(err, check.IsNil)
-	_, err = New("someRepo", []string{"gollum"}, []string{""}, true)
-	c.Assert(err, check.ErrorMatches, "A repository with this name already exists.")
 }
 
 func (s *S) TestGet(c *check.C) {
