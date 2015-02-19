@@ -406,13 +406,13 @@ func (s *S) TestRemoveShouldRemoveRepositoryFromDatabase(c *check.C) {
 	c.Assert(err, check.ErrorMatches, "^not found$")
 }
 
-func (s *S) TestRemoveShouldReturnMeaningfulErrorWhenRepositoryDoesNotExistInDatabase(c *check.C) {
+func (s *S) TestRemoveNotFound(c *check.C) {
 	rfs := &fstest.RecordingFs{FileContent: "foo"}
 	fs.Fsystem = rfs
 	defer func() { fs.Fsystem = nil }()
 	r := &Repository{Name: "fooBar"}
 	err := Remove(r.Name)
-	c.Assert(err, check.ErrorMatches, "^Could not remove repository: not found$")
+	c.Assert(err, check.Equals, ErrRepositoryNotFound)
 }
 
 func (s *S) TestUpdate(c *check.C) {

@@ -174,7 +174,6 @@ func Remove(name string) error {
 	log.Debugf("Removing repository %q", name)
 	if err := removeBare(name); err != nil {
 		log.Errorf("repository.Remove: Error removing bare repository %q: %s", name, err)
-		return err
 	}
 	conn, err := db.Conn()
 	if err != nil {
@@ -182,8 +181,10 @@ func Remove(name string) error {
 	}
 	defer conn.Close()
 	if err := conn.Repository().RemoveId(name); err != nil {
-		log.Errorf("repository.Remove: Error removing repository %q from db: %s", name, err)
-		return fmt.Errorf("Could not remove repository: %s", err)
+		if err == mgo.ErrNotFound {
+			return ErrRepositoryNotFound
+		}
+		return err
 	}
 	return nil
 }
