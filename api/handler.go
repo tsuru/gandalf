@@ -242,7 +242,11 @@ func getRepository(w http.ResponseWriter, r *http.Request) {
 func removeRepository(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
 	if err := repository.Remove(name); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		status := http.StatusBadRequest
+		if err == repository.ErrRepositoryNotFound {
+			status = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), status)
 		return
 	}
 	fmt.Fprintf(w, "Repository \"%s\" successfully removed\n", name)

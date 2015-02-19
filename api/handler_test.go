@@ -24,6 +24,7 @@ import (
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
 	"gopkg.in/check.v1"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -926,27 +927,19 @@ func (s *S) TestRemoveRepositoryShouldRemoveFromDB(c *check.C) {
 	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	err = conn.Repository().Find(bson.M{"_id": r.Name}).One(&r)
-	c.Assert(err, check.ErrorMatches, "^not found$")
+	c.Assert(err, check.Equals, mgo.ErrNotFound)
 }
 
-func (s *S) TestRemoveRepositoryShouldReturn400OnFailure(c *check.C) {
+func (s *S) TestRemoveRepositoryNotFound(c *check.C) {
 	url := "/repository/foo"
 	request, err := http.NewRequest("DELETE", url, nil)
 	c.Assert(err, check.IsNil)
 	recorder := httptest.NewRecorder()
 	s.router.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, check.Equals, 400)
-}
-
-func (s *S) TestRemoveRepositoryShouldReturnErrorMsgWhenRepoDoesNotExist(c *check.C) {
-	url := "/repository/foo"
-	request, err := http.NewRequest("DELETE", url, nil)
-	c.Assert(err, check.IsNil)
-	recorder := httptest.NewRecorder()
-	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
 	b, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, check.IsNil)
-	c.Assert(string(b), check.Equals, "Could not remove repository: not found\n")
+	c.Assert(string(b), check.Equals, "repository not found\n")
 }
 
 func (s *S) TestUpdateRespositoryShouldReturnErrorWhenBodyIsEmpty(c *check.C) {
