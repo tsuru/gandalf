@@ -942,7 +942,7 @@ func (s *S) TestRemoveRepositoryNotFound(c *check.C) {
 	c.Assert(string(b), check.Equals, "repository not found\n")
 }
 
-func (s *S) TestUpdateRespositoryShouldReturnErrorWhenBodyIsEmpty(c *check.C) {
+func (s *S) TestUpdateRepositoryShouldReturnErrorWhenBodyIsEmpty(c *check.C) {
 	r, err := repository.New("something", []string{"guardian@what.com"}, []string{""}, true)
 	c.Assert(err, check.IsNil)
 	conn, err := db.Conn()
