@@ -194,7 +194,7 @@ func Update(name string, newData Repository) error {
 	log.Debugf("Updating repository %q data", name)
 	repo, err := Get(name)
 	if err != nil {
-		log.Errorf("repository.Update: Repository %q not found: %s", name, err)
+		log.Errorf("repository.Update(%q): %s", name, err)
 		return err
 	}
 	conn, err := db.Conn()
