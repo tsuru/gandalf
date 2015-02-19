@@ -78,7 +78,10 @@ func Remove(name string) error {
 	}
 	defer conn.Close()
 	if err := conn.User().Find(bson.M{"_id": name}).One(&u); err != nil {
-		return fmt.Errorf("Could not remove user: %s", err)
+		if err == mgo.ErrNotFound {
+			return ErrUserNotFound
+		}
+		return err
 	}
 	if err := u.handleAssociatedRepositories(); err != nil {
 		return err

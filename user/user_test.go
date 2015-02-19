@@ -182,9 +182,9 @@ func (s *S) TestRemoveRemovesKeyFromAuthorizedKeysFile(c *check.C) {
 	c.Assert(got, check.Equals, "")
 }
 
-func (s *S) TestRemoveInexistentUserReturnsDescriptiveMessage(c *check.C) {
+func (s *S) TestRemoveNotFound(c *check.C) {
 	err := Remove("otheruser")
-	c.Assert(err, check.ErrorMatches, "Could not remove user: not found")
+	c.Assert(err, check.Equals, ErrUserNotFound)
 }
 
 func (s *S) TestRemoveDoesNotRemovesUserWhenUserIsTheOnlyOneAssciatedWithOneRepository(c *check.C) {
