@@ -201,7 +201,11 @@ func newUser(w http.ResponseWriter, r *http.Request) {
 func removeUser(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
 	if err := user.Remove(name); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		status := http.StatusInternalServerError
+		if err == user.ErrUserNotFound {
+			status = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), status)
 		return
 	}
 	fmt.Fprintf(w, "User \"%s\" successfully removed\n", name)

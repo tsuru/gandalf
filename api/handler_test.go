@@ -920,6 +920,15 @@ func (s *S) TestRemoveUserShouldRemoveFromDB(c *check.C) {
 	c.Assert(lenght, check.Equals, 0)
 }
 
+func (s *S) TestRemoveUserNotFound(c *check.C) {
+	request, err := http.NewRequest("DELETE", "/user/unknown-user", nil)
+	c.Assert(err, check.IsNil)
+	recorder := httptest.NewRecorder()
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "user not found\n")
+}
+
 func (s *S) TestRemoveRepository(c *check.C) {
 	r, err := repository.New("myRepo", []string{"pippin"}, []string{""}, true)
 	c.Assert(err, check.IsNil)
