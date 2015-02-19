@@ -185,7 +185,14 @@ func newUser(w http.ResponseWriter, r *http.Request) {
 	}
 	u, err := user.New(usr.Name, usr.Keys)
 	if err != nil {
-		http.Error(w, "Got error while creating user: "+err.Error(), http.StatusBadRequest)
+		status := http.StatusInternalServerError
+		if err == user.ErrUserAlreadyExists {
+			status = http.StatusConflict
+		}
+		if _, ok := err.(*user.InvalidUserError); ok {
+			status = http.StatusBadRequest
+		}
+		http.Error(w, err.Error(), status)
 		return
 	}
 	fmt.Fprintf(w, "User \"%s\" successfully created\n", u.Name)

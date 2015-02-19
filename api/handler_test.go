@@ -156,6 +156,7 @@ func (s *S) TestNewUserShouldRepassParseBodyErrors(c *check.C) {
 	b := strings.NewReader("{]9afe}")
 	recorder, request := post("/user", b, c)
 	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
 	body := readBody(recorder.Body, c)
 	expected := "Got error while parsing body: Could not parse json: invalid character ']' looking for beginning of object key string"
 	got := strings.Replace(body, "\n", "", -1)
@@ -166,8 +167,9 @@ func (s *S) TestNewUserShouldRequireUserName(c *check.C) {
 	b := strings.NewReader(`{"name": ""}`)
 	recorder, request := post("/user", b, c)
 	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
 	body := readBody(recorder.Body, c)
-	expected := "Got error while creating user: Validation Error: user name is not valid"
+	expected := "username is not valid"
 	got := strings.Replace(body, "\n", "", -1)
 	c.Assert(got, check.Equals, expected)
 }
@@ -181,6 +183,22 @@ func (s *S) TestNewUserWihoutKeys(c *check.C) {
 	defer conn.Close()
 	defer conn.User().Remove(bson.M{"_id": "brain"})
 	c.Assert(recorder.Code, check.Equals, 200)
+}
+
+func (s *S) TestNewUserDuplicate(c *check.C) {
+	b := strings.NewReader(fmt.Sprintf(`{"name": "brain", "keys": {"keyname": %q}}`, rawKey))
+	recorder, request := post("/user", b, c)
+	s.router.ServeHTTP(recorder, request)
+	conn, err := db.Conn()
+	c.Assert(err, check.IsNil)
+	defer conn.Close()
+	defer conn.User().Remove(bson.M{"_id": "brain"})
+	defer conn.Key().Remove(bson.M{"username": "brain"})
+	b = strings.NewReader(`{"name":"brain"}`)
+	recorder, request = post("/user", b, c)
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
+	c.Assert(recorder.Body.String(), check.Equals, "user already exists\n")
 }
 
 func (s *S) TestGetRepository(c *check.C) {
@@ -694,10 +712,10 @@ func (s *S) TestAddKeyShouldReturnErrorWhenUserDoesNotExist(c *check.C) {
 	b := strings.NewReader(`{"key": "a public key"}`)
 	recorder, request := post("/user/Frodo/key", b, c)
 	s.router.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, check.Equals, 404)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
 	body, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, check.IsNil)
-	c.Assert(string(body), check.Equals, "User not found\n")
+	c.Assert(string(body), check.Equals, "user not found\n")
 }
 
 func (s *S) TestAddKeyShouldReturnProperStatusCodeWhenKeyAlreadyExists(c *check.C) {
@@ -822,8 +840,9 @@ func (s *S) TestRemoveKeyShouldReturnErrorWithLineBreakAtEnd(c *check.C) {
 	url := "/user/idiocracy/key/keyname"
 	recorder, request := del(url, nil, c)
 	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
 	b := readBody(recorder.Body, c)
-	c.Assert(b, check.Equals, "User not found\n")
+	c.Assert(b, check.Equals, "user not found\n")
 }
 
 func (s *S) TestListKeysGivesExpectedSuccessResponse(c *check.C) {
@@ -865,9 +884,9 @@ func (s *S) TestListKeysWithInvalidUserReturnsNotFound(c *check.C) {
 	c.Assert(err, check.IsNil)
 	recorder := httptest.NewRecorder()
 	s.router.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, check.Equals, 404)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
 	b := readBody(recorder.Body, c)
-	c.Assert(b, check.Equals, "User not found\n")
+	c.Assert(b, check.Equals, "user not found\n")
 }
 
 func (s *S) TestRemoveUser(c *check.C) {
