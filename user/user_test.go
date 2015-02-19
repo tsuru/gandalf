@@ -84,8 +84,8 @@ func (s *S) TestNewDuplicateUser(c *check.C) {
 	c.Assert(err, check.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
-	u, err = New("someuser", map[string]string{"somekey": rawKey})
-	c.Assert(err, check.ErrorMatches, "Could not create user: user already exists")
+	_, err = New("someuser", map[string]string{"somekey": rawKey})
+	c.Assert(err, check.Equals, ErrUserAlreadyExists)
 }
 
 func (s *S) TestNewDuplicateUserDifferentKey(c *check.C) {
@@ -95,8 +95,8 @@ func (s *S) TestNewDuplicateUserDifferentKey(c *check.C) {
 	c.Assert(err, check.IsNil)
 	defer conn.User().Remove(bson.M{"_id": u.Name})
 	defer conn.Key().Remove(bson.M{"name": "somekey"})
-	u, err = New("someuser", map[string]string{"somedifferentkey": rawKey + "fakeKey"})
-	c.Assert(err, check.ErrorMatches, "Could not create user: user already exists")
+	_, err = New("someuser", map[string]string{"somedifferentkey": rawKey + "fakeKey"})
+	c.Assert(err, check.Equals, ErrUserAlreadyExists)
 }
 
 func (s *S) TestNewUserShouldStoreUserInDatabase(c *check.C) {
@@ -117,9 +117,9 @@ func (s *S) TestNewUserShouldStoreUserInDatabase(c *check.C) {
 func (s *S) TestNewChecksIfUserIsValidBeforeStoring(c *check.C) {
 	_, err := New("", map[string]string{})
 	c.Assert(err, check.NotNil)
-	got := err.Error()
-	expected := "Validation Error: user name is not valid"
-	c.Assert(got, check.Equals, expected)
+	e, ok := err.(*InvalidUserError)
+	c.Assert(ok, check.Equals, true)
+	c.Assert(e.message, check.Equals, "username is not valid")
 }
 
 func (s *S) TestNewWritesKeyInAuthorizedKeys(c *check.C) {

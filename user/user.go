@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -20,7 +20,12 @@ func init() {
 	log.Init()
 }
 
-var ErrUserNotFound = errors.New("User not found")
+var (
+	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrUserNotFound      = errors.New("user not found")
+
+	userNameRegexp = regexp.MustCompile(`\s|[^aA-zZ0-9-+.@]|(^$)`)
+)
 
 type User struct {
 	Name string `bson:"_id"`
@@ -43,22 +48,17 @@ func New(name string, keys map[string]string) (*User, error) {
 	defer conn.Close()
 	if err := conn.User().Insert(&u); err != nil {
 		if mgo.IsDup(err) {
-			log.Errorf("user.New: %q duplicate user", name)
-			return u, errors.New("Could not create user: user already exists")
+			return nil, ErrUserAlreadyExists
 		}
 		log.Errorf("user.New: %s", err)
-		return u, err
+		return nil, err
 	}
 	return u, addKeys(keys, u.Name)
 }
 
 func (u *User) isValid() (isValid bool, err error) {
-	m, err := regexp.Match(`\s|[^aA-zZ0-9-+.@]|(^$)`, []byte(u.Name))
-	if err != nil {
-		panic(err)
-	}
-	if m {
-		return false, errors.New("Validation Error: user name is not valid")
+	if userNameRegexp.MatchString(u.Name) {
+		return false, &InvalidUserError{message: "username is not valid"}
 	}
 	return true, nil
 }
@@ -150,4 +150,12 @@ func RemoveKey(uName, kName string) error {
 		return ErrUserNotFound
 	}
 	return removeKey(kName, uName)
+}
+
+type InvalidUserError struct {
+	message string
+}
+
+func (err *InvalidUserError) Error() string {
+	return err.message
 }
