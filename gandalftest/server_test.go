@@ -228,9 +228,10 @@ func (s *S) TestCreateRepositoryDuplicateName(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
+	server.users = []string{"user1"}
 	server.repos = []Repository{{Name: "somerepo"}}
 	recorder := httptest.NewRecorder()
-	body := strings.NewReader(`{"Name":"somerepo","IsPublic":false}`)
+	body := strings.NewReader(`{"Name":"somerepo","Users":["user1"],"IsPublic":false}`)
 	request, _ := http.NewRequest("POST", "/repository", body)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
@@ -247,6 +248,18 @@ func (s *S) TestCreateRepositoryUserNotFound(c *check.C) {
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), check.Equals, `user "user1" not found`+"\n")
+}
+
+func (s *S) TestCreateRepositoryNoUsers(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"Name":"myrepo","IsPublic":true}`)
+	request, _ := http.NewRequest("POST", "/repository", body)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "missing users\n")
 }
 
 func (s *S) TestRemoveRepository(c *check.C) {

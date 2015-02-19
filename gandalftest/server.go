@@ -262,6 +262,10 @@ func (s *GandalfServer) createRepository(w http.ResponseWriter, r *http.Request)
 	}
 	repo.Diffs = make(chan string, 1)
 	users := append(repo.Users, repo.ReadOnlyUsers...)
+	if len(users) < 1 {
+		http.Error(w, "missing users", http.StatusBadRequest)
+		return
+	}
 	for _, userName := range users {
 		_, index := s.findUser(userName)
 		if index < 0 {
