@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -14,7 +14,7 @@ import (
 	"github.com/tsuru/gandalf/api"
 )
 
-const version = "0.5.2"
+const version = "0.6.0"
 
 func main() {
 	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
