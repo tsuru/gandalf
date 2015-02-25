@@ -331,8 +331,13 @@ Expects a multipart form with the following fields:
 * `author-email`: The email of the author
 * `committer-name`: The name of the committer
 * `committer-email`: The email of the committer
-* `branch`: The name of the branch this commit will bi applied to
-* `zipfile`: A ZIP with files and directory structure
+* `branch`: The name of the branch this commit will be applied to
+* `zipfile`: A ZIP file with files and directory structure for this commit. These
+  files will copied on top of current repository contents.
+
+Due to files being added over current existing repository contents, it's not
+possible to remove exiting files from the repository. It's only possible to add or
+modify existing ones.
 
 Example URL (http://gandalf-server omitted for clarity)::
 

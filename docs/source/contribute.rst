@@ -1,5 +1,5 @@
 ==========
-contribute
+Contribute
 ==========
 
 * Source hosted at `GitHub <http://github.com/tsuru/gandalf>`_

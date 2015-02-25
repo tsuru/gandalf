@@ -7,20 +7,10 @@ Gandalf is a REST api written in go to manage git repositories, users and provid
 YOU SHALL NOT PASS!
 ==================
 
-First steps:
-============
 
-* :doc:`Installation </install>`
-* :doc:`Quickstart tutorial </quickstart>`
+.. toctree::
+    :maxdepth: 2
 
-Get involved:
-=============
-* :doc:`Contribute </contribute>`
-* :doc:`Community </community>`
-
-Other topcis:
-=============
-
-* :doc:`API </api>`
-* :doc:`Making a backup </making-backup>`
-* :doc:`Install gandalf from source </install-from-source>`
+    first-steps
+    get-involved
+    other-topics
