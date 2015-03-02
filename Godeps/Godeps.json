@@ -27,7 +27,7 @@
 		},
 		{
 			"ImportPath": "github.com/tsuru/config",
-			"Rev": "a2b4aec819a60c646dad55cba9c76ddfed4b6ed1"
+			"Rev": "07cacc8d174cc965acd38e7903feaee843ad2f91"
 		},
 		{
 			"ImportPath": "github.com/tsuru/tsuru/db/storage",
