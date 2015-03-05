@@ -57,7 +57,7 @@ func CopyZipFile(f *zip.File, d, p string) error {
 		path := path.Join(d, p)
 		stat, err := os.Stat(path)
 		if err != nil || !stat.IsDir() {
-			file, err := fs.Filesystem().OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
+			file, err := fs.Filesystem().Create(path)
 			if err != nil {
 				return err
 			}

@@ -52,6 +52,46 @@ func (s *S) TestCopyZipFile(c *check.C) {
 	}
 }
 
+func (s *S) TestCopyZipFileOverAgain(c *check.C) {
+	tempDir, err := ioutil.TempDir("", "TestCopyZipFileDir")
+	defer func() {
+		os.RemoveAll(tempDir)
+	}()
+	c.Assert(err, check.IsNil)
+	// file 1
+	var files1 = []File{
+		{"doge.txt", "Much doge"},
+	}
+	buf, err := CreateZipBuffer(files1)
+	c.Assert(err, check.IsNil)
+	c.Assert(buf, check.NotNil)
+	r, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	err = CopyZipFile(r.File[0], tempDir, "doge.txt")
+	c.Assert(err, check.IsNil)
+	fstat, errStat := os.Stat(path.Join(tempDir, "doge.txt"))
+	c.Assert(errStat, check.IsNil)
+	c.Assert(fstat.IsDir(), check.Equals, false)
+	body, err := ioutil.ReadFile(path.Join(tempDir, "doge.txt"))
+	c.Assert(err, check.IsNil)
+	c.Assert(string(body), check.Equals, "Much doge")
+	// file 2
+	var files2 = []File{
+		{"doge.txt", "Many"},
+	}
+	buf, err = CreateZipBuffer(files2)
+	c.Assert(err, check.IsNil)
+	c.Assert(buf, check.NotNil)
+	r, err = zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	err = CopyZipFile(r.File[0], tempDir, "doge.txt")
+	c.Assert(err, check.IsNil)
+	fstat, errStat = os.Stat(path.Join(tempDir, "doge.txt"))
+	c.Assert(errStat, check.IsNil)
+	c.Assert(fstat.IsDir(), check.Equals, false)
+	body, err = ioutil.ReadFile(path.Join(tempDir, "doge.txt"))
+	c.Assert(err, check.IsNil)
+	c.Assert(string(body), check.Equals, "Many")
+}
+
 func (s *S) TestExtractZip(c *check.C) {
 	boundary := "muchBOUNDARY"
 	params := map[string]string{}
