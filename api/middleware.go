@@ -35,3 +35,17 @@ func (l *loggerMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 		float64(duration)/float64(time.Millisecond),
 	)
 }
+
+type responseHeaderMiddleware struct {
+	name  string
+	value string
+}
+
+func NewResponseHeaderMiddleware(name string, value string) *responseHeaderMiddleware {
+	return &responseHeaderMiddleware{name: name, value: value}
+}
+
+func (m *responseHeaderMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	rw.Header().Set(m.name, m.value)
+	next(rw, r)
+}

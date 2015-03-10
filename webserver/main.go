@@ -38,6 +38,9 @@ func main() {
 	router := api.SetupRouter()
 	n := negroni.New()
 	n.Use(api.NewLoggerMiddleware())
+	n.Use(api.NewResponseHeaderMiddleware("Server", "gandalf-webserver/"+version))
+	n.Use(api.NewResponseHeaderMiddleware("Cache-Control", "private, max-age=0"))
+	n.Use(api.NewResponseHeaderMiddleware("Expires", "-1"))
 	n.UseHandler(router)
 	bind, err := config.GetString("bind")
 	if err != nil {
