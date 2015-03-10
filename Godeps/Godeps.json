@@ -1,10 +1,15 @@
 {
 	"ImportPath": "github.com/tsuru/gandalf",
-	"GoVersion": "devel +0ca4913 Sun Feb 8 23:38:50 2015 +0000",
+	"GoVersion": "devel +fdd49d2 Tue Mar 10 02:32:48 2015 +0000",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/codegangsta/negroni",
+			"Comment": "v0.1-4-ga13766a",
+			"Rev": "a13766a8c2572caeb14341b7de158aff2fd00fa9"
+		},
 		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "708054d61e5a2918b9f4e9700000ee611dcf03f5"
