@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/codegangsta/negroni"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/api"
 )
@@ -35,6 +36,9 @@ func main() {
 	}
 	log.Printf("Successfully read config file: %s\n", *configFile)
 	router := api.SetupRouter()
+	n := negroni.New()
+	n.Use(api.NewLoggerMiddleware())
+	n.UseHandler(router)
 	bind, err := config.GetString("bind")
 	if err != nil {
 		var perr error
