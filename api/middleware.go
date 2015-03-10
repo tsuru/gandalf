@@ -1,4 +1,4 @@
-// Copyright 2014 gandalf authors. All rights reserved.
+// Copyright 2015 gandalf authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -29,5 +29,9 @@ func (l *loggerMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	duration := time.Since(start)
 	res := rw.(negroni.ResponseWriter)
 	nowFormatted := time.Now().Format(time.RFC3339Nano)
-	l.logger.Printf("%s %s %s %d in %0.6fms", nowFormatted, r.Method, r.URL.Path, res.Status(), float64(duration)/float64(time.Millisecond))
+	l.logger.Printf("%s %s %s %d in %0.6fms",
+		nowFormatted, r.Method,
+		r.URL.Path, res.Status(),
+		float64(duration)/float64(time.Millisecond),
+	)
 }
