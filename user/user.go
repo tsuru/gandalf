@@ -16,10 +16,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func init() {
-	log.Init()
-}
-
 var (
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrUserNotFound      = errors.New("user not found")

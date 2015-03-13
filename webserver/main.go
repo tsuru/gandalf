@@ -7,12 +7,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/codegangsta/negroni"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/api"
+	"github.com/tsuru/tsuru/log"
 )
 
 const version = "0.6.0"
@@ -26,7 +26,7 @@ func main() {
 		fmt.Printf("gandalf-webserver version %s\n", version)
 		return
 	}
-	log.Printf("Opening config file: %s ...\n", *configFile)
+	log.Debugf("Opening config file: %s ...\n", *configFile)
 	err := config.ReadAndWatchConfigFile(*configFile)
 	if err != nil {
 		msg := `Could not open gandalf config file at %s (%s).
@@ -34,7 +34,8 @@ func main() {
   Note that you can specify a different config file with the --config option -- e.g.: --config=./etc/gandalf.conf`
 		log.Fatalf(msg, *configFile, err)
 	}
-	log.Printf("Successfully read config file: %s\n", *configFile)
+	log.Init()
+	log.Debugf("Successfully read config file: %s\n", *configFile)
 	router := api.SetupRouter()
 	n := negroni.New()
 	n.Use(api.NewLoggerMiddleware())
@@ -55,8 +56,8 @@ func main() {
 		if err != nil {
 			panic("You should configure a git:bare:location for gandalf.")
 		}
-		log.Printf("Repository location: %s\n", bareLocation)
-		log.Printf("gandalf-webserver %s listening on %s\n", version, bind)
-		log.Fatal(http.ListenAndServe(bind, router))
+		fmt.Printf("Repository location: %s\n", bareLocation)
+		fmt.Printf("gandalf-webserver %s listening on %s\n", version, bind)
+		http.ListenAndServe(bind, router)
 	}
 }
