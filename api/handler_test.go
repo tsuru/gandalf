@@ -551,7 +551,7 @@ func (s *S) TestAddPostReceiveHookRepository(c *check.C) {
 	expected := "hook post-receive successfully created for [some-repo]\n"
 	c.Assert(got, check.Equals, expected)
 	c.Assert(recorder.Code, check.Equals, 200)
-	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/post-receive", os.O_RDONLY, 0755)
+	file, err := fs.Filesystem().OpenFile("/var/lib/gandalf/repositories/some-repo.git/hooks/post-receive", os.O_RDONLY, 0755)
 	defer file.Close()
 	content, err := ioutil.ReadAll(file)
 	c.Assert(err, check.IsNil)
@@ -566,7 +566,7 @@ func (s *S) TestAddPreReceiveHookRepository(c *check.C) {
 	expected := "hook pre-receive successfully created for [some-repo]\n"
 	c.Assert(got, check.Equals, expected)
 	c.Assert(recorder.Code, check.Equals, 200)
-	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/pre-receive", os.O_RDONLY, 0755)
+	file, err := fs.Filesystem().OpenFile("/var/lib/gandalf/repositories/some-repo.git/hooks/pre-receive", os.O_RDONLY, 0755)
 	defer file.Close()
 	content, err := ioutil.ReadAll(file)
 	c.Assert(err, check.IsNil)
@@ -581,7 +581,7 @@ func (s *S) TestAddUpdateReceiveHookRepository(c *check.C) {
 	expected := "hook update successfully created for [some-repo]\n"
 	c.Assert(got, check.Equals, expected)
 	c.Assert(recorder.Code, check.Equals, 200)
-	file, err := fs.Filesystem().OpenFile("/tmp/repositories/some-repo.git/hooks/update", os.O_RDONLY, 0755)
+	file, err := fs.Filesystem().OpenFile("/var/lib/gandalf/repositories/some-repo.git/hooks/update", os.O_RDONLY, 0755)
 	defer file.Close()
 	content, err := ioutil.ReadAll(file)
 	c.Assert(err, check.IsNil)
