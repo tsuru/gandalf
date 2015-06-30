@@ -210,12 +210,12 @@ Example result::
         createdAt: "Mon Jul 28 10:13:27 2014 -0300"
         author: {
             name: "Author name",
-            email: "author@email.com",
+            email: "<author@email.com>",
             date: "Mon Jul 28 10:13:27 2014 -0300""
         },
         committer: {
             name: "Committer name",
-            email: "committer@email.com",
+            email: "<committer@email.com>",
             date: "Tue Jul 29 13:43:57 2014 -0300"
         },
         _links: {
@@ -250,12 +250,12 @@ Example result::
         createdAt: "Mon Jul 28 10:13:27 2014 -0300"
         author: {
             name: "Author name",
-            email: "author@email.com",
+            email: "<author@email.com>",
             date: "Mon Jul 28 10:13:27 2014 -0300""
         },
         committer: {
             name: "Committer name",
-            email: "committer@email.com",
+            email: "<committer@email.com>",
             date: "Tue Jul 29 13:43:57 2014 -0300"
         },
         _links: {
@@ -360,12 +360,12 @@ Example result::
         createdAt: "Mon Jul 28 10:13:27 2014 -0300"
         author: {
             name: "Author Name",
-            email: "author@email.com",
+            email: "<author@email.com>",
             date: "Mon Jul 28 10:13:27 2014 -0300""
         },
         committer: {
             name: "Committer Name",
-            email: "committer@email.com",
+            email: "<committer@email.com>",
             date: "Tue Jul 29 13:43:57 2014 -0300"
         },
         _links: {
@@ -402,12 +402,12 @@ Example result::
             createdAt: "Mon Jul 28 10:13:27 2014 -0300"
             author: {
                 name: "Author name",
-                email: "author@email.com",
+                email: "<author@email.com>",
                 date: "Mon Jul 28 10:13:27 2014 -0300""
             },
             committer: {
                 name: "Committer name",
-                email: "committer@email.com",
+                email: "<committer@email.com>",
                 date: "Tue Jul 29 13:43:57 2014 -0300"
             },
             parent: [
