@@ -7,7 +7,7 @@ GANDALF_SSH_SRC = bin/gandalf.go
 get: get-code godep binaries
 
 get-code:
-	go get $(GO_EXTRAFLAGS) -u -d -t ./...
+	go get $(GO_EXTRAFLAGS) -u -d -t ./... || true
 
 godep:
 	go get $(GO_EXTRAFLAGS) github.com/tools/godep
