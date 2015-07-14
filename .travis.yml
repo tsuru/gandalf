@@ -1,4 +1,5 @@
 language: go
+sudo: false
 go:
   - 1.4
   - tip
@@ -6,8 +7,6 @@ env:
   - GOARCH=amd64
 before_install:
   - sed -i "s|git://github.com/tsuru/gandalf.git|https://github.com/tsuru/gandalf|g" .git/config
-  - sudo apt-get update -qq > apt-get.out 2>&1  || (cat apt-get.out && exit 1)
-  - sudo apt-get install bzr mercurial git -qq > apt-get.out 2>&1 || (cat apt-get.out && exit 1)
 install:
   - export PATH="$HOME/gopath/bin:$PATH"
   - make get GO_EXTRAFLAGS=-x
