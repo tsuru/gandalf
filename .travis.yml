@@ -5,13 +5,17 @@ go:
   - tip
 env:
   - GOARCH=amd64
+addons:
+  apt:
+    packages:
+      - rsyslog
 before_install:
   - sed -i "s|git://github.com/tsuru/gandalf.git|https://github.com/tsuru/gandalf|g" .git/config
 install:
   - export PATH="$HOME/gopath/bin:$PATH"
   - make get GO_EXTRAFLAGS=-x
 before_script:
-  - if [ "$TRAVIS_REPO_SLUG" != "tsuru/gandalf" ]; then cd ..; mv gandalf ../tsuru; cd ../tsuru/gandalf; fi
+  - rsyslogd &
 script:
   - make test GO_EXTRAFLAGS=-x
   - rm -rf Godeps
