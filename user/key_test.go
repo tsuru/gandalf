@@ -365,7 +365,7 @@ func (s *S) TestRemoveUserKeys(c *check.C) {
 func (s *S) TestRemoveUserMultipleKeys(c *check.C) {
 	err := addKey("key1", rawKey, "glenda")
 	c.Assert(err, check.IsNil)
-	err = addKey("key1", otherKey, "glenda")
+	err = addKey("key2", otherKey, "glenda")
 	c.Assert(err, check.IsNil)
 	err = removeUserKeys("glenda")
 	c.Assert(err, check.IsNil)
