@@ -56,16 +56,18 @@ func (s *S) TestSessionKeyShouldReturnKeyCollection(c *check.C) {
 	c.Assert(key, check.DeepEquals, cKey)
 }
 
-func (s *S) TestSessionKeyBodyIsUnique(c *check.C) {
+func (s *S) TestSessionKeyIndexes(c *check.C) {
 	conn, err := Conn()
 	c.Assert(err, check.IsNil)
 	defer conn.Close()
 	key := conn.Key()
 	indexes, err := key.Indexes()
 	c.Assert(err, check.IsNil)
-	c.Assert(indexes, check.HasLen, 2)
-	c.Assert(indexes[1].Key, check.DeepEquals, []string{"body"})
-	c.Assert(indexes[1].Unique, check.DeepEquals, true)
+	c.Check(indexes, check.HasLen, 3)
+	c.Check(indexes[1].Key, check.DeepEquals, []string{"body"})
+	c.Check(indexes[1].Unique, check.DeepEquals, true)
+	c.Check(indexes[2].Key, check.DeepEquals, []string{"username", "name"})
+	c.Check(indexes[2].Unique, check.DeepEquals, true)
 }
 
 func (s *S) TestConnect(c *check.C) {
