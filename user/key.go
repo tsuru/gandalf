@@ -85,7 +85,6 @@ func (k *Key) dump(w io.Writer) error {
 	return nil
 }
 
-// authKey returns the file to write user's keys.
 func authKey() string {
 	if path, _ := config.GetString("authorized-keys-path"); path != "" {
 		return path
@@ -99,8 +98,6 @@ func authKey() string {
 	return path.Join(home, ".ssh", "authorized_keys")
 }
 
-// writeKeys serializes the given key in the authorized_keys file (of the
-// current user).
 func writeKey(k *Key) error {
 	file, err := fs.Filesystem().OpenFile(authKey(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -112,9 +109,6 @@ func writeKey(k *Key) error {
 	return k.dump(file)
 }
 
-// Writes `key` in authorized_keys file (from current user)
-// It does not writes in the database, there is no need for that since the key
-// object is embedded on the user's document
 func addKey(name, body, username string) error {
 	key, err := newKey(name, username, body)
 	if err != nil {
@@ -133,6 +127,33 @@ func addKey(name, body, username string) error {
 		return err
 	}
 	return writeKey(key)
+}
+
+func updateKey(name, body, username string) error {
+	newK, err := newKey(name, username, body)
+	if err != nil {
+		return err
+	}
+	var oldK Key
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	err = conn.Key().Find(bson.M{"name": name, "username": username}).One(&oldK)
+	if err != nil {
+		return ErrKeyNotFound
+	}
+	err = remove(&oldK)
+	if err != nil {
+		return err
+	}
+	err = writeKey(newK)
+	if err != nil {
+		writeKey(&oldK)
+		return err
+	}
+	return conn.Key().Update(bson.M{"name": name, "username": username}, newK)
 }
 
 func addKeys(keys map[string]string, username string) error {

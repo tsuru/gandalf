@@ -117,38 +117,50 @@ func (u *User) handleAssociatedRepositories() error {
 	return nil
 }
 
-// Adds a key into a user.
-//
-// Stores the key in the user's document and write it in authorized_keys.
+// AddKey adds new SSH keys to the list of user keys for the provided username.
 //
 // Returns an error in case the user does not exist.
-func AddKey(uName string, k map[string]string) error {
+func AddKey(username string, k map[string]string) error {
 	var u User
 	conn, err := db.Conn()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	if err := conn.User().FindId(uName).One(&u); err != nil {
+	if err := conn.User().FindId(username).One(&u); err != nil {
 		return ErrUserNotFound
 	}
 	return addKeys(k, u.Name)
 }
 
-// RemoveKey removes the key from the database and from authorized_keys file.
-//
-// If the user or the key is not found, returns an error.
-func RemoveKey(uName, kName string) error {
+// UpdateKey updates the content of the given key.
+func UpdateKey(username string, k Key) error {
 	var u User
 	conn, err := db.Conn()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	if err := conn.User().FindId(uName).One(&u); err != nil {
+	if err := conn.User().FindId(username).One(&u); err != nil {
 		return ErrUserNotFound
 	}
-	return removeKey(kName, uName)
+	return updateKey(k.Name, k.Body, u.Name)
+}
+
+// RemoveKey removes the key from the database and from authorized_keys file.
+//
+// If the user or the key is not found, returns an error.
+func RemoveKey(username, keyname string) error {
+	var u User
+	conn, err := db.Conn()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	if err := conn.User().FindId(username).One(&u); err != nil {
+		return ErrUserNotFound
+	}
+	return removeKey(keyname, username)
 }
 
 type InvalidUserError struct {

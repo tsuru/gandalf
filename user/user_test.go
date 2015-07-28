@@ -304,6 +304,39 @@ func (s *S) TestAddKeyShouldReturnCustomErrorWhenUserDoesNotExist(c *check.C) {
 	c.Assert(err, check.Equals, ErrUserNotFound)
 }
 
+func (s *S) TestUserUpdateKey(c *check.C) {
+	u, err := New("umi", map[string]string{})
+	conn, err := db.Conn()
+	c.Assert(err, check.IsNil)
+	defer conn.User().RemoveId(u.Name)
+	defer conn.Key().Remove(bson.M{"name": "somekey"})
+	k := map[string]string{"somekey": rawKey}
+	err = AddKey("umi", k)
+	c.Assert(err, check.IsNil)
+	newKey := Key{Name: "somekey", Body: otherKey}
+	err = UpdateKey("umi", newKey)
+	c.Assert(err, check.IsNil)
+	content := s.authKeysContent(c)
+	newKey.UserName = "umi"
+	c.Assert(content, check.Equals, newKey.format())
+}
+
+func (s *S) TestUpdateKeyUserNotFound(c *check.C) {
+	newKey := Key{Name: "somekey", Body: otherKey}
+	err := UpdateKey("umi", newKey)
+	c.Assert(err, check.Equals, ErrUserNotFound)
+}
+
+func (s *S) TestUserUpdateKeyNotFound(c *check.C) {
+	newKey := Key{Name: "somekey", Body: otherKey}
+	u, err := New("umi", map[string]string{})
+	conn, err := db.Conn()
+	c.Assert(err, check.IsNil)
+	defer conn.User().RemoveId(u.Name)
+	err = UpdateKey("umi", newKey)
+	c.Assert(err, check.Equals, ErrKeyNotFound)
+}
+
 func (s *S) TestRemoveKeyShouldRemoveKeyFromTheDatabase(c *check.C) {
 	u, err := New("luke", map[string]string{"homekey": rawKey})
 	c.Assert(err, check.IsNil)
