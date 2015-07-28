@@ -59,6 +59,7 @@ func SetupRouter() *pat.Router {
 	router := pat.New()
 	router.Post("/user/{name}/key", http.HandlerFunc(addKey))
 	router.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(removeKey))
+	router.Put("/user/{name}/key/{keyname}", http.HandlerFunc(updateKey))
 	router.Get("/user/{name}/keys", http.HandlerFunc(listKeys))
 	router.Post("/user", http.HandlerFunc(newUser))
 	router.Delete("/user/{name}", http.HandlerFunc(removeUser))
@@ -145,6 +146,30 @@ func addKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, "Key(s) successfully created")
+}
+
+func updateKey(w http.ResponseWriter, r *http.Request) {
+	uName := r.URL.Query().Get(":name")
+	kName := r.URL.Query().Get(":keyname")
+	defer r.Body.Close()
+	content, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	key := user.Key{Name: kName, Body: string(content)}
+	if err := user.UpdateKey(uName, key); err != nil {
+		switch err {
+		case user.ErrInvalidKey:
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case user.ErrUserNotFound, user.ErrKeyNotFound:
+			http.Error(w, err.Error(), http.StatusNotFound)
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	fmt.Fprintf(w, "Key %q successfully updated!", kName)
 }
 
 func removeKey(w http.ResponseWriter, r *http.Request) {

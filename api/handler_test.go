@@ -543,6 +543,60 @@ func (s *S) TestAddKey(c *check.C) {
 	c.Assert(k.Comment, check.Equals, keyComment)
 }
 
+func (s *S) TestUpdateKey(c *check.C) {
+	usr, err := user.New("Frodo", map[string]string{})
+	c.Assert(err, check.IsNil)
+	defer user.Remove(usr.Name)
+	err = user.AddKey(usr.Name, map[string]string{"keyname": rawKey})
+	c.Assert(err, check.IsNil)
+	defer user.RemoveKey(usr.Name, "keyname")
+	b := strings.NewReader(otherKey)
+	recorder, request := put(fmt.Sprintf("/user/%s/key/keyname", usr.Name), b, c)
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, 200)
+	c.Assert(recorder.Body.String(), check.Equals, `Key "keyname" successfully updated!`)
+	var k user.Key
+	conn, err := db.Conn()
+	c.Assert(err, check.IsNil)
+	defer conn.Close()
+	err = conn.Key().Find(bson.M{"name": "keyname", "username": usr.Name}).One(&k)
+	c.Assert(err, check.IsNil)
+	c.Assert(k.Body, check.Equals, otherKey+"\n")
+}
+
+func (s *S) TestUpdateKeyUserNotFound(c *check.C) {
+	b := strings.NewReader(rawKey)
+	recorder, request := put("/user/frodo/key/keyname", b, c)
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, user.ErrUserNotFound.Error()+"\n")
+}
+
+func (s *S) TestUpdateKeyNotFound(c *check.C) {
+	usr, err := user.New("Frodo", map[string]string{})
+	c.Assert(err, check.IsNil)
+	defer user.Remove(usr.Name)
+	b := strings.NewReader(rawKey)
+	recorder, request := put(fmt.Sprintf("/user/%s/key/keyname", usr.Name), b, c)
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, user.ErrKeyNotFound.Error()+"\n")
+}
+
+func (s *S) TestUpdateKeyInvalidKey(c *check.C) {
+	usr, err := user.New("Frodo", map[string]string{})
+	c.Assert(err, check.IsNil)
+	defer user.Remove(usr.Name)
+	err = user.AddKey(usr.Name, map[string]string{"keyname": rawKey})
+	c.Assert(err, check.IsNil)
+	defer user.RemoveKey(usr.Name, "keyname")
+	b := strings.NewReader("invalid-key")
+	recorder, request := put(fmt.Sprintf("/user/%s/key/keyname", usr.Name), b, c)
+	s.router.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, user.ErrInvalidKey.Error()+"\n")
+}
+
 func (s *S) TestAddPostReceiveHookRepository(c *check.C) {
 	b := strings.NewReader(`{"repositories": ["some-repo"], "content": "some content"}`)
 	recorder, request := post("/hook/post-receive", b, c)
