@@ -15,7 +15,7 @@ import (
 	"github.com/tsuru/tsuru/log"
 )
 
-const version = "0.7.0"
+const version = "0.7.1"
 
 func main() {
 	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
