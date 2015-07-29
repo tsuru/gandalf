@@ -13,13 +13,14 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
+	tsurufs "github.com/tsuru/tsuru/fs"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -98,15 +99,56 @@ func authKey() string {
 	return path.Join(home, ".ssh", "authorized_keys")
 }
 
+// creates a copy of the authorized_keys and returns it, with the file cursor
+// pointing at the first byte of the file.
+func copyFile() (tsurufs.File, error) {
+	path := authKey()
+	fi, statErr := fs.Filesystem().Stat(path)
+	if statErr != nil && !os.IsNotExist(statErr) {
+		return nil, statErr
+	}
+	dstPath := filepath.Join(os.TempDir(), "authorized_keys")
+	dst, err := fs.Filesystem().OpenFile(dstPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return nil, err
+	}
+	if !os.IsNotExist(statErr) {
+		original, err := fs.Filesystem().Open(path)
+		if err != nil {
+			return nil, err
+		}
+		defer original.Close()
+		n, err := io.Copy(dst, original)
+		if err != nil {
+			dst.Close()
+			return nil, err
+		}
+		if n != fi.Size() {
+			dst.Close()
+			return nil, io.ErrShortWrite
+		}
+		dst.Seek(0, 0)
+	}
+	return dst, nil
+}
+
+// moveFile writes the authorized key file atomically.
+func moveFile(fromPath string) error {
+	return fs.Filesystem().Rename(fromPath, authKey())
+}
+
 func writeKey(k *Key) error {
-	file, err := fs.Filesystem().OpenFile(authKey(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	file, err := copyFile()
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	syscall.Flock(int(file.Fd()), syscall.LOCK_EX)
-	defer syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
-	return k.dump(file)
+	file.Seek(0, 2)
+	err = k.dump(file)
+	if err != nil {
+		return err
+	}
+	return moveFile(file.Name())
 }
 
 func addKey(name, body, username string) error {
@@ -168,7 +210,7 @@ func addKeys(keys map[string]string, username string) error {
 
 func remove(k *Key) error {
 	formatted := k.format()
-	file, err := fs.Filesystem().OpenFile(authKey(), os.O_RDWR|os.O_EXCL, 0644)
+	file, err := copyFile()
 	if err != nil {
 		return err
 	}
@@ -192,7 +234,7 @@ func remove(k *Key) error {
 	if n != len(content) {
 		return io.ErrShortWrite
 	}
-	return nil
+	return moveFile(file.Name())
 }
 
 func removeUserKeys(username string) error {

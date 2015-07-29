@@ -211,8 +211,10 @@ func (s *S) TestWriteTwoKeys(c *check.C) {
 		Comment:  "me@machine",
 		UserName: "glenda",
 	}
-	writeKey(&key1)
-	writeKey(&key2)
+	err := writeKey(&key1)
+	c.Assert(err, check.IsNil)
+	err = writeKey(&key2)
+	c.Assert(err, check.IsNil)
 	expected := key1.format() + key2.format()
 	f, err := s.rfs.Open(authKey())
 	c.Assert(err, check.IsNil)
