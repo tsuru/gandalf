@@ -405,6 +405,60 @@ func (s *S) TestAddKeysInvalid(c *check.C) {
 	c.Assert(recorder.Body.String(), check.Equals, "Invalid key\n")
 }
 
+func (s *S) TestUpdateKey(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"myuser"}
+	server.keys["myuser"] = []key{{Name: "mykey", Body: "irrelevant"}}
+	body := strings.NewReader(publicKey)
+	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	c.Assert(server.keys["myuser"], check.DeepEquals, []key{{Name: "mykey", Body: publicKey}})
+}
+
+func (s *S) TestUpdateKeyInvalid(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"myuser"}
+	server.keys["myuser"] = []key{{Name: "mykey", Body: "irrelevant"}}
+	body := strings.NewReader("some-invalid-key")
+	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "Invalid key\n")
+}
+
+func (s *S) TestUpdateKeyUserNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	body := strings.NewReader(publicKey)
+	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "user not found\n")
+}
+
+func (s *S) TestUpdateKeyNotFound(c *check.C) {
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.users = []string{"myuser"}
+	server.keys["myuser"] = nil
+	body := strings.NewReader(publicKey)
+	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
+	c.Assert(recorder.Body.String(), check.Equals, "Key not found\n")
+}
+
 func (s *S) TestRemoveKey(c *check.C) {
 	server, err := NewServer("127.0.0.1:0")
 	c.Assert(err, check.IsNil)

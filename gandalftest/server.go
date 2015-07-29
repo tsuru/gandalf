@@ -8,6 +8,7 @@ package gandalftest
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
@@ -203,6 +204,7 @@ func (s *GandalfServer) Reset() {
 
 func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
+	s.muxer.Post("/user/{name}/key/{keyname}", http.HandlerFunc(s.updateKey))
 	s.muxer.Post("/user/{name}/key", http.HandlerFunc(s.addKeys))
 	s.muxer.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(s.removeKey))
 	s.muxer.Get("/user/{name}/keys", http.HandlerFunc(s.listKeys))
@@ -452,6 +454,46 @@ func (s *GandalfServer) addKeys(w http.ResponseWriter, r *http.Request) {
 	for name, body := range keys {
 		userKeys = append(userKeys, key{Name: name, Body: body})
 	}
+	s.keys[userName] = userKeys
+}
+
+func (s *GandalfServer) updateKey(w http.ResponseWriter, r *http.Request) {
+	userName := r.URL.Query().Get(":name")
+	keyName := r.URL.Query().Get(":keyname")
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if _, _, _, _, err := ssh.ParseAuthorizedKey(body); err != nil {
+		http.Error(w, user.ErrInvalidKey.Error(), http.StatusBadRequest)
+		return
+	}
+	s.usersLock.Lock()
+	defer s.usersLock.Unlock()
+	userKeys, ok := s.keys[userName]
+	if !ok {
+		http.Error(w, user.ErrUserNotFound.Error(), http.StatusNotFound)
+		return
+	}
+	var (
+		k     key
+		index int
+	)
+	for i, userKey := range userKeys {
+		if userKey.Name == keyName {
+			k = userKey
+			index = i
+			break
+		}
+	}
+	if k.Name != keyName {
+		http.Error(w, user.ErrKeyNotFound.Error(), http.StatusNotFound)
+		return
+	}
+	k.Body = string(body)
+	userKeys[index] = k
 	s.keys[userName] = userKeys
 }
 
