@@ -388,7 +388,7 @@ func (s *S) TestAddKeysDuplicate(c *check.C) {
 	request, _ := http.NewRequest("POST", "/user/myuser/key", body)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusConflict)
-	c.Assert(recorder.Body.String(), check.Equals, `key "mykey" already exists`+"\n")
+	c.Assert(recorder.Body.String(), check.Equals, "Duplicate key\n")
 }
 
 func (s *S) TestAddKeysInvalid(c *check.C) {
@@ -402,7 +402,7 @@ func (s *S) TestAddKeysInvalid(c *check.C) {
 	request, _ := http.NewRequest("POST", "/user/myuser/key", body)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
-	c.Assert(recorder.Body.String(), check.Equals, `key "mykey" is not valid`+"\n")
+	c.Assert(recorder.Body.String(), check.Equals, "Invalid key\n")
 }
 
 func (s *S) TestRemoveKey(c *check.C) {
@@ -439,7 +439,7 @@ func (s *S) TestRemoveKeyKeyNotFound(c *check.C) {
 	request, _ := http.NewRequest("DELETE", "/user/myuser/key/mykey", nil)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
-	c.Assert(recorder.Body.String(), check.Equals, "key not found\n")
+	c.Assert(recorder.Body.String(), check.Equals, "Key not found\n")
 }
 
 func (s *S) TestListKeys(c *check.C) {
