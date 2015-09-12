@@ -505,7 +505,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (%s).", repo, err)
 	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
 	objectCount := len(lines)
 	if len(lines) == 1 && len(lines[0]) == 0 {
 		objectCount = 0

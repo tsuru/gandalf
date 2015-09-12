@@ -1338,6 +1338,26 @@ func (s *S) TestGetForEachRefIntegrationWhenPatternInvalid(c *check.C) {
 	c.Assert(err.Error(), check.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (exit status 129).")
 }
 
+func (s *S) TestGetForEachRefWithSomeEmptyFields(c *check.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo"
+	file := "README"
+	content := "much WOW"
+	cleanUp, errCreate := CreateTestRepository(bare, repo, file, content)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, check.IsNil)
+	tmpdir, err := commandmocker.Add("git", "ec083c5f40be15e2bf5a84efe83d8f4723a6dcc0\tmaster\t\t\t\t\t\t\t")
+	c.Assert(err, check.IsNil)
+	defer commandmocker.Remove(tmpdir)
+	refs, err := GetForEachRef(repo, "")
+	c.Assert(err, check.IsNil)
+	c.Assert(refs, check.HasLen, 1)
+}
+
 func (s *S) TestGetForEachRefOutputInvalid(c *check.C) {
 	oldBare := bare
 	bare = "/tmp"
