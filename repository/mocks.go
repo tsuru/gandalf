@@ -337,16 +337,6 @@ func (r *MockContentRetriever) TempClone(repo string) (string, func(), error) {
 	return r.ClonePath, r.CleanUp, nil
 }
 
-func (r *MockContentRetriever) SetCommitter(cloneDir string, committer GitUser) error {
-	if r.LookPathError != nil {
-		return r.LookPathError
-	}
-	if r.OutputError != nil {
-		return r.OutputError
-	}
-	return nil
-}
-
 func (r *MockContentRetriever) Checkout(cloneDir, branch string, isNew bool) error {
 	if r.LookPathError != nil {
 		return r.LookPathError
@@ -367,7 +357,7 @@ func (r *MockContentRetriever) AddAll(cloneDir string) error {
 	return nil
 }
 
-func (r *MockContentRetriever) Commit(cloneDir, message string, author GitUser) error {
+func (r *MockContentRetriever) Commit(cloneDir, message string, author, committer GitUser) error {
 	if r.LookPathError != nil {
 		return r.LookPathError
 	}

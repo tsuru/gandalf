@@ -1583,78 +1583,6 @@ func (s *S) TestTempCloneWhenGitError(c *check.C) {
 	c.Assert(errStat, check.NotNil)
 }
 
-func (s *S) TestSetCommitterIntegration(c *check.C) {
-	oldBare := bare
-	bare = "/tmp"
-	repo := "gandalf-test-repo-set-committer"
-	cleanUp, errCreate := CreateEmptyTestRepository(bare, repo)
-	defer func() {
-		cleanUp()
-		bare = oldBare
-	}()
-	c.Assert(errCreate, check.IsNil)
-	committer := GitUser{
-		Name:  "committer",
-		Email: "committer@globo.com",
-	}
-	clone, cloneCleanUp, errClone := TempClone(repo)
-	if cloneCleanUp != nil {
-		defer cloneCleanUp()
-	}
-	c.Assert(errClone, check.IsNil)
-	b, errRead := ioutil.ReadFile(clone + "/.git/config")
-	c.Assert(errRead, check.IsNil)
-	c.Assert(strings.Contains(string(b), "[user]"), check.Equals, false)
-	c.Assert(strings.Contains(string(b), "name = committer"), check.Equals, false)
-	errSetC := SetCommitter(clone, committer)
-	c.Assert(errSetC, check.IsNil)
-	b, errRead = ioutil.ReadFile(clone + "/.git/config")
-	c.Assert(errRead, check.IsNil)
-	c.Assert(strings.Contains(string(b), "[user]"), check.Equals, true)
-	c.Assert(strings.Contains(string(b), "name = committer"), check.Equals, true)
-	c.Assert(strings.Contains(string(b), "email = committer@globo.com"), check.Equals, true)
-}
-
-func (s *S) TestSetCommitterWhenCloneInvalid(c *check.C) {
-	committer := GitUser{
-		Name:  "committer",
-		Email: "committer@globo.com",
-	}
-	err := SetCommitter("invalid-repo", committer)
-	c.Assert(err.Error(), check.Equals, "Error when trying to set committer of clone invalid-repo (Clone does not exist).")
-}
-
-func (s *S) TestSetCommitterWhenGitError(c *check.C) {
-	oldBare := bare
-	bare = "/tmp"
-	repo := "gandalf-test-repo-set-committer"
-	cleanUp, errCreate := CreateEmptyTestRepository(bare, repo)
-	defer func() {
-		cleanUp()
-		bare = oldBare
-	}()
-	c.Assert(errCreate, check.IsNil)
-	clone, cloneCleanUp, errClone := TempClone(repo)
-	if cloneCleanUp != nil {
-		defer cloneCleanUp()
-	}
-	c.Assert(errClone, check.IsNil)
-	tmpdir, err := commandmocker.Error("git", "much error", 1)
-	c.Assert(err, check.IsNil)
-	defer commandmocker.Remove(tmpdir)
-	committer := GitUser{
-		Name:  "committer",
-		Email: "committer@globo.com",
-	}
-	errSetC := SetCommitter(clone, committer)
-	expectedErr := fmt.Sprintf("Error when trying to set committer of clone %s (Invalid committer name [much error]).", clone)
-	c.Assert(errSetC.Error(), check.Equals, expectedErr)
-	b, errRead := ioutil.ReadFile(clone + "/.git/config")
-	c.Assert(errRead, check.IsNil)
-	c.Assert(strings.Contains(string(b), "[user]"), check.Equals, false)
-	c.Assert(strings.Contains(string(b), "name = "), check.Equals, false)
-}
-
 func (s *S) TestCheckoutIntegration(c *check.C) {
 	oldBare := bare
 	bare = "/tmp"
@@ -1864,18 +1792,16 @@ func (s *S) TestCommitIntegration(c *check.C) {
 	c.Assert(len(out) > 0, check.Equals, true)
 	errAddAll := AddAll(clone)
 	c.Assert(errAddAll, check.IsNil)
-	committer := GitUser{
-		Name:  "committer",
-		Email: "committer@globo.com",
-	}
 	author := GitUser{
 		Name:  "author",
 		Email: "author@globo.com",
 	}
+	committer := GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+	}
 	message := "commit message"
-	errSetC := SetCommitter(clone, committer)
-	c.Assert(errSetC, check.IsNil)
-	errCommit := Commit(clone, message, author)
+	errCommit := Commit(clone, message, author, committer)
 	c.Assert(errCommit, check.IsNil)
 	cmd = exec.Command(gitPath, "diff")
 	cmd.Dir = clone
@@ -1890,7 +1816,7 @@ func (s *S) TestCommitWhenCloneInvalid(c *check.C) {
 		Email: "author@globo.com",
 	}
 	message := "commit message"
-	err := Commit("invalid_clone", message, author)
+	err := Commit("invalid_clone", message, author, author)
 	c.Assert(err.Error(), check.Equals, "Error when trying to commit to clone invalid_clone (Clone does not exist).")
 }
 
@@ -1920,7 +1846,7 @@ func (s *S) TestCommitWhenGitError(c *check.C) {
 	c.Assert(err, check.IsNil)
 	defer commandmocker.Remove(tmpdir)
 	expectedErr := fmt.Sprintf("Error when trying to commit to clone %s (exit status 1 [much error]).", clone)
-	errCommit := Commit(clone, message, author)
+	errCommit := Commit(clone, message, author, author)
 	c.Assert(errCommit.Error(), check.Equals, expectedErr)
 }
 
@@ -1945,18 +1871,16 @@ func (s *S) TestPushIntegration(c *check.C) {
 	c.Assert(errWrite, check.IsNil)
 	errAddAll := AddAll(clone)
 	c.Assert(errAddAll, check.IsNil)
-	committer := GitUser{
-		Name:  "committer",
-		Email: "committer@globo.com",
-	}
 	author := GitUser{
 		Name:  "author",
 		Email: "author@globo.com",
 	}
+	committer := GitUser{
+		Name:  "committer",
+		Email: "committer@globo.com",
+	}
 	message := "commit message"
-	errSetC := SetCommitter(clone, committer)
-	c.Assert(errSetC, check.IsNil)
-	errCommit := Commit(clone, message, author)
+	errCommit := Commit(clone, message, author, committer)
 	c.Assert(errCommit, check.IsNil)
 	errPush := Push(clone, "master")
 	c.Assert(errPush, check.IsNil)

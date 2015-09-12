@@ -1632,13 +1632,13 @@ func (s *S) TestPostNewCommit(c *check.C) {
 			Ref:       "some-random-ref",
 			Name:      "master",
 			CreatedAt: "Mon Jul 28 10:13:27 2014 -0300",
-			Committer: &repository.GitUser{
-				Name:  params["committer-name"],
-				Email: params["committer-email"],
-			},
 			Author: &repository.GitUser{
 				Name:  params["author-name"],
 				Email: params["author-email"],
+			},
+			Committer: &repository.GitUser{
+				Name:  params["committer-name"],
+				Email: params["committer-email"],
 			},
 			Subject: params["message"],
 			Links: &repository.Links{
