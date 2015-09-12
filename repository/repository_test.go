@@ -1373,8 +1373,9 @@ func (s *S) TestGetForEachRefOutputInvalid(c *check.C) {
 	tmpdir, err := commandmocker.Add("git", "-")
 	c.Assert(err, check.IsNil)
 	defer commandmocker.Remove(tmpdir)
-	_, err = GetForEachRef(repo, "")
-	c.Assert(err.Error(), check.Equals, "Error when trying to obtain the refs of repository gandalf-test-repo (Invalid git for-each-ref output [-]).")
+	refs, err := GetForEachRef(repo, "")
+	c.Assert(err, check.IsNil)
+	c.Assert(refs, check.HasLen, 0)
 }
 
 func (s *S) TestGetForEachRefOutputEmpty(c *check.C) {

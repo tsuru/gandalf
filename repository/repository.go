@@ -528,7 +528,8 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 			authorDate = fields[7]
 			subject = strings.Join(fields[8:], "\t") // let there be subjects with \t
 		} else {
-			return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Invalid git for-each-ref output [%s]).", repo, out)
+			log.Errorf("Could not match required ref elements for %s (invalid git input: %s).", repo, line)
+			continue
 		}
 		object := Ref{}
 		object.Ref = ref
@@ -552,7 +553,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 		objects[objectCount] = object
 		objectCount++
 	}
-	return objects, nil
+	return objects[0:objectCount], nil
 }
 
 func (*GitContentRetriever) GetBranches(repo string) ([]Ref, error) {
