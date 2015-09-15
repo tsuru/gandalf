@@ -75,6 +75,7 @@ type Ref struct {
 	Name      string   `json:"name"`
 	Author    *GitUser `json:"author"`
 	Committer *GitUser `json:"committer"`
+	Tagger    *GitUser `json:"tagger"`
 	Links     *Links   `json:"_links"`
 	Subject   string   `json:"subject"`
 	CreatedAt string   `json:"createdAt"`
@@ -484,7 +485,7 @@ func (*GitContentRetriever) GetTree(repo, ref, path string) ([]map[string]string
 }
 
 func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
-	var ref, name, committerName, committerEmail, committerDate, authorName, authorEmail, authorDate, subject string
+	var ref, name, committerName, committerEmail, committerDate, authorName, authorEmail, authorDate, taggerName, taggerEmail, taggerDate, subject string
 	gitPath, err := exec.LookPath("git")
 	if err != nil {
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (%s).", repo, err)
@@ -494,7 +495,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 	if err != nil || !repoExists {
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Repository does not exist).", repo)
 	}
-	format := "%(objectname)%09%(refname:short)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(contents:subject)"
+	format := "%(objectname)%09%(refname:short)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(taggername)%09%(taggeremail)%09%(taggerdate)%09%(contents:subject)"
 	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", format)
 	if len(pattern) > 0 {
 		cmd.Args = append(cmd.Args, pattern)
@@ -516,7 +517,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 			continue
 		}
 		fields := strings.Split(line, "\t")
-		if len(fields) > 7 { // let there be commits with empty subject
+		if len(fields) > 10 { // let there be commits with empty subject
 			ref = fields[0]
 			name = fields[1]
 			committerName = fields[2]
@@ -525,7 +526,10 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 			authorName = fields[5]
 			authorEmail = fields[6]
 			authorDate = fields[7]
-			subject = strings.Join(fields[8:], "\t") // let there be subjects with \t
+			taggerName = fields[8]
+			taggerEmail = fields[9]
+			taggerDate = fields[10]
+			subject = strings.Join(fields[11:], "\t") // let there be subjects with \t
 		} else {
 			log.Errorf("Could not match required ref elements for %s (invalid git input: %s).", repo, line)
 			continue
@@ -534,7 +538,11 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 		object.Ref = ref
 		object.Name = name
 		object.Subject = subject
-		object.CreatedAt = authorDate
+		if taggerDate != "" {
+			object.CreatedAt = taggerDate
+		} else {
+			object.CreatedAt = authorDate
+		}
 		object.Committer = &GitUser{
 			Name:  committerName,
 			Email: committerEmail,
@@ -544,6 +552,11 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 			Name:  authorName,
 			Email: authorEmail,
 			Date:  authorDate,
+		}
+		object.Tagger = &GitUser{
+			Name:  taggerName,
+			Email: taggerEmail,
+			Date:  taggerDate,
 		}
 		object.Links = &Links{
 			ZipArchive: GetArchiveUrl(repo, name, "zip"),

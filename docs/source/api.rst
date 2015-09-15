@@ -218,6 +218,11 @@ Example result::
             email: "<committer@email.com>",
             date: "Tue Jul 29 13:43:57 2014 -0300"
         },
+        tagger: {
+            date: "",
+            email: "",
+            name: ""
+        },
         _links: {
             zipArchive: "/repository/myrepository/branch/archive?ref=master&format=zip",
             tarArchive: "/repository/myrepository/branch/archive?ref=master&format=tar.gz"
@@ -258,9 +263,42 @@ Example result::
             email: "<committer@email.com>",
             date: "Tue Jul 29 13:43:57 2014 -0300"
         },
+        tagger: {
+            name: "",
+            email: "",
+            date: ""
+        },
         _links: {
             zipArchive: "/repository/myrepository/branch/archive?ref=0.1&format=zip",
             tarArchive: "/repository/myrepository/branch/archive?ref=0.1&format=tar.gz"
+        }
+    }]
+
+Example result for an `annotated tag <https://git-scm.com/book/en/v2/Git-Basics-Tagging#Annotated-Tags>`_::
+
+    [{
+        ref: "6767b5de5943632e47cb6f8bf5b2147bc0be5cf8",
+        name: "0.2",
+        subject: "much WOW",
+        createdAt: "Tue Jul 29 13:43:57 2014 -0300"
+        author: {
+            name: "",
+            email: "",
+            date: ""
+        },
+        committer: {
+            name: "",
+            email: "",
+            date: ""
+        },
+        tagger: {
+            name: "Tagger name",
+            email: "<tagger@email.com>",
+            date: "Tue Jul 29 13:43:57 2014 -0300"
+        },
+        _links: {
+            zipArchive: "/repository/myrepository/branch/archive?ref=0.2&format=zip",
+            tarArchive: "/repository/myrepository/branch/archive?ref=0.2&format=tar.gz"
         }
     }]
 
@@ -367,6 +405,11 @@ Example result::
             name: "Committer Name",
             email: "<committer@email.com>",
             date: "Tue Jul 29 13:43:57 2014 -0300"
+        },
+        tagger: {
+            date: "",
+            email: "",
+            name: ""
         },
         _links: {
             tarArchive: "/repository/myrepository/archive?ref=master&format=tar.gz",

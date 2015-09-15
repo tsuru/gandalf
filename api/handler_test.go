@@ -1674,6 +1674,7 @@ func (s *S) TestPostNewCommit(c *check.C) {
 			"email": "doge@much.com",
 			"date":  "",
 		},
+		"tagger": nil,
 		"_links": map[string]interface{}{
 			"tarArchive": "/repository/repo/archive?ref=master\u0026format=tar.gz",
 			"zipArchive": "/repository/repo/archive?ref=master\u0026format=zip",

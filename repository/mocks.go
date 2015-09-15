@@ -103,6 +103,16 @@ func MakeCommit(testPath, content string) error {
 	return cmd.Run()
 }
 
+func PushTags(testPath string) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(gitPath, "push", "--tags")
+	cmd.Dir = testPath
+	return cmd.Run()
+}
+
 func CreateCommit(tmpPath, repo, file, content string) error {
 	testPath := path.Join(tmpPath, repo+".git")
 	err := CreateFile(testPath, file, content)
@@ -271,6 +281,20 @@ func CreateTag(testPath, tagname string) error {
 		return err
 	}
 	cmd := exec.Command(gitPath, "tag", tagname)
+	cmd.Dir = testPath
+	return cmd.Run()
+}
+
+func CreateAnnotatedTag(testPath, tagname, message string, tagger GitUser) error {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(gitPath, "tag", "-a", tagname, "-m", message)
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("GIT_COMMITTER_NAME=%s", tagger.Name))
+	env = append(env, fmt.Sprintf("GIT_COMMITTER_EMAIL=%s", tagger.Email))
+	cmd.Env = env
 	cmd.Dir = testPath
 	return cmd.Run()
 }

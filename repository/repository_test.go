@@ -1350,7 +1350,7 @@ func (s *S) TestGetForEachRefWithSomeEmptyFields(c *check.C) {
 		bare = oldBare
 	}()
 	c.Assert(errCreate, check.IsNil)
-	tmpdir, err := commandmocker.Add("git", "ec083c5f40be15e2bf5a84efe83d8f4723a6dcc0\tmaster\t\t\t\t\t\t\t")
+	tmpdir, err := commandmocker.Add("git", "ec083c5f40be15e2bf5a84efe83d8f4723a6dcc0\tmaster\t\t\t\t\t\t\t\t\t\t")
 	c.Assert(err, check.IsNil)
 	defer commandmocker.Remove(tmpdir)
 	refs, err := GetForEachRef(repo, "")
@@ -1501,6 +1501,8 @@ func (s *S) TestGetTagsIntegration(c *check.C) {
 	c.Assert(tags[0].Committer.Email, check.Equals, "<much@email.com>")
 	c.Assert(tags[0].Author.Name, check.Equals, "doge")
 	c.Assert(tags[0].Author.Email, check.Equals, "<much@email.com>")
+	c.Assert(tags[0].Tagger.Name, check.Equals, "")
+	c.Assert(tags[0].Tagger.Email, check.Equals, "")
 	c.Assert(tags[0].Subject, check.Equals, "much WOW")
 	c.Assert(tags[0].CreatedAt, check.Equals, tags[0].Author.Date)
 	c.Assert(tags[0].Links.ZipArchive, check.Equals, GetArchiveUrl(repo, "0.1", "zip"))
@@ -1511,10 +1513,60 @@ func (s *S) TestGetTagsIntegration(c *check.C) {
 	c.Assert(tags[1].Committer.Email, check.Equals, "<much@email.com>")
 	c.Assert(tags[1].Author.Name, check.Equals, "doge")
 	c.Assert(tags[1].Author.Email, check.Equals, "<much@email.com>")
+	c.Assert(tags[1].Tagger.Name, check.Equals, "")
+	c.Assert(tags[1].Tagger.Email, check.Equals, "")
 	c.Assert(tags[1].Subject, check.Equals, "")
 	c.Assert(tags[1].Links.ZipArchive, check.Equals, GetArchiveUrl(repo, "0.2", "zip"))
 	c.Assert(tags[1].Links.TarArchive, check.Equals, GetArchiveUrl(repo, "0.2", "tar.gz"))
 	c.Assert(tags[1].CreatedAt, check.Equals, tags[1].Author.Date)
+}
+
+func (s *S) TestGetTagsAnnotatedTag(c *check.C) {
+	oldBare := bare
+	bare = "/tmp"
+	repo := "gandalf-test-repo-push"
+	file := "README"
+	content := "much WOW"
+	user := GitUser{
+		Name:  "user",
+		Email: "user@globo.com",
+	}
+	cleanUp, errCreate := CreateEmptyTestBareRepository(bare, repo)
+	defer func() {
+		cleanUp()
+		bare = oldBare
+	}()
+	c.Assert(errCreate, check.IsNil)
+	clone, cloneCleanUp, errClone := TempClone(repo)
+	if cloneCleanUp != nil {
+		defer cloneCleanUp()
+	}
+	c.Assert(errClone, check.IsNil)
+	errWrite := ioutil.WriteFile(path.Join(clone, file), []byte(content), 0644)
+	c.Assert(errWrite, check.IsNil)
+	errAddAll := AddAll(clone)
+	c.Assert(errAddAll, check.IsNil)
+	errCommit := Commit(clone, "commit message", user, user)
+	c.Assert(errCommit, check.IsNil)
+	errCreateTag := CreateTag(clone, "0.1")
+	c.Assert(errCreateTag, check.IsNil)
+	errCreateAnnotatedTag := CreateAnnotatedTag(clone, "0.2", "much tag", user)
+	c.Assert(errCreateAnnotatedTag, check.IsNil)
+	errCreateTag = CreateTag(clone, "0.3")
+	c.Assert(errCreateTag, check.IsNil)
+	errCreateAnnotatedTag = CreateAnnotatedTag(clone, "0.4", "", user)
+	c.Assert(errCreateAnnotatedTag, check.IsNil)
+	errPush := Push(clone, "master")
+	c.Assert(errPush, check.IsNil)
+	errPushTags := PushTags(clone)
+	c.Assert(errPushTags, check.IsNil)
+	tags, err := GetTags(repo)
+	c.Assert(err, check.IsNil)
+	c.Assert(tags, check.HasLen, 4)
+	c.Assert(tags[2].Tagger.Name, check.Equals, user.Name)
+	c.Assert(tags[2].Tagger.Email, check.Equals, "<"+user.Email+">")
+	c.Assert(tags[2].CreatedAt, check.Equals, tags[2].Tagger.Date)
+	c.Assert(tags[2].Subject, check.Equals, "much tag")
 }
 
 func (s *S) TestGetArchiveUrl(c *check.C) {
