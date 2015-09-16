@@ -211,7 +211,7 @@ Example result::
         author: {
             name: "Author name",
             email: "<author@email.com>",
-            date: "Mon Jul 28 10:13:27 2014 -0300""
+            date: "Mon Jul 28 10:13:27 2014 -0300"
         },
         committer: {
             name: "Committer name",
@@ -251,7 +251,7 @@ Example result::
         author: {
             name: "Author name",
             email: "<author@email.com>",
-            date: "Mon Jul 28 10:13:27 2014 -0300""
+            date: "Mon Jul 28 10:13:27 2014 -0300"
         },
         committer: {
             name: "Committer name",
@@ -361,7 +361,7 @@ Example result::
         author: {
             name: "Author Name",
             email: "<author@email.com>",
-            date: "Mon Jul 28 10:13:27 2014 -0300""
+            date: "Mon Jul 28 10:13:27 2014 -0300"
         },
         committer: {
             name: "Committer Name",
@@ -403,7 +403,7 @@ Example result::
             author: {
                 name: "Author name",
                 email: "<author@email.com>",
-                date: "Mon Jul 28 10:13:27 2014 -0300""
+                date: "Mon Jul 28 10:13:27 2014 -0300"
             },
             committer: {
                 name: "Committer name",
