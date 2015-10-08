@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -107,7 +106,7 @@ func copyFile() (tsurufs.File, error) {
 	if statErr != nil && !os.IsNotExist(statErr) {
 		return nil, statErr
 	}
-	dstPath := filepath.Join(os.TempDir(), "authorized_keys")
+	dstPath := path + ".tmp"
 	dst, err := fs.Filesystem().OpenFile(dstPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return nil, err
