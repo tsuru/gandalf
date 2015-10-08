@@ -108,7 +108,7 @@ func copyFile() (tsurufs.File, error) {
 		return nil, statErr
 	}
 	dstPath := filepath.Join(os.TempDir(), "authorized_keys")
-	dst, err := fs.Filesystem().OpenFile(dstPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	dst, err := fs.Filesystem().OpenFile(dstPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return nil, err
 	}
