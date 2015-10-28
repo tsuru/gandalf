@@ -35,23 +35,25 @@ func Add(name string, repos []string, content []byte) error {
 	if err != nil {
 		return err
 	}
-	s := []string{path, "hooks", name}
-	scriptPath := strings.Join(s, "/")
 	if len(repos) > 0 {
 		for _, repo := range repos {
 			repo += ".git"
-			s = []string{path, repo, "hooks", name}
-			scriptPath = strings.Join(s, "/")
-			err = fs.Filesystem().MkdirAll(scriptPath+"hooks", 0755)
+			s := []string{path, repo, "hooks"}
+			dirPath := strings.Join(s, "/")
+			err = fs.Filesystem().MkdirAll(dirPath, 0755)
 			if err != nil {
 				return err
 			}
+			s = []string{dirPath, name}
+			scriptPath := strings.Join(s, "/")
 			err = createHookFile(scriptPath, content)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
+		s := []string{path, "hooks", name}
+		scriptPath := strings.Join(s, "/")
 		return createHookFile(scriptPath, content)
 	}
 	return nil
