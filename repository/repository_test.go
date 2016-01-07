@@ -111,8 +111,8 @@ func (s *S) TestNewIntegration(c *check.C) {
 	defer func() {
 		os.RemoveAll(bare)
 		config.Set("git:bare:location", configBare)
-		checkBare, err := config.GetString("git:bare:location")
-		c.Assert(err, check.IsNil)
+		checkBare, configErr := config.GetString("git:bare:location")
+		c.Assert(configErr, check.IsNil)
 		c.Assert(checkBare, check.Equals, configBare)
 		bare = odlBare
 	}()
@@ -149,8 +149,8 @@ func (s *S) TestNewIntegrationWithNamespace(c *check.C) {
 	defer func() {
 		os.RemoveAll(bare)
 		config.Set("git:bare:location", configBare)
-		checkBare, err := config.GetString("git:bare:location")
-		c.Assert(err, check.IsNil)
+		checkBare, configErr := config.GetString("git:bare:location")
+		c.Assert(configErr, check.IsNil)
 		c.Assert(checkBare, check.Equals, configBare)
 		bare = odlBare
 	}()
