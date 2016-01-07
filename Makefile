@@ -4,16 +4,7 @@ GANDALF_WEBSERVER_SRC = webserver/main.go
 GANDALF_SSH_BIN = $(BUILD_DIR)/gandalf-ssh
 GANDALF_SSH_SRC = bin/gandalf.go
 
-get: get-code godep binaries
-
-get-code:
-	go get $(GO_EXTRAFLAGS) -u -d -t ./... || true
-
-godep:
-	go get $(GO_EXTRAFLAGS) github.com/tools/godep
-	godep restore ./...
-
-test: get-code
+test:
 	go clean $(GO_EXTRAFLAGS) ./...
 	go test $(GO_EXTRAFLAGS) ./...
 
@@ -25,7 +16,7 @@ binaries: gandalf-webserver gandalf-ssh
 gandalf-webserver: $(GANDALF_WEBSERVER_BIN)
 
 $(GANDALF_WEBSERVER_BIN):
-	godep go build -o $(GANDALF_WEBSERVER_BIN) $(GANDALF_WEBSERVER_SRC)
+	go build -o $(GANDALF_WEBSERVER_BIN) $(GANDALF_WEBSERVER_SRC)
 
 run-gandalf-webserver: $(GANDALF_WEBSERVER_BIN)
 	$(GANDALF_WEBSERVER_BIN) $(GANDALF_WEBSERVER_OPTIONS)
@@ -33,7 +24,7 @@ run-gandalf-webserver: $(GANDALF_WEBSERVER_BIN)
 gandalf-ssh: $(GANDALF_SSH_BIN)
 
 $(GANDALF_SSH_BIN):
-	godep go build -o $(GANDALF_SSH_BIN) $(GANDALF_SSH_SRC)
+	go build -o $(GANDALF_SSH_BIN) $(GANDALF_SSH_SRC)
 
 run-gandalf-ssh: $(GANDALF_SSH_BIN)
 	$(GANDALF_SSH_BIN) $(GANDALF_SSH_OPTIONS)
