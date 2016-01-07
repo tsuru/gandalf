@@ -1,0 +1,141 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "github.com/codegangsta/negroni",
+			"revision": "a13766a8c2572caeb14341b7de158aff2fd00fa9",
+			"revisionTime": "2014-06-11T10:58:43-07:00"
+		},
+		{
+			"path": "github.com/gorilla/context",
+			"revision": "708054d61e5a2918b9f4e9700000ee611dcf03f5",
+			"revisionTime": "2013-05-30T20:21:01-07:00"
+		},
+		{
+			"path": "github.com/gorilla/mux",
+			"revision": "4b8fbc56f3b2400a7c7ea3dba9b3539787c486b6",
+			"revisionTime": "2014-08-11T07:46:53-07:00"
+		},
+		{
+			"path": "github.com/gorilla/pat",
+			"revision": "ae2e162c4b2ae96aa66b596b2c18f17834299ed0",
+			"revisionTime": "2013-12-04T23:16:17-08:00"
+		},
+		{
+			"path": "github.com/howeyc/fsnotify",
+			"revision": "5102fde921d31f59c6e45d835aa01f0213aade0f",
+			"revisionTime": "2013-11-21T08:20:02-08:00"
+		},
+		{
+			"path": "github.com/tsuru/commandmocker",
+			"revision": "88d44c8794279d20089055df94e1dfacb7381091",
+			"revisionTime": "2015-02-19T17:53:14-02:00"
+		},
+		{
+			"path": "github.com/tsuru/config",
+			"revision": "cedd0ae4817d94ddda2b1320f3a8c9154c4d0d57",
+			"revisionTime": "2015-03-18T18:21:35-03:00"
+		},
+		{
+			"path": "github.com/tsuru/tsuru/db/storage",
+			"revision": "010d540999c2b246d3777cc0c1550f6575787a0f",
+			"revisionTime": "2016-01-07T11:26:52-02:00"
+		},
+		{
+			"path": "github.com/tsuru/tsuru/errors",
+			"revision": "010d540999c2b246d3777cc0c1550f6575787a0f",
+			"revisionTime": "2016-01-07T11:26:52-02:00"
+		},
+		{
+			"path": "github.com/tsuru/tsuru/fs",
+			"revision": "010d540999c2b246d3777cc0c1550f6575787a0f",
+			"revisionTime": "2016-01-07T11:26:52-02:00"
+		},
+		{
+			"path": "github.com/tsuru/tsuru/fs/fstest",
+			"revision": "010d540999c2b246d3777cc0c1550f6575787a0f",
+			"revisionTime": "2016-01-07T11:26:52-02:00"
+		},
+		{
+			"path": "github.com/tsuru/tsuru/log",
+			"revision": "010d540999c2b246d3777cc0c1550f6575787a0f",
+			"revisionTime": "2016-01-07T11:26:52-02:00"
+		},
+		{
+			"path": "github.com/tsuru/tsuru/safe",
+			"revision": "010d540999c2b246d3777cc0c1550f6575787a0f",
+			"revisionTime": "2016-01-07T11:26:52-02:00"
+		},
+		{
+			"path": "golang.org/x/crypto/ssh",
+			"revision": "1fbbd62cfec66bd39d91e97749579579d4d3037e",
+			"revisionTime": "2014-12-09T13:38:15+11:00"
+		},
+		{
+			"path": "golang.org/x/crypto/ssh/agent",
+			"revision": "1fbbd62cfec66bd39d91e97749579579d4d3037e",
+			"revisionTime": "2014-12-09T13:38:15+11:00"
+		},
+		{
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "1fbbd62cfec66bd39d91e97749579579d4d3037e",
+			"revisionTime": "2014-12-09T13:38:15+11:00"
+		},
+		{
+			"path": "golang.org/x/crypto/ssh/testdata",
+			"revision": "1fbbd62cfec66bd39d91e97749579579d4d3037e",
+			"revisionTime": "2014-12-09T13:38:15+11:00"
+		},
+		{
+			"path": "gopkg.in/check.v1",
+			"revision": "64131543e7896d5bcc6bd5a76287eb75ea96c673",
+			"revisionTime": "2014-10-24T11:38:53-02:00"
+		},
+		{
+			"path": "gopkg.in/mgo.v2",
+			"revision": "3569c88678d88179dcbd68d02ab081cbca3cd4d0",
+			"revisionTime": "2015-06-04T11:26:27-04:00"
+		},
+		{
+			"path": "gopkg.in/mgo.v2/bson",
+			"revision": "3569c88678d88179dcbd68d02ab081cbca3cd4d0",
+			"revisionTime": "2015-06-04T11:26:27-04:00"
+		},
+		{
+			"path": "gopkg.in/mgo.v2/dbtest",
+			"revision": "3569c88678d88179dcbd68d02ab081cbca3cd4d0",
+			"revisionTime": "2015-06-04T11:26:27-04:00"
+		},
+		{
+			"path": "gopkg.in/mgo.v2/internal/sasl",
+			"revision": "3569c88678d88179dcbd68d02ab081cbca3cd4d0",
+			"revisionTime": "2015-06-04T11:26:27-04:00"
+		},
+		{
+			"path": "gopkg.in/mgo.v2/internal/scram",
+			"revision": "3569c88678d88179dcbd68d02ab081cbca3cd4d0",
+			"revisionTime": "2015-06-04T11:26:27-04:00"
+		},
+		{
+			"path": "gopkg.in/mgo.v2/testserver",
+			"revision": "3569c88678d88179dcbd68d02ab081cbca3cd4d0",
+			"revisionTime": "2015-06-04T11:26:27-04:00"
+		},
+		{
+			"path": "gopkg.in/mgo.v2/txn",
+			"revision": "3569c88678d88179dcbd68d02ab081cbca3cd4d0",
+			"revisionTime": "2015-06-04T11:26:27-04:00"
+		},
+		{
+			"path": "gopkg.in/tomb.v2",
+			"revision": "14b3d72120e8d10ea6e6b7f87f7175734b1faab8",
+			"revisionTime": "2014-06-26T11:46:23-03:00"
+		},
+		{
+			"path": "gopkg.in/yaml.v1",
+			"revision": "4914593b9558e85597f08346c798aea8f6fb899f",
+			"revisionTime": "2014-03-06T13:54:45-03:00"
+		}
+	]
+}
