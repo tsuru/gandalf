@@ -2,6 +2,4 @@
 webserver/webserver
 docs/build
 dist-*
-Godeps/_workspace
-Godeps/Readme
 build/
