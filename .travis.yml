@@ -1,24 +1,20 @@
 language: go
 sudo: false
 go:
-  - 1.4
-  - 1.5
+  - 1.5.2
+  - 1.6beta1
   - tip
 env:
-  - GOARCH=amd64
+  global:
+    - GOARCH=amd64
+    - GO15VENDOREXPERIMENT=1
 addons:
   apt:
     packages:
       - rsyslog
-before_install:
-  - sed -i "s|git://github.com/tsuru/gandalf.git|https://github.com/tsuru/gandalf|g" .git/config
-install:
-  - export PATH="$HOME/gopath/bin:$PATH"
-  - make get
 before_script:
   - rsyslogd &
 script:
   - make test
-  - rm -rf Godeps
   - ./check-fmt.sh
 services: mongodb
