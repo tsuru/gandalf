@@ -369,14 +369,14 @@ func (s *GandalfServer) revokeAccess(w http.ResponseWriter, r *http.Request) {
 	for _, repository := range repositories {
 		repo, index := s.findRepository(repository)
 		for _, user := range users {
-			if index = s.checkUserAccess(repo, user, readOnly); index > -1 {
+			if userAccessIndex := s.checkUserAccess(repo, user, readOnly); userAccessIndex > -1 {
 				if readOnly {
 					last := len(repo.ReadOnlyUsers) - 1
-					repo.ReadOnlyUsers[index] = repo.ReadOnlyUsers[last]
+					repo.ReadOnlyUsers[userAccessIndex] = repo.ReadOnlyUsers[last]
 					repo.ReadOnlyUsers = repo.ReadOnlyUsers[:last]
 				} else {
 					last := len(repo.Users) - 1
-					repo.Users[index] = repo.Users[last]
+					repo.Users[userAccessIndex] = repo.Users[last]
 					repo.Users = repo.Users[:last]
 				}
 			}
