@@ -576,19 +576,19 @@ func getLogs(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	total, err := strconv.Atoi(r.URL.Query().Get("total"))
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
+		err = fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	logs, err := repository.GetLogs(repo, ref, total, path)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
+		err = fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	b, err := json.Marshal(logs)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
+		err = fmt.Errorf("Error when trying to obtain logs for ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

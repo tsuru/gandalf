@@ -119,7 +119,7 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		return
 	}
 	defer conn.Close()
-	if err := conn.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
+	if err = conn.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
 		log.Err("Error obtaining user. Gandalf database is probably in an inconsistent state.")
 		fmt.Fprintln(os.Stderr, "Error obtaining user. Gandalf database is probably in an inconsistent state.")
 		return
