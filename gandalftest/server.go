@@ -204,7 +204,7 @@ func (s *GandalfServer) Reset() {
 
 func (s *GandalfServer) buildMuxer() {
 	s.muxer = pat.New()
-	s.muxer.Post("/user/{name}/key/{keyname}", http.HandlerFunc(s.updateKey))
+	s.muxer.Put("/user/{name}/key/{keyname}", http.HandlerFunc(s.updateKey))
 	s.muxer.Post("/user/{name}/key", http.HandlerFunc(s.addKeys))
 	s.muxer.Delete("/user/{name}/key/{keyname}", http.HandlerFunc(s.removeKey))
 	s.muxer.Get("/user/{name}/keys", http.HandlerFunc(s.listKeys))

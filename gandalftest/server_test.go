@@ -412,7 +412,7 @@ func (s *S) TestUpdateKey(c *check.C) {
 	server.users = []string{"myuser"}
 	server.keys["myuser"] = []key{{Name: "mykey", Body: "irrelevant"}}
 	body := strings.NewReader(publicKey)
-	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	request, _ := http.NewRequest("PUT", "/user/myuser/key/mykey", body)
 	recorder := httptest.NewRecorder()
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
@@ -426,7 +426,7 @@ func (s *S) TestUpdateKeyInvalid(c *check.C) {
 	server.users = []string{"myuser"}
 	server.keys["myuser"] = []key{{Name: "mykey", Body: "irrelevant"}}
 	body := strings.NewReader("some-invalid-key")
-	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	request, _ := http.NewRequest("PUT", "/user/myuser/key/mykey", body)
 	recorder := httptest.NewRecorder()
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
@@ -438,7 +438,7 @@ func (s *S) TestUpdateKeyUserNotFound(c *check.C) {
 	c.Assert(err, check.IsNil)
 	defer server.Stop()
 	body := strings.NewReader(publicKey)
-	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	request, _ := http.NewRequest("PUT", "/user/myuser/key/mykey", body)
 	recorder := httptest.NewRecorder()
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
@@ -452,7 +452,7 @@ func (s *S) TestUpdateKeyNotFound(c *check.C) {
 	server.users = []string{"myuser"}
 	server.keys["myuser"] = nil
 	body := strings.NewReader(publicKey)
-	request, _ := http.NewRequest("POST", "/user/myuser/key/mykey", body)
+	request, _ := http.NewRequest("PUT", "/user/myuser/key/mykey", body)
 	recorder := httptest.NewRecorder()
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusNotFound)
