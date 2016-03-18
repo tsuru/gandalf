@@ -18,3 +18,6 @@ script:
   - make test
   - ./check-fmt.sh
 services: mongodb
+matrix:
+  allow_failures:
+    - go: tip
