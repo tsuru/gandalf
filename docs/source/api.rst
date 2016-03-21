@@ -312,7 +312,7 @@ Add repository hook
 Create a repository hook.
 
 * Method: POST
-* URI: /repository/hook/`:name`
+* URI: /hook/`:name`
 
 Where:
 
@@ -326,7 +326,7 @@ Where:
 
 Example URL for bare repository (http://gandalf-server omitted for clarity)::
 
-    $ curl -d '{"content": "content of my post-receive hook"}' localhost:8000/repository/hook/post-receive
+    $ curl -d '{"content": "content of my post-receive hook"}' localhost:8000/hook/post-receive
 
 You should see the following:
 
@@ -339,7 +339,7 @@ You should see the following:
 
 Example URL for one or more repositories (http://gandalf-server omitted for clarity)::
 
-    $ curl -d '{"repositories": ["some-repo"], "content": "content of my update hook"}' localhost:8000/repository/hook/update
+    $ curl -d '{"repositories": ["some-repo"], "content": "content of my update hook"}' localhost:8000/hook/update
 
 You should see the following:
 
