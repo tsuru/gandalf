@@ -39,7 +39,6 @@ fi
 #     status=1
 # fi
 
-go get golang.org/x/tools/cmd/vet
 out=`go tool vet -shadow -all . 2>&1 | grep -v vendor/`
 if [ "${out}" != "" ]
 then
