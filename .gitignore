@@ -3,3 +3,4 @@ webserver/webserver
 docs/build
 dist-*
 build/
+main
