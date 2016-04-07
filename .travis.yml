@@ -1,5 +1,5 @@
 language: go
-sudo: false
+sudo: required
 go:
   - 1.5.3
   - 1.6
@@ -17,6 +17,7 @@ before_script:
 script:
   - make test
   - ./check-fmt.sh
+  - go build -ldflags "-linkmode external -extldflags -static" webserver/main.go
 services: mongodb
 matrix:
   allow_failures:
