@@ -103,10 +103,10 @@ func (s *S) TestNewUserShouldFailWhenMongoDbIsDown(c *check.C) {
 	oldURL, _ := config.Get("database:url")
 	defer config.Set("database:url", oldURL)
 	config.Unset("database:url")
-	config.Set("database:url", "127.0.0.2:27017")
+	config.Set("database:url", "invalid")
 	_, err := New("someuser", map[string]string{"somekey": rawKey})
 	c.Assert(err, check.NotNil)
-	c.Assert(err.Error(), check.Equals, "Failed to connect to MongoDB of Gandalf \"127.0.0.2:27017\" - no reachable servers.")
+	c.Assert(err.Error(), check.Equals, "Failed to connect to MongoDB of Gandalf \"invalid\" - no reachable servers.")
 }
 
 func (s *S) TestNewUserShouldStoreUserInDatabase(c *check.C) {
