@@ -92,3 +92,18 @@ func (s *S) TestConnectDefaultSettings(c *check.C) {
 	c.Assert(conn.User().Database.Name, check.Equals, "gandalf")
 	c.Assert(conn.User().Database.Session.LiveServers(), check.DeepEquals, []string{"127.0.0.1:27017"})
 }
+
+func (s *S) TestDbConfig(c *check.C) {
+	oldURL, _ := config.Get("database:url")
+	defer config.Set("database:url", oldURL)
+	oldName, _ := config.Get("database:name")
+	defer config.Set("database:name", oldName)
+	url, dbname := DbConfig()
+	c.Assert(url, check.Equals, oldURL)
+	c.Assert(dbname, check.Equals, oldName)
+	config.Unset("database:url")
+	config.Unset("database:name")
+	url, dbname = DbConfig()
+	c.Assert(url, check.Equals, "127.0.0.1:27017")
+	c.Assert(dbname, check.Equals, "gandalf")
+}
