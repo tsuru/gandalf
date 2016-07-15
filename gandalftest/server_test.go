@@ -7,6 +7,7 @@ package gandalftest
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tsuru/gandalf/repository"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -777,6 +778,30 @@ func (s *S) TestPrepareFailureNotMatching(c *check.C) {
 	request, _ := http.NewRequest("POST", "/users", body)
 	server.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+}
+
+func (s *S) TestGetLogs(c *check.C) {
+	repo := Repository{Name: "somerepo"}
+	server, err := NewServer("127.0.0.1:0")
+	c.Assert(err, check.IsNil)
+	defer server.Stop()
+	server.repos = []Repository{repo}
+	expected := repository.GitHistory{
+		Commits: []repository.GitLog{
+			{
+				Subject: "mymsg",
+			},
+		},
+	}
+	server.PrepareLogs(repo.Name, expected)
+	recorder := httptest.NewRecorder()
+	request, _ := http.NewRequest("GET", "/repository/somerepo/logs?ref=x", nil)
+	server.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	var result repository.GitHistory
+	err = json.Unmarshal(recorder.Body.Bytes(), &result)
+	c.Assert(err, check.IsNil)
+	c.Assert(result, check.DeepEquals, expected)
 }
 
 const publicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDD91CO+YIU6nIb+l+JewPMLbUB9IZx4g6IUuqyLbmCi+8DNliEjE/KWUISPlkPWoDK4ibEY/gZPLPRMT3acA+2cAf3uApBwegvDgtDv1lgtTbkMc8QJaT044Vg+JtVDFraXU4T8fn/apVMMXro0Kr/DaLzUsxSigGrCIRyT1vkMCnya8oaQHu1Qa/wnOjd6tZzvzIsxJirAbQvzlLOb89c7LTPhUByySTQmgSnoNR6ZdPpjDwnaQgyAjbsPKjhkQ1AkcxOxBi0GwwSCO7aZ+T3F/mJ1bUhEE5BMh+vO3HQ3gGkc1xeQW4H7ZL33sJkP0Tb9zslaE1lT+fuOi7NBUK5 f@somewhere"
