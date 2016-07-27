@@ -140,7 +140,7 @@ func New(name string, users, readOnlyUsers []string, isPublic bool) (*Repository
 		}
 		return nil, err
 	}
-	if err := newBare(name); err != nil {
+	if err = newBare(name); err != nil {
 		log.Errorf("repository.New: Error creating bare repository for %q: %s", name, err)
 		conn.Repository().Remove(bson.M{"_id": r.Name})
 		return r, err

@@ -456,13 +456,13 @@ func getTree(w http.ResponseWriter, r *http.Request) {
 	}
 	tree, err := repository.GetTree(repo, ref, path)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
+		err = fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	b, err := json.Marshal(tree)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
+		err = fmt.Errorf("Error when trying to obtain tree for path %s on ref %s of repository %s (%s).", path, ref, repo, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -473,13 +473,13 @@ func getBranches(w http.ResponseWriter, r *http.Request) {
 	repo := r.URL.Query().Get(":name")
 	branches, err := repository.GetBranches(repo)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+		err = fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	b, err := json.Marshal(branches)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
+		err = fmt.Errorf("Error when trying to obtain the branches of repository %s (%s).", repo, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -491,13 +491,13 @@ func getTags(w http.ResponseWriter, r *http.Request) {
 	ref := r.URL.Query().Get("ref")
 	tags, err := repository.GetTags(repo)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
+		err = fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	b, err := json.Marshal(tags)
 	if err != nil {
-		err := fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
+		err = fmt.Errorf("Error when trying to obtain tags on ref %s of repository %s (%s).", ref, repo, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
