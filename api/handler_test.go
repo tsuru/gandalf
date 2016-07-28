@@ -69,6 +69,7 @@ func (s *S) authKeysContent(c *check.C) string {
 	f, err := fs.Filesystem().OpenFile(authKeysPath, os.O_RDWR|os.O_EXCL, 0755)
 	c.Assert(err, check.IsNil)
 	content, err := ioutil.ReadAll(f)
+	c.Assert(err, check.IsNil)
 	return string(content)
 }
 
