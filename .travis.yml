@@ -7,7 +7,6 @@ go:
 env:
   global:
     - GOARCH=amd64
-    - GO15VENDOREXPERIMENT=1
 addons:
   apt:
     packages:
