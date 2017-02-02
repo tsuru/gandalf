@@ -7,6 +7,8 @@ go:
 env:
   global:
     - GOARCH=amd64
+    - GO_FOR_RELEASE=1.7.1
+    - IMAGE_NAME=tsuru/gandalf
 addons:
   apt:
     packages:
@@ -16,10 +18,13 @@ before_script:
 script:
   - make test
   - ./check-fmt.sh
-  - go build -ldflags "-linkmode external -extldflags -static" webserver/main.go
-services: mongodb
+  - go build -o build/gandalf-webserver -ldflags "-linkmode external -extldflags -static" webserver/main.go
+  - go build -o build/gandalf-ssh -ldflags "-linkmode external -extldflags -static" bin/gandalf.go
+services:
+  - docker
+  - mongodb
 matrix:
   allow_failures:
     - go: tip
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - curl https://raw.githubusercontent.com/tsuru/push-to-docker/master/push.sh | bash
