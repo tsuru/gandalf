@@ -497,7 +497,7 @@ func (*GitContentRetriever) GetForEachRef(repo, pattern string) ([]Ref, error) {
 		return nil, fmt.Errorf("Error when trying to obtain the refs of repository %s (Repository does not exist).", repo)
 	}
 	format := "%(objectname)%09%(refname:short)%09%(committername)%09%(committeremail)%09%(committerdate)%09%(authorname)%09%(authoremail)%09%(authordate)%09%(taggername)%09%(taggeremail)%09%(taggerdate)%09%(contents:subject)"
-	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--format", format)
+	cmd := exec.Command(gitPath, "for-each-ref", "--sort=-committerdate", "--sort=refname", "--format", format)
 	if len(pattern) > 0 {
 		cmd.Args = append(cmd.Args, pattern)
 	}
