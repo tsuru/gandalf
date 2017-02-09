@@ -1,4 +1,4 @@
-FROM alpine:3.5
+FROM alpine:3.4
 RUN apk update && apk upgrade \
     && apk --no-cache add bash curl git openssh rsyslog \
     && ssh-keygen -A \
