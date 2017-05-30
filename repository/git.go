@@ -5,13 +5,27 @@
 package repository
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/fs"
 )
+
+func GitVersion() (string, error) {
+	cmd := exec.Command("git", "version")
+	cmd.Stdin = os.Stdin
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	return strings.TrimSpace(stdout.String()), err
+}
 
 var bare string
 

@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -364,6 +365,16 @@ func parseBody(body io.ReadCloser, result interface{}) error {
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
+	dburl, _ := config.GetString("database:url")
+	if dburl == "" {
+		dburl = db.DefaultDatabaseURL
+	}
+	dbname, _ := config.GetString("database:name")
+	if dbname == "" {
+		dbname = db.DefaultDatabaseName
+	}
+	bareLocation, _ := config.GetString("git:bare:location")
+	bareTemplate, _ := config.GetString("git:bare:template")
 	conn, err := db.Conn()
 	if err != nil {
 		return
@@ -374,7 +385,25 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Failed to ping the database: %s\n", err)
 		return
 	}
-	w.Write([]byte("WORKING"))
+	result := make(map[string]interface{})
+	database := make(map[string]interface{})
+	database["url"] = dburl
+	database["name"] = dbname
+	git := make(map[string]interface{})
+	gitVersion, err := repository.GitVersion()
+	if err == nil && gitVersion != "" {
+		git["version"] = gitVersion
+	}
+	git["bare_location"] = bareLocation
+	git["bare_template"] = bareTemplate
+	result["database"] = database
+	result["git"] = git
+	result["pid"] = os.Getpid()
+	result["uid"] = os.Getuid()
+	result["status"] = "OK"
+	w.Header().Set("Content-Type", "application/json")
+	b, err := json.Marshal(result)
+	w.Write(b)
 }
 
 func getMimeType(path string, content []byte) string {
