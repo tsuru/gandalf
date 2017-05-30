@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/codegangsta/negroni"
+	"github.com/google/gops/agent"
+
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/api"
 	"github.com/tsuru/tsuru/log"
@@ -21,6 +23,7 @@ func main() {
 	dry := flag.Bool("dry", false, "dry-run: does not start the server (for testing purpose)")
 	configFile := flag.String("config", "/etc/gandalf.conf", "Gandalf configuration file")
 	gVersion := flag.Bool("version", false, "Print version and exit")
+	diagnostic := flag.Bool("diagnostic", false, "Start diagnostics agent with github.com/google/gops. Ignored when running with -dry")
 	flag.Parse()
 	if *gVersion {
 		fmt.Printf("gandalf-webserver version %s\n", version)
@@ -56,6 +59,14 @@ func main() {
 		if err != nil {
 			panic("You should configure a git:bare:location for gandalf.")
 		}
+
+		if *diagnostic {
+			if err := agent.Listen(nil); err != nil {
+				log.Fatal(err.Error())
+			}
+			fmt.Println("Diagnostics agent started")
+		}
+
 		fmt.Printf("Repository location: %s\n", bareLocation)
 		fmt.Printf("gandalf-webserver %s listening on %s\n", version, bind)
 		http.ListenAndServe(bind, router)
