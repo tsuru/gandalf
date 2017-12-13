@@ -1,6 +1,6 @@
 FROM alpine:3.4
 RUN apk update && apk upgrade \
-    && apk --no-cache add bash curl git openssh rsyslog \
+    && apk --no-cache add bash curl git openssh rsyslog python \
     && ssh-keygen -A \
     && echo -e "Port 22\nPermitUserEnvironment yes" >> /etc/ssh/sshd_config
 RUN adduser -D git \
