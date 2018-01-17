@@ -17,6 +17,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
@@ -24,8 +26,6 @@ import (
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
 	"gopkg.in/check.v1"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 type bufferCloser struct {

@@ -7,6 +7,7 @@ package api
 import (
 	"testing"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/pat"
 	"github.com/tsuru/commandmocker"
 	"github.com/tsuru/config"
@@ -15,7 +16,6 @@ import (
 	"github.com/tsuru/gandalf/user"
 	"github.com/tsuru/tsuru/fs/fstest"
 	"gopkg.in/check.v1"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func Test(t *testing.T) { check.TestingT(t) }

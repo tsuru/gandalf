@@ -1,9 +1,11 @@
-// Copyright 2015 tsuru authors. All rights reserved.
+// Copyright 2013 tsuru authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package log
 
-func NewSyslogLogger(tag string, debug bool) Logger {
-	panic("syslog doesn't work on Windows")
+import "github.com/pkg/errors"
+
+func NewSyslogLogger(tag string, debug bool) (Logger, error) {
+	return nil, errors.New("syslog doesn't work on Windows")
 }

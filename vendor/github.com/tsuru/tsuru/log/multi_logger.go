@@ -1,4 +1,4 @@
-// Copyright 2015 tsuru authors. All rights reserved.
+// Copyright 2014 tsuru authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -56,5 +56,8 @@ func (m *multiLogger) Fatalf(format string, v ...interface{}) {
 }
 
 func (m *multiLogger) GetStdLogger() *log.Logger {
+	if len(m.loggers) == 0 {
+		return nil
+	}
 	return m.loggers[0].GetStdLogger()
 }

@@ -1,4 +1,4 @@
-// Copyright 2015 tsuru authors. All rights reserved.
+// Copyright 2012 tsuru authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -16,6 +16,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/tsuru/config"
 )
 
@@ -29,7 +30,7 @@ type Logger interface {
 	GetStdLogger() *log.Logger
 }
 
-func Init() {
+func Init() error {
 	var loggers []Logger
 	debug, _ := config.GetBool("debug")
 	if logFileName, err := config.GetString("log:file"); err == nil {
@@ -42,12 +43,17 @@ func Init() {
 		if tag == "" {
 			tag = "tsurud"
 		}
-		loggers = append(loggers, NewSyslogLogger(tag, debug))
+		syslogLogger, err := NewSyslogLogger(tag, debug)
+		if err != nil {
+			return err
+		}
+		loggers = append(loggers, syslogLogger)
 	}
 	if useStderr, _ := config.GetBool("log:use-stderr"); useStderr {
 		loggers = append(loggers, NewWriterLogger(os.Stderr, debug))
 	}
 	SetLogger(NewMultiLogger(loggers...))
+	return nil
 }
 
 // Target is the current target for the log package.
@@ -67,12 +73,16 @@ func (t *Target) SetLogger(l Logger) {
 
 // Error writes the given values to the Target
 // logger.
-func (t *Target) Error(v string) {
+func (t *Target) Error(v error) {
 	t.mut.RLock()
 	defer t.mut.RUnlock()
 	if t.logger != nil {
-		t.logger.Error(v)
+		t.logger.Errorf("%+v", v)
 	}
+}
+
+type withStack interface {
+	StackTrace() errors.StackTrace
 }
 
 // Errorf writes the formatted string to the Target
@@ -82,6 +92,11 @@ func (t *Target) Errorf(format string, v ...interface{}) {
 	defer t.mut.RUnlock()
 	if t.logger != nil {
 		t.logger.Errorf(format, v...)
+		for _, item := range v {
+			if _, hasStack := item.(withStack); hasStack {
+				t.logger.Errorf("stack for error: %+v", item)
+			}
+		}
 	}
 }
 
@@ -139,7 +154,7 @@ func (t *Target) GetStdLogger() *log.Logger {
 var DefaultTarget = new(Target)
 
 // Error is a wrapper for DefaultTarget.Error.
-func Error(v string) {
+func Error(v error) {
 	DefaultTarget.Error(v)
 }
 
@@ -180,7 +195,7 @@ func SetLogger(logger Logger) {
 
 func WrapError(err error) error {
 	if err != nil {
-		Error(err.Error())
+		Error(err)
 	}
 	return err
 }

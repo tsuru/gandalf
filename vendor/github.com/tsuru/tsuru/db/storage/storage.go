@@ -1,4 +1,4 @@
-// Copyright 2015 tsuru authors. All rights reserved.
+// Copyright 2014 tsuru authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,12 +8,14 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/mgo.v2"
+	"github.com/globalsign/mgo"
 )
 
 var (
 	sessions    = map[string]*mgo.Session{}
 	sessionLock sync.RWMutex
+	createdMap  = map[string]struct{}{}
+	createdLock sync.RWMutex
 )
 
 // Storage holds the connection with the database.
@@ -29,6 +31,29 @@ type Collection struct {
 	*mgo.Collection
 }
 
+func (c *Collection) Create(info *mgo.CollectionInfo) error {
+	createdLock.RLock()
+	if _, ok := createdMap[c.Name]; ok {
+		createdLock.RUnlock()
+		return nil
+	}
+	createdLock.RUnlock()
+	createdLock.Lock()
+	defer createdLock.Unlock()
+	if _, ok := createdMap[c.Name]; ok {
+		return nil
+	}
+	createdMap[c.Name] = struct{}{}
+	return c.Collection.Create(info)
+}
+
+func (c *Collection) DropCollection() error {
+	createdLock.Lock()
+	defer createdLock.Unlock()
+	delete(createdMap, c.Name)
+	return c.Collection.DropCollection()
+}
+
 // Close closes the session with the database.
 func (c *Collection) Close() {
 	c.Collection.Database.Session.Close()
@@ -40,6 +65,7 @@ func open(addr string) (*mgo.Session, error) {
 		return nil, err
 	}
 	dialInfo.FailFast = true
+	dialInfo.DialServer = instrumentedDialServer(dialInfo.Timeout)
 	session, err := mgo.DialWithInfo(dialInfo)
 	if err != nil {
 		return nil, err

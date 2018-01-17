@@ -1,4 +1,4 @@
-// Copyright 2015 tsuru authors. All rights reserved.
+// Copyright 2012 tsuru authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -15,7 +15,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	"github.com/tsuru/tsuru/fs"
 	"github.com/tsuru/tsuru/safe"
@@ -33,7 +32,6 @@ type FakeFile struct {
 	name    string
 	r       *safe.BytesReader
 	f       *os.File
-	modTime time.Time
 	dir     bool
 }
 

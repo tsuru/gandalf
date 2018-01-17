@@ -16,13 +16,13 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/tsuru/config"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/fs"
 	"github.com/tsuru/gandalf/multipartzip"
 	"github.com/tsuru/tsuru/log"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var tempDir string
@@ -328,7 +328,7 @@ func GrantAccess(rNames, uNames []string, readOnly bool) error {
 	if err != nil {
 		return err
 	}
-	if info.Updated < 1 {
+	if info.Matched == 0 {
 		return ErrRepositoryNotFound
 	}
 	return nil
@@ -351,7 +351,7 @@ func RevokeAccess(rNames, uNames []string, readOnly bool) error {
 	if err != nil {
 		return err
 	}
-	if info.Updated < 1 {
+	if info.Matched == 0 {
 		return ErrRepositoryNotFound
 	}
 	return nil

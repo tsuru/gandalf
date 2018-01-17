@@ -7,9 +7,9 @@ package api
 import (
 	"fmt"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/user"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func getUserOr404(name string) (user.User, error) {
