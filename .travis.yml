@@ -1,12 +1,12 @@
 language: go
 sudo: required
 go:
-  - 1.9.2
+  - 1.11.1
   - master
 env:
   global:
     - GOARCH=amd64
-    - GO_FOR_RELEASE=1.9.2
+    - GO_FOR_RELEASE=1.11.1
     - IMAGE_NAME=tsuru/gandalf
 addons:
   apt:
