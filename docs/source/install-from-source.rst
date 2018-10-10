@@ -32,7 +32,7 @@ So let's run it:
 ::
 
     $ cd $GOPATH/src/github.com/tsuru/gandalf
-    $ ./misc/setup.sh
+    $ ./misc/setup.bash
 
 No output means no error :)
 
