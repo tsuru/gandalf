@@ -82,14 +82,14 @@ func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsPublic(c *check
 }
 
 func (s *S) TestHasReadPermissionShouldReturnTrueWhenRepositoryIsNotPublicAndUserHasPermissionToRead(c *check.C) {
-	user, err := user.New("readonlyuser", map[string]string{})
+	readOnlyUser, err := user.New("readonlyuser", map[string]string{})
 	c.Check(err, check.IsNil)
 	repo := &repository.Repository{
 		Name:          "otherapp",
 		Users:         []string{s.user.Name},
-		ReadOnlyUsers: []string{user.Name},
+		ReadOnlyUsers: []string{readOnlyUser.Name},
 	}
-	allowed := hasReadPermission(user, repo)
+	allowed := hasReadPermission(readOnlyUser, repo)
 	c.Assert(allowed, check.Equals, true)
 }
 
