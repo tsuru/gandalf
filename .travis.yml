@@ -20,7 +20,9 @@ script:
   - ./check-fmt.sh
   - go build -o build/gandalf-webserver -ldflags "-linkmode external -extldflags -static" webserver/main.go
   - go build -o build/gandalf-ssh -ldflags "-linkmode external -extldflags -static" bin/gandalf.go
-  - make doc
+  - python -m pip install --user virtualenv
+  - virtualenv -p python2 venv
+  - source venv/bin/activate && make doc
 services:
   - docker
   - mongodb
