@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/syslog"
 	"os"
 	"os/exec"
 	"path"
@@ -21,9 +20,8 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
+	"github.com/tsuru/tsuru/log"
 )
-
-var log *syslog.Writer
 
 func hasWritePermission(u *user.User, r *repository.Repository) (allowed bool) {
 	for _, userName := range r.Users {
@@ -120,24 +118,21 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 	}
 	defer conn.Close()
 	if err = conn.User().Find(bson.M{"_id": os.Args[1]}).One(&u); err != nil {
-		log.Err("Error obtaining user. Gandalf database is probably in an inconsistent state.")
-		fmt.Fprintln(os.Stderr, "Error obtaining user. Gandalf database is probably in an inconsistent state.")
+		log.Errorf("Error obtaining user. Gandalf database is probably in an inconsistent state.")
 		return
 	}
 	repo, err := requestedRepository()
 	if err != nil {
-		log.Err(err.Error())
-		fmt.Fprintln(os.Stderr, err.Error())
+		log.Error(err)
 		return
 	}
 	if f(&u, &repo) {
 		// split into a function (maybe executeCmd)
 		c, err := formatCommand()
 		if err != nil {
-			log.Err(err.Error())
-			fmt.Fprintln(os.Stderr, err.Error())
+			log.Error(err)
 		}
-		log.Info("Executing " + strings.Join(c, " "))
+		log.GetStdLogger().Println("Executing " + strings.Join(c, " "))
 		cmd := exec.Command(c[0], c[1:]...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = stdout
@@ -148,35 +143,31 @@ func executeAction(f func(*user.User, *repository.Repository) bool, errMsg strin
 		cmd.Stderr = stderr
 		err = cmd.Run()
 		if err != nil {
-			log.Err("Got error while executing original command: " + err.Error())
-			log.Err(stderr.String())
-			fmt.Fprintln(os.Stderr, "Got error while executing original command: "+err.Error())
-			fmt.Fprintln(os.Stderr, stderr.String())
+			log.Errorf("Got error while executing original command: %v", err)
+			log.Errorf(stderr.String())
 		}
 		return
 	}
-	log.Err("Permission denied.")
-	log.Err(errMsg)
-	fmt.Fprintln(os.Stderr, "Permission denied.")
-	fmt.Fprintln(os.Stderr, errMsg)
+	log.Errorf("Permission denied: %v", errMsg)
 }
 
 func formatCommand() ([]string, error) {
 	p, err := config.GetString("git:bare:location")
 	if err != nil {
-		log.Err(err.Error())
+		log.Error(err)
 		return []string{}, err
 	}
 	_, repoName, err := parseGitCommand()
 	if err != nil {
-		log.Err(err.Error())
+		log.Error(err)
 		return []string{}, err
 	}
 	repoName += ".git"
 	cmdList := strings.Split(os.Getenv("SSH_ORIGINAL_COMMAND"), " ")
 	if len(cmdList) != 2 {
-		log.Err("Malformed git command")
-		return []string{}, fmt.Errorf("Malformed git command")
+		err = fmt.Errorf("Malformed git command")
+		log.Error(err)
+		return []string{}, err
 	}
 	cmdList[1] = path.Join(p, repoName)
 	return cmdList, nil
@@ -184,21 +175,18 @@ func formatCommand() ([]string, error) {
 
 func main() {
 	var err error
-	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		panic(err.Error())
-	}
 	err = config.ReadConfigFile("/etc/gandalf.conf")
 	if err != nil {
-		log.Err(err.Error())
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err = log.Init(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
-		return
+		os.Exit(1)
 	}
 	_, _, err = parseGitCommand()
 	if err != nil {
-		log.Err(err.Error())
-		fmt.Fprintln(os.Stderr, err.Error())
+		log.Error(err)
 		return
 	}
 	a := action()
