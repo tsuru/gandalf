@@ -6,7 +6,6 @@ package main
 
 import (
 	"bytes"
-	"log/syslog"
 	"os"
 	"path"
 	"testing"
@@ -17,6 +16,7 @@ import (
 	"github.com/tsuru/gandalf/db"
 	"github.com/tsuru/gandalf/repository"
 	"github.com/tsuru/gandalf/user"
+	"github.com/tsuru/tsuru/log"
 	"gopkg.in/check.v1"
 )
 
@@ -31,9 +31,10 @@ var _ = check.Suite(&S{})
 
 func (s *S) SetUpSuite(c *check.C) {
 	var err error
-	log, err = syslog.New(syslog.LOG_INFO, "gandalf-listener")
-	c.Check(err, check.IsNil)
 	err = config.ReadConfigFile("../etc/gandalf.conf")
+	c.Check(err, check.IsNil)
+	config.Set("log:disable-syslog", "true")
+	err = log.Init()
 	c.Check(err, check.IsNil)
 	config.Set("database:name", "gandalf_bin_tests")
 	s.user, err = user.New("testuser", map[string]string{})
