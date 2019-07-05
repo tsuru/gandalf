@@ -7,7 +7,10 @@ GANDALF_SSH_SRC = bin/gandalf.go
 test:
 	./go.test.bash
 
-doc:
+_install_requirements:
+	@pip install -r requirements.txt
+
+doc: _install_requirements
 	@cd docs && make html
 
 binaries: gandalf-webserver gandalf-ssh

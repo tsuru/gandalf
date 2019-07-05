@@ -12,6 +12,7 @@ addons:
   apt:
     packages:
       - rsyslog
+      - python
 before_script:
   - rsyslogd &
 script:
